@@ -84,13 +84,6 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 
 ## Next Steps for This Repo
 
-- [x] Implement storage point generator logic (template → concrete points):
-      `tools/compile.py` expands `storage_point_generator` and
-      `layout_variants` into concrete `storage_point` instances. It runs
-      independently of `validate.py` and does not re-check schema
-      conformance - run `validate.py` first. It does warn (not error) when
-      an `exceptions[].coordinate` doesn't match any generated point
-      (likely a typo), and errors on duplicate generated ids.
 - [ ] Optional: import mapper for AutomationML (CAEX) as an alternative source
 - [ ] Map `compile.py` output to actual WMS/runtime entities (e.g. a
       Linq2db model) - currently it only produces an intermediate YAML,
