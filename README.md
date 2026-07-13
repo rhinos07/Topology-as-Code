@@ -83,6 +83,4 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
       integrity between files: does every `movement_rule` reference an
       existing `storage_type`?)
 - [ ] Implement storage point generator logic (template → concrete points)
-- [ ] Compiler step: YAML → runtime entities (Linq2db model)
 - [ ] Optional: import mapper for AutomationML (CAEX) as an alternative source
-- [ ] Set up a TeamCity pipeline instead of/in addition to GitHub Actions
