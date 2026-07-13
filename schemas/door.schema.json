@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kardex.internal/schemas/door.schema.json",
+  "title": "Door",
+  "description": "A physical door for goods receipt or goods dispatch, staging inventory in a designated section.",
+  "type": "object",
+  "required": ["id", "direction", "staging_section"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+$",
+      "description": "Unique ID, e.g. 'DOOR_01'"
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["inbound", "outbound"],
+      "description": "inbound: goods receipt door. outbound: goods dispatch door."
+    },
+    "staging_section": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+\\.[A-Z0-9_]+$",
+      "description": "Reference to a section of a storage_type in the form '<storage_type_id>.<section_id>', e.g. 'STAGING.SEC_STAGING_OUT'."
+    },
+    "determination_group": {
+      "type": "string",
+      "description": "Load unit type group used for door/gate determination, e.g. 'pallets'."
+    }
+  },
+  "additionalProperties": true
+}

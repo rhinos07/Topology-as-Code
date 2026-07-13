@@ -6,6 +6,10 @@ lanes:
     template: "lane_shuttle_standard"
     connects: ["HBR", "DOOR_01"]
 
+  - id: "lane_main_b"
+    template: "lane_shuttle_standard"
+    connects: ["WC_PACK_01", "DOOR_02"]
+
 conveyor_segments:
   - id: "SEG_C01_C02"
     from: "RP_C01"

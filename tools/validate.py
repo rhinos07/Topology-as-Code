@@ -78,6 +78,17 @@ def validate_storage_types(path: Path) -> list[str]:
     return errors
 
 
+def validate_doors(path: Path) -> list[str]:
+    errors = []
+    data = load_yaml(path)
+    schema = load_schema("door.schema.json")
+    validator = Draft7Validator(schema)
+    for door in data.get("doors", []):
+        for err in validator.iter_errors(door):
+            errors.append(f"{path}: door '{door.get('id', '?')}': {err.message}")
+    return errors
+
+
 def validate_movement_rules(path: Path) -> list[str]:
     errors = []
     data = load_yaml(path)
@@ -125,6 +136,7 @@ def main(argv: list[str]) -> int:
         name = imported.name
         if name == "storage.yaml":
             all_errors += validate_storage_types(imported)
+            all_errors += validate_doors(imported)
         elif name == "movement_rules.yaml":
             all_errors += validate_movement_rules(imported)
         elif name == "replenishment.yaml":

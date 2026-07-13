@@ -94,6 +94,32 @@ storage_types:
       temperature_zone: "2-8C"
       capacity_per_point: 1
 
+  # --- Staging area at the doors, manual ---
+  - id: "STAGING"
+    automation_level: "manual"
+    movement_policy: "default_allow"
+    access_model: "block"
+    depth: 1
+    stack_height: 1
+    access_order: "lifo"
+
+    storage_point_generator:
+      aisles: 4
+      stacks: 1
+      levels: 1
+      coordinate_pattern: "STG-{aisle:02d}"
+
+    default_attributes:
+      max_weight: "1000kg"
+      temperature_zone: "ambient"
+      capacity_per_point: 1
+
+    sections:
+      - id: "SEC_STAGING_IN"
+        criteria: { flow_direction: "inbound" }
+      - id: "SEC_STAGING_OUT"
+        criteria: { flow_direction: "outbound" }
+
 # Functional cross-cutting grouping - orthogonal to the physical hierarchy.
 # A storage_point can be in multiple activity_areas at the same time.
 activity_areas:
@@ -114,9 +140,16 @@ work_centers:
   - id: "WC_PACK_01"
     step: "packing"
     workstation_template: "ws_pick_to_light"
+    storage_point_ref: true    # WIP inventory can be booked at the work center itself
 
 # Doors / goods receipt-dispatch
 doors:
   - id: "DOOR_01"
-    staging_section: "SEC_STAGING_IN"
+    direction: "inbound"
+    staging_section: "STAGING.SEC_STAGING_IN"
+    determination_group: "pallets"
+
+  - id: "DOOR_02"
+    direction: "outbound"
+    staging_section: "STAGING.SEC_STAGING_OUT"
     determination_group: "pallets"

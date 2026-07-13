@@ -49,3 +49,11 @@ movement_rules:
     access_constraint: "lifo"
     homogeneity_check: true
     trigger: "putaway_task"
+
+  # --- Outbound: packing station to goods-issue staging ---
+  - id: "MOVE_PACK_TO_OUTBOUND"
+    applies_to_policy: "default_allow"
+    from: { work_center: "WC_PACK_01" }
+    to: { storage_type: "STAGING", section: "SEC_STAGING_OUT" }
+    allowed: true
+    trigger: "pick_task"

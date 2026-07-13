@@ -14,7 +14,7 @@ industry vocabulary), but named independently where it made more sense
 | `storage_point` | Smallest physical/logical storage unit (formerly "storage bin"). Rack location or block location. |
 | `storage_point_generator` | Generates `storage_point`s from a grid instead of enumerating them individually |
 | `activity_area` | Functional cross-cutting grouping, orthogonal to the physical hierarchy. A `storage_point` can belong to multiple `activity_area`s simultaneously. |
-| `work_center` | Physical unit for activities such as packing, weighing |
+| `work_center` | Physical unit for activities such as packing, weighing. Set `storage_point_ref: true` if WIP inventory can be booked directly at the work center (same pattern as `reporting_point`). |
 | `door` / `staging_area` | Doors for goods receipt/dispatch |
 | `lane` / `conveyor_segment` | Physical connection/conveyor technology between areas (**"can"**) |
 | `reporting_point` | Communication point between WMS and PLC; is technically always also modeled as a `storage_point` |
@@ -66,3 +66,10 @@ industry vocabulary), but named independently where it made more sense
 5. **Structure (`structure/`) vs. strategies (`strategies/`)**: Separate
    folders/lifecycles, because they change at different frequencies and
    have different target audiences (technician vs. logistics planner).
+
+6. **`storage_point_ref: true` as a reusable pattern**: Several entities
+   are not primarily storage locations but still need to hold bookable
+   inventory (WIP, staged goods) — `reporting_point` and `work_center`
+   both use this flag rather than being redefined as `storage_type`s.
+   This keeps their functional role (communication point, activity
+   location) separate from the fact that they also carry stock.
