@@ -103,6 +103,15 @@
         "additionalProperties": true
       }
     },
+    "layout_grid": {
+      "type": "object",
+      "description": "Required together with layout_variants. Defines how many physical bays exist (aisle x bay); each bay gets expanded into positions_per_bay storage_points per variant.",
+      "properties": {
+        "aisles": { "type": "integer", "minimum": 1, "default": 1 },
+        "bays": { "type": "integer", "minimum": 1, "default": 1 }
+      },
+      "additionalProperties": false
+    },
     "default_attributes": {
       "type": "object",
       "description": "Attributes that apply to all generated storage_points, unless an exception overrides them.",
@@ -168,12 +177,24 @@
     }
   },
   "additionalProperties": true,
-  "if": {
-    "properties": { "access_model": { "const": "channel" } }
-  },
-  "then": {
-    "required": ["channel_depth", "entry_side", "exit_side"]
-  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "access_model": { "const": "channel" } }
+      },
+      "then": {
+        "required": ["channel_depth", "entry_side", "exit_side"]
+      }
+    },
+    {
+      "if": {
+        "required": ["layout_variants"]
+      },
+      "then": {
+        "required": ["layout_grid"]
+      }
+    }
+  ],
   "definitions": {
     "size": {
       "type": "object",

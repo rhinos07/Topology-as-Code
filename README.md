@@ -42,7 +42,9 @@ warehouse-definitions/
 │           ├── replenishment.yaml
 │           └── movement_rules.yaml
 ├── tools/
-│   └── validate.py       # Validation script (schema + consistency checks)
+│   ├── validate.py       # Validation script (schema + consistency checks)
+│   └── compile.py        # Expands storage_point_generator/layout_variants into
+│                         #   concrete storage_point instances (build/ output)
 ├── docs/
 │   └── entity-glossary.md
 └── .github/workflows/validate.yaml   # CI pipeline (example, may need porting to TeamCity)
@@ -56,6 +58,9 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 python tools/validate.py customers/example_customer/warehouse.yaml
+
+# Expand storage_point_generator/layout_variants into concrete storage_points
+python tools/compile.py customers/example_customer/warehouse.yaml --output build/storage_points.yaml
 ```
 
 ## Core Concepts (Quick Reference)
@@ -79,8 +84,17 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 
 ## Next Steps for This Repo
 
-- [ ] Implement storage point generator logic (template → concrete points)
+- [x] Implement storage point generator logic (template → concrete points):
+      `tools/compile.py` expands `storage_point_generator` and
+      `layout_variants` into concrete `storage_point` instances. It runs
+      independently of `validate.py` and does not re-check schema
+      conformance - run `validate.py` first. It does warn (not error) when
+      an `exceptions[].coordinate` doesn't match any generated point
+      (likely a typo), and errors on duplicate generated ids.
 - [ ] Optional: import mapper for AutomationML (CAEX) as an alternative source
+- [ ] Map `compile.py` output to actual WMS/runtime entities (e.g. a
+      Linq2db model) - currently it only produces an intermediate YAML,
+      not a WMS-specific import format
 
 ### Open Validation Gaps
 
@@ -107,12 +121,36 @@ file's cross-references. Known gaps:
 3. **`layout_variants` exclusivity is undeclared to tooling.** That two
    variants (e.g. "2 industrial pallets" vs. "3 euro pallets" per bay)
    physically overlap is documented but not machine-checked.
-4. **`storage_point_generator`/`layout_variants` are not compiled.** The
-   schema validates the template, not the generated `storage_point`
-   instances (see "Implement storage point generator logic" above).
+4. ~~`storage_point_generator`/`layout_variants` are not compiled.~~
+   **Resolved** by `tools/compile.py` — see "Next Steps" above. Note this
+   only expands templates into concrete points; it does not validate them
+   against the JSON schemas (run `validate.py` first).
 5. **No physical compatibility check** between a `storage_type`'s
    `size`/`max_weight` and its referenced `allowed_load_unit_types` (e.g.
    whether a euro pallet actually fits a 0.4m-wide bay).
 6. **Minor:** `jsonschema.RefResolver` is deprecated (warning on every
    run, still functional). `validate_file()`'s `root_key` parameter is
    currently unused dead code.
+
+### Structural Gaps (Not Yet Modeled)
+
+- **No multi-facility hierarchy.** Currently one `warehouse` per customer
+  folder, no Company → Facility → Building structure (as in Manhattan WMS).
+- **No UOM hierarchy concept** (Each → Case → Pallet conversion ratios)
+  beyond what `replenishment_strategy.unit_conversion` already covers.
+- **No slotting optimization module** — deliberately excluded, this is
+  runtime/analytics territory, not structure.
+- **No yard management** (yard, trailers, check-in points) — deliberately
+  excluded as runtime, same reasoning as Warehouse Tasks/Waves.
+
+### Out of Scope (By Design)
+
+Per architectural principle 1 (structure vs. runtime state, see
+`docs/entity-glossary.md`), the following intentionally do **not** belong
+in this repo:
+
+- Runtime state: current inventory, occupancy, waves, warehouse tasks/orders
+- Product master data: items/SKUs, batches
+- Labor management: engineered labor standards, workforce scheduling
+
+These live in the WMS runtime database or ERP/product master, not here.

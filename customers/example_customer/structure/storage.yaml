@@ -58,6 +58,10 @@ storage_types:
         positions_per_bay: 3
         coordinate_pattern: "FLEX-{aisle:02d}-{bay:02d}-EUR-{slot:1d}"
 
+    layout_grid:
+      aisles: 2
+      bays: 3
+
     default_attributes:
       max_weight: "1000kg"
       temperature_zone: "ambient"
