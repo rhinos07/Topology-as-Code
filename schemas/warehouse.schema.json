@@ -18,7 +18,7 @@
         "imports": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Relative Pfade zu weiteren YAML-Dateien (structure/, strategies/)."
+          "description": "Relative paths to further YAML files (structure/, strategies/)."
         },
         "fleet_interface": {
           "type": "object",

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://kardex.internal/schemas/replenishment-strategy.schema.json",
   "title": "Replenishment Strategy",
-  "description": "Nachschub-Regel. Ist Prozesskonfiguration, keine physische Struktur - eigener Lifecycle/Review-Flow.",
+  "description": "Replenishment rule. Is process configuration, not physical structure - own lifecycle/review flow.",
   "type": "object",
   "required": ["id", "trigger", "source", "destination"],
   "properties": {

@@ -1,47 +1,48 @@
-# warehouse-definitions
+# Warehouse-as-Code
 
-Warehouse-as-Code: deklarative, versionierte Beschreibung von Lagerstrukturen,
-Materialfluss-Kommunikation und Prozessstrategien (Nachschub, Bewegungsregeln)
-als YAML, validiert per CI, kompiliert zu Runtime-Entities.
+Warehouse-as-Code: declarative, version-controlled description of warehouse
+structures, material-flow communication, and process strategies
+(replenishment, movement rules) as YAML, validated via CI, compiled into
+runtime entities.
 
-## Grundprinzip
+## Core Principle
 
-| Ebene | Was | Änderungsfrequenz | Wer ändert |
+| Layer | What | Change Frequency | Who Changes It |
 |---|---|---|---|
-| `elements/` | Wiederverwendbare Templates (Regaltypen etc.) | sehr selten | Techniker/Architekt |
-| `customers/<kunde>/structure/` | Physische Lagerstruktur eines Kunden | selten (bei Umbau) | Techniker, strenger Review |
-| `customers/<kunde>/strategies/` | Nachschub-, Bewegungs-, Slotting-Regeln | häufig | Logistikplaner, lockerer Review |
+| `elements/` | Reusable templates (rack types, etc.) | very rarely | Technician/Architect |
+| `customers/<customer>/structure/` | Physical warehouse structure of a customer | rarely (during rebuilds) | Technician, strict review |
+| `customers/<customer>/strategies/` | Replenishment, movement, and slotting rules | frequently | Logistics planner, lenient review |
 
-Laufzeitzustand (aktueller Bestand, Belegung, Verfügbarkeit von Ressourcen)
-lebt **nicht** hier, sondern in der Runtime-Datenbank des WMS. Diese Repos
-beschreiben nur den **Soll-Zustand** der Struktur und der Regeln — analog zu
-Terraform: der Code beschreibt die Infrastruktur, nicht deren aktuellen
-Live-Status.
+Runtime state (current inventory, occupancy, resource availability) does
+**not** live here, but in the WMS runtime database. These repos only
+describe the **desired state** of the structure and rules — analogous to
+Terraform: the code describes the infrastructure, not its current live
+status.
 
-## Repo-Struktur
+## Repo Structure
 
 ```
 warehouse-definitions/
-├── schemas/              # JSON Schema zur Validierung aller YAML-Dateien
-├── elements/             # Wiederverwendbare Templates (Rack-Typen etc.)
+├── schemas/              # JSON Schema for validating all YAML files
+├── elements/             # Reusable templates (rack types, etc.)
 ├── customers/
-│   └── <kunde>/
-│       ├── warehouse.yaml        # Top-Level, importiert die anderen Dateien
-│       ├── structure/            # Physische Struktur
-│       │   ├── storage.yaml      # Storage Types + Storage-Point-Generatoren
-│       │   ├── lanes.yaml        # Fördertechnik / Lanes / Conveyor-Segmente
-│       │   └── mfr.yaml          # Meldepunkte, SPS, Telegramm-Aktionen
-│       └── strategies/           # Prozessregeln
+│   └── <customer>/
+│       ├── warehouse.yaml        # Top level, imports the other files
+│       ├── structure/            # Physical structure
+│       │   ├── storage.yaml      # Storage types + storage point generators
+│       │   ├── lanes.yaml        # Conveyor technology / lanes / conveyor segments
+│       │   └── wcs.yaml          # Warehouse Control System: reporting points, PLC, telegram actions
+│       └── strategies/           # Process rules
 │           ├── replenishment.yaml
 │           └── movement_rules.yaml
 ├── tools/
-│   └── validate.py       # Validierungs-Script (Schema + Konsistenzchecks)
+│   └── validate.py       # Validation script (schema + consistency checks)
 ├── docs/
 │   └── entity-glossary.md
-└── .github/workflows/validate.yaml   # CI-Pipeline (Beispiel, ggf. nach TeamCity portieren)
+└── .github/workflows/validate.yaml   # CI pipeline (example, may need porting to TeamCity)
 ```
 
-## Schnellstart
+## Quickstart
 
 ```bash
 python -m venv .venv
@@ -51,32 +52,32 @@ pip install -r requirements.txt
 python tools/validate.py customers/example_customer/warehouse.yaml
 ```
 
-## Kernkonzepte (Kurzreferenz)
+## Core Concepts (Quick Reference)
 
-- **storage_point** — kleinste physische/logische Lagereinheit (früher "Bin").
-  Kann Regalplatz oder Blockplatz sein, unterscheidet sich in Zugriffsmodell
+- **storage_point** — smallest physical/logical storage unit (formerly "bin").
+  Can be a rack location or a block location, differs in access model
   (`direct` vs. `lifo`). Details: `docs/entity-glossary.md`.
-- **storage_type** — Lagerbereich, der storage_points gruppiert (z. B. Hochregal).
-- **activity_area** — funktionale Querschnitts-Gruppierung, orthogonal zur
-  physischen Hierarchie (ein storage_point kann in mehreren activity_areas sein).
-- **reporting_point** (Meldepunkt) — Kommunikationspunkt zwischen WMS und SPS,
-  wird technisch immer auch als storage_point abgebildet.
-- **movement_rule** — definiert erlaubte/verbotene Warenbewegungen zwischen
-  Bereichen. Zwei Policies: `default_allow` (manuelle Bereiche, Ausnahmen
-  explizit) vs. `explicit_only` (automatisierte/Fördertechnik-Bereiche, jede
-  Route muss explizit existieren).
-- **replenishment_strategy** — Nachschub-Regeln (min/max, order-getrieben,
-  zero-stock, prädiktiv), referenziert Struktur, ist aber selbst keine Struktur.
+- **storage_type** — storage area that groups storage_points (e.g. high-bay rack).
+- **activity_area** — functional cross-cutting grouping, orthogonal to the
+  physical hierarchy (a storage_point can belong to multiple activity_areas).
+- **reporting_point** — communication point between WMS and PLC, is
+  technically always also modeled as a storage_point.
+- **movement_rule** — defines allowed/forbidden goods movements between
+  areas. Two policies: `default_allow` (manual areas, exceptions
+  explicit) vs. `explicit_only` (automated/conveyor areas, every
+  route must exist explicitly).
+- **replenishment_strategy** — replenishment rules (min/max, order-driven,
+  zero-stock, predictive), references structure but is not itself structure.
 
-Vollständiges Glossar: [`docs/entity-glossary.md`](docs/entity-glossary.md)
+Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 
-## Nächste Schritte für dieses Repo
+## Next Steps for This Repo
 
-- [ ] JSON Schemas in `schemas/` vervollständigen (aktuell Grundgerüst)
-- [ ] `tools/validate.py` um Konsistenzchecks erweitern (Referenz-Integrität
-      zwischen Dateien: verweist jede `movement_rule` auf existierende
-      `storage_type`s?)
-- [ ] Storage-Point-Generator-Logik implementieren (Template → konkrete Punkte)
-- [ ] Compiler-Schritt: YAML → Runtime-Entities (Linq2db-Modell)
-- [ ] Optional: Import-Mapper für AutomationML (CAEX) als alternative Quelle
-- [ ] TeamCity-Pipeline statt/zusätzlich zu GitHub Actions einrichten
+- [ ] Complete JSON Schemas in `schemas/` (currently a basic skeleton)
+- [ ] Extend `tools/validate.py` with consistency checks (referential
+      integrity between files: does every `movement_rule` reference an
+      existing `storage_type`?)
+- [ ] Implement storage point generator logic (template → concrete points)
+- [ ] Compiler step: YAML → runtime entities (Linq2db model)
+- [ ] Optional: import mapper for AutomationML (CAEX) as an alternative source
+- [ ] Set up a TeamCity pipeline instead of/in addition to GitHub Actions

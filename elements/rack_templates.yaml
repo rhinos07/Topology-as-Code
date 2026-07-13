@@ -1,15 +1,15 @@
-# Wiederverwendbare, selten geänderte Bausteine.
-# Werden von structure/storage.yaml referenziert.
+# Reusable, rarely changed building blocks.
+# Referenced by structure/storage.yaml.
 
 rack_templates:
   - id: "rack_4way_standard"
-    description: "Standard-Regalfach für 4-Way-Shuttle"
+    description: "Standard rack slot for 4-way shuttle"
     dimensions: { width: "1.2m", depth: "0.8m", height: "0.4m" }
     max_weight: "500kg"
     temperature_zone: "ambient"
 
   - id: "rack_coldstorage_standard"
-    description: "Regalfach für Kühlzone"
+    description: "Rack slot for cold zone"
     dimensions: { width: "1.2m", depth: "0.8m", height: "0.4m" }
     max_weight: "400kg"
     temperature_zone: "2-8C"

@@ -1,12 +1,12 @@
-# Physische Lagerstruktur. Aendert sich nur bei echtem Umbau.
-# Validiert gegen schemas/storage-type.schema.json (je Eintrag in storage_types)
+# Physical warehouse structure. Only changes during an actual rebuild.
+# Validated against schemas/storage-type.schema.json (per entry in storage_types)
 
 storage_types:
 
-  # --- Regalplatz-Bereich, automatisiert (Shuttle) ---
-  - id: "HRK"
+  # --- Rack location area, automated (shuttle) ---
+  - id: "HBR"
     automation_level: "conveyor_automated"
-    movement_policy: "explicit_only"     # jede Route muss explizit definiert sein
+    movement_policy: "explicit_only"     # every route must be explicitly defined
     access_model: "rack"
     access_order: "direct"
 
@@ -23,20 +23,20 @@ storage_types:
 
     exceptions:
       - coordinate: "01-01-06"
-        max_weight: "800kg"      # oberste Ebene, verstaerktes Regal
+        max_weight: "800kg"      # top level, reinforced rack
       - coordinate: "03-04-01"
-        blocked: true            # Saeule im Weg
+        blocked: true            # column in the way
 
     sections:
       - id: "SEC_FAST"
-        criteria: { access_frequency: "hoch" }
+        criteria: { access_frequency: "high" }
       - id: "SEC_SLOW"
-        criteria: { access_frequency: "niedrig" }
+        criteria: { access_frequency: "low" }
 
-  # --- Blockplatz-Bereich, manuell (Stapler) ---
+  # --- Block location area, manual (forklift) ---
   - id: "BLK"
     automation_level: "manual"
-    movement_policy: "default_allow"     # Ausnahmen explizit verbieten reicht
+    movement_policy: "default_allow"     # explicitly prohibiting exceptions is sufficient
     access_model: "block"
     depth: 5
     stack_height: 3
@@ -50,11 +50,11 @@ storage_types:
       coordinate_pattern: "BLK-{aisle:02d}"
 
     default_attributes:
-      max_weight: "1000kg"       # pro Ladeeinheit
+      max_weight: "1000kg"       # per load unit
       temperature_zone: "ambient"
-      capacity_per_point: 15     # 5 tief x 3 hoch
+      capacity_per_point: 15     # 5 deep x 3 high
 
-  # --- Fixplatz-Kommissionierbereich, manuell ---
+  # --- Fixed-location picking area, manual ---
   - id: "FIX"
     automation_level: "manual"
     movement_policy: "default_allow"
@@ -74,10 +74,10 @@ storage_types:
 
     sections:
       - id: "SEC_PICKFACE"
-        criteria: { access_frequency: "sehr_hoch" }
+        criteria: { access_frequency: "very_high" }
 
-  # --- Kuehlzone, manuell ---
-  - id: "KUEHLZONE_B"
+  # --- Cold zone, manual ---
+  - id: "COLD_ZONE_B"
     automation_level: "manual"
     movement_policy: "default_allow"
     access_model: "rack"
@@ -94,8 +94,8 @@ storage_types:
       temperature_zone: "2-8C"
       capacity_per_point: 1
 
-# Funktionale Querschnitts-Gruppierung - orthogonal zur physischen Hierarchie.
-# Ein storage_point kann gleichzeitig in mehreren activity_areas sein.
+# Functional cross-cutting grouping - orthogonal to the physical hierarchy.
+# A storage_point can be in multiple activity_areas at the same time.
 activity_areas:
   - id: "PICK_ZONE_A"
     activity: "picking"
@@ -103,19 +103,19 @@ activity_areas:
 
   - id: "PUTAWAY_ZONE_A"
     activity: "putaway"
-    bins_from: ["HRK.SEC_FAST", "HRK.SEC_SLOW"]
+    bins_from: ["HBR.SEC_FAST", "HBR.SEC_SLOW"]
 
   - id: "INVENTORY_ZONE_A"
     activity: "physical_inventory"
-    bins_from: ["HRK.SEC_SLOW", "BLK"]
+    bins_from: ["HBR.SEC_SLOW", "BLK"]
 
-# Arbeitsstationen
+# Workstations
 work_centers:
   - id: "WC_PACK_01"
     step: "packing"
     workstation_template: "ws_pick_to_light"
 
-# Tore / Wareneingang-Ausgang
+# Doors / goods receipt-dispatch
 doors:
   - id: "DOOR_01"
     staging_section: "SEC_STAGING_IN"

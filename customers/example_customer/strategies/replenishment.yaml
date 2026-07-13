@@ -1,5 +1,5 @@
-# Prozessregeln, keine physische Struktur. Aendert sich haeufiger als
-# structure/ - eigener, leichtgewichtigerer Review-Flow denkbar.
+# Process rules, not physical structure. Changes more frequently than
+# structure/ - a separate, lighter-weight review flow is conceivable.
 
 replenishment_strategies:
 
@@ -10,7 +10,7 @@ replenishment_strategies:
       max_qty: 50
       check_interval: "5min"
     source:
-      storage_type: "HRK"
+      storage_type: "HBR"
       section: "SEC_SLOW"
     destination:
       storage_type: "FIX"
@@ -25,7 +25,7 @@ replenishment_strategies:
     trigger:
       type: "zero_stock"
     source:
-      storage_type: "HRK"
+      storage_type: "HBR"
     destination:
       activity_area: "PICK_ZONE_A"
     priority: "urgent"
@@ -37,7 +37,7 @@ replenishment_strategies:
       forecast_horizon: "2h"
       based_on: "outbound_order_forecast"
     source:
-      storage_type: "HRK"
+      storage_type: "HBR"
       section: "SEC_FAST"
     destination:
       activity_area: "PICK_ZONE_A"

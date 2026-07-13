@@ -1,21 +1,21 @@
-# Top-Level-Datei. Kurz und stabil - referenziert alles Weitere.
-# Diese Datei validiert gegen schemas/warehouse.schema.json
+# Top-level file. Short and stable - references everything else.
+# This file validates against schemas/warehouse.schema.json
 
 warehouse:
   number: "PA11"
-  name: "Halle_3"
+  name: "Hall_3"
   automation_level: "mixed"
 
   imports:
     - "structure/storage.yaml"
     - "structure/lanes.yaml"
-    - "structure/mfr.yaml"
+    - "structure/wcs.yaml"
     - "strategies/replenishment.yaml"
     - "strategies/movement_rules.yaml"
 
-  # Anschluss an Fahrzeugsteuerung (VDA 5050)
+  # Connection to fleet control (VDA 5050)
   fleet_interface:
     protocol: "vda5050"
     version: "3.0"
     mqtt_broker: "internal://fleet-broker"
-    node_mapping: "auto"   # lanes/storage_points werden zu VDA5050-Nodes/Edges kompiliert
+    node_mapping: "auto"   # lanes/storage_points are compiled into VDA5050 nodes/edges

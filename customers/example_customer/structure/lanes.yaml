@@ -1,22 +1,22 @@
-# Physische Konnektivitaet ("kann"). Fachliche Erlaubnis steht in
-# strategies/movement_rules.yaml ("darf") - bewusst getrennt.
+# Physical connectivity ("can"). Functional permission is defined in
+# strategies/movement_rules.yaml ("may") - deliberately separated.
 
 lanes:
   - id: "lane_main_a"
     template: "lane_shuttle_standard"
-    connects: ["HRK", "DOOR_01"]
+    connects: ["HBR", "DOOR_01"]
 
 conveyor_segments:
   - id: "SEG_C01_C02"
-    from: "MP_C01"
-    to: "MP_C02"
-    capacity: 3   # max. HUs gleichzeitig auf dem Segment
+    from: "RP_C01"
+    to: "RP_C02"
+    capacity: 3   # max. HUs simultaneously on the segment
 
   - id: "SEG_C02_C03"
-    from: "MP_C02"
-    to: "MP_C03"
+    from: "RP_C02"
+    to: "RP_C03"
     capacity: 3
 
 conveyor_main:
-  connects: ["HRK", "DOOR_01", "WC_PACK_01"]
+  connects: ["HBR", "DOOR_01", "WC_PACK_01"]
   capacity_units_per_hour: 200

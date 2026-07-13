@@ -1,47 +1,47 @@
-# "Darf" - unabhaengig von "kann" (structure/lanes.yaml).
-# Policy haengt vom automation_level des jeweiligen storage_type ab:
-#   default_allow   -> manuelle Bereiche, nur Ausnahmen explizit auflisten
-#   explicit_only   -> automatisierte/Foerdertechnik-Bereiche, jede Route explizit
+# "May" - independent of "can" (structure/lanes.yaml).
+# Policy depends on the automation_level of the respective storage_type:
+#   default_allow   -> manual areas, only list exceptions explicitly
+#   explicit_only   -> automated/conveyor areas, every route explicit
 
 movement_rules:
 
-  # --- explicit_only: automatisierter Bereich (HRK) ---
-  - id: "ROUTE_AKL_C01_TO_C02"
+  # --- explicit_only: automated area (HBR) ---
+  - id: "ROUTE_ASRS_C01_TO_C02"
     applies_to_policy: "explicit_only"
-    from: { reporting_point: "MP_C01" }
-    to: { reporting_point: "MP_C02" }
+    from: { reporting_point: "RP_C01" }
+    to: { reporting_point: "RP_C02" }
     allowed: true
     via_segment: "SEG_C01_C02"
     trigger: "putaway_task"
 
-  - id: "ROUTE_AKL_C02_TO_C03"
+  - id: "ROUTE_ASRS_C02_TO_C03"
     applies_to_policy: "explicit_only"
-    from: { reporting_point: "MP_C02" }
-    to: { reporting_point: "MP_C03" }
+    from: { reporting_point: "RP_C02" }
+    to: { reporting_point: "RP_C03" }
     allowed: true
     via_segment: "SEG_C02_C03"
     trigger: "clarification"
 
-  # --- default_allow: manuelle Bereiche, nur Verbote explizit ---
+  # --- default_allow: manual areas, only prohibitions explicit ---
   - id: "FORBID_COLD_TO_AMBIENT"
     applies_to_policy: "default_allow"
-    from: { storage_type: "KUEHLZONE_B" }
+    from: { storage_type: "COLD_ZONE_B" }
     to: { storage_type: "*" }
-    exclude_to: { storage_type: "KUEHLZONE_B" }
+    exclude_to: { storage_type: "COLD_ZONE_B" }
     allowed: false
-    reason: "Kuehlkette darf nicht unterbrochen werden"
+    reason: "Cold chain must not be interrupted"
 
-  # --- Standard-Nachschubroute HRK -> FIX (Palette -> Stueck) ---
+  # --- Standard replenishment route HBR -> FIX (pallet -> piece) ---
   - id: "MOVE_STORAGE_TO_PICKFACE"
     applies_to_policy: "default_allow"
-    from: { storage_type: "HRK" }
+    from: { storage_type: "HBR" }
     to: { storage_type: "FIX", activity_area: "PICK_ZONE_A" }
     allowed: true
     allowed_load_unit_types: ["pallet_euro"]
     conversion_required: true
     trigger: "replenishment_task"
 
-  # --- Blockplatz: nur ans offene Ende, nur gleicher Artikel ---
+  # --- Block location: only to the open end, only same article ---
   - id: "MOVE_INTO_BLOCK"
     applies_to_policy: "default_allow"
     to: { storage_type: "BLK" }

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://kardex.internal/schemas/movement-rule.schema.json",
   "title": "Movement Rule",
-  "description": "Definiert, ob eine Warenbewegung zwischen zwei Bereichen fachlich erlaubt ist. Unabhaengig von physischer Erreichbarkeit (siehe lanes.yaml).",
+  "description": "Defines whether a goods movement between two areas is functionally permitted. Independent of physical reachability (see lanes.yaml).",
   "type": "object",
   "required": ["id", "allowed"],
   "properties": {
@@ -10,7 +10,7 @@
     "applies_to_policy": {
       "type": "string",
       "enum": ["default_allow", "explicit_only"],
-      "description": "Muss zur movement_policy des betroffenen storage_type passen."
+      "description": "Must match the movement_policy of the affected storage_type."
     },
     "from": { "$ref": "#/definitions/endpoint" },
     "to": { "$ref": "#/definitions/endpoint" },
@@ -28,7 +28,7 @@
     "homogeneity_check": { "type": "boolean" },
     "trigger": {
       "type": "string",
-      "description": "Welcher Prozess darf diese Bewegung ausloesen, z.B. 'putaway_task', 'replenishment_task', 'pick_task'."
+      "description": "Which process may trigger this movement, e.g. 'putaway_task', 'replenishment_task', 'pick_task'."
     },
     "via_segment": { "type": "string" },
     "reason": { "type": "string" }

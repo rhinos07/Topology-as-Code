@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Validiert eine warehouse.yaml (und alle darin importierten Dateien) gegen
-die JSON-Schemas in schemas/ und fuehrt einfache Konsistenzchecks aus.
+Validates a warehouse.yaml (and all files imported by it) against
+the JSON schemas in schemas/ and runs simple consistency checks.
 
-Nutzung:
+Usage:
     python tools/validate.py customers/example_customer/warehouse.yaml
 
-Erweiterung geplant (siehe README "Naechste Schritte"):
-    - Referenz-Integritaet ueber Dateigrenzen hinweg (movement_rule ->
-      existierender storage_type, replenishment source/destination ->
-      existierende activity_area, etc.)
-    - Pruefung: bei movement_policy=explicit_only muss fuer jede Lane eine
-      passende movement_rule existieren
+Extension planned (see README "Next Steps"):
+    - Referential integrity across file boundaries (movement_rule ->
+      existing storage_type, replenishment source/destination ->
+      existing activity_area, etc.)
+    - Check: for movement_policy=explicit_only, a matching movement_rule
+      must exist for every lane
 """
 
 import sys
@@ -57,7 +57,7 @@ def validate_file(path: Path, schema_name: str, root_key: str | None) -> list[st
     errors = []
     data = load_yaml(path)
     if data is None:
-        return [f"{path}: Datei ist leer oder ungueltig."]
+        return [f"{path}: File is empty or invalid."]
 
     validator = make_validator(schema_name)
     target = data if root_key is None else data
@@ -101,13 +101,16 @@ def validate_replenishment(path: Path) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     if len(argv) != 2:
-        print("Nutzung: python tools/validate.py <pfad-zu-warehouse.yaml>")
+        print("Usage: python tools/validate.py <path-to-warehouse.yaml>")
         return 2
 
     warehouse_file = Path(argv[1]).resolve()
     if not warehouse_file.exists():
-        print(f"Datei nicht gefunden: {warehouse_file}")
+        print(f"File not found: {warehouse_file}")
         return 2
 
     all_errors: list[str] = []
@@ -116,7 +119,7 @@ def main(argv: list[str]) -> int:
 
     for imported in collect_imports(warehouse_file):
         if not imported.exists():
-            all_errors.append(f"{warehouse_file}: importierte Datei fehlt: {imported}")
+            all_errors.append(f"{warehouse_file}: imported file missing: {imported}")
             continue
 
         name = imported.name
@@ -126,19 +129,19 @@ def main(argv: list[str]) -> int:
             all_errors += validate_movement_rules(imported)
         elif name == "replenishment.yaml":
             all_errors += validate_replenishment(imported)
-        # lanes.yaml, mfr.yaml: aktuell nur Existenz-/Parse-Check ueber load_yaml
+        # lanes.yaml, wcs.yaml: currently only existence/parse check via load_yaml
         else:
             data = load_yaml(imported)
             if data is None:
-                all_errors.append(f"{imported}: Datei ist leer oder ungueltig.")
+                all_errors.append(f"{imported}: File is empty or invalid.")
 
     if all_errors:
-        print(f"❌ {len(all_errors)} Validierungsfehler gefunden:\n")
+        print(f"❌ {len(all_errors)} validation errors found:\n")
         for e in all_errors:
             print(f"  - {e}")
         return 1
 
-    print("✅ Validierung erfolgreich.")
+    print("✅ Validation successful.")
     return 0
 
 

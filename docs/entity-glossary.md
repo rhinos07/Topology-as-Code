@@ -1,67 +1,68 @@
-# Entitäts-Glossar
+# Entity Glossary
 
-Begriffe angelehnt an SAP EWM/MFS-Terminologie (für Anschlussfähigkeit ans
-Branchenvokabular), aber eigenständig benannt, wo es sinnvoller Sinn ergab
-(`storage_point` statt "Bin").
+Terms modeled after SAP EWM/MFS terminology (for compatibility with
+industry vocabulary), but named independently where it made more sense
+(`storage_point` instead of "Bin").
 
-## Struktur
+## Structure
 
-| Begriff | Bedeutung |
+| Term | Meaning |
 |---|---|
-| `warehouse` | Oberste Ebene, ein Lagerkomplex/eine Halle |
-| `storage_type` | Lagerbereich, gruppiert `storage_point`s (z.B. Hochregal, Blocklager) |
-| `section` | Unterteilung eines `storage_type` nach Eigenschaften (z.B. Zugriffsfrequenz) |
-| `storage_point` | Kleinste physische/logische Lagereinheit (früher "Storage Bin"). Regalplatz oder Blockplatz. |
-| `storage_point_generator` | Generiert `storage_point`s aus einem Raster statt sie einzeln aufzuzählen |
-| `activity_area` | Funktionale Querschnitts-Gruppierung, orthogonal zur physischen Hierarchie. Ein `storage_point` kann in mehreren `activity_area`s gleichzeitig sein. |
-| `work_center` | Physische Einheit für Aktivitäten wie Packen, Verwiegen |
-| `door` / `staging_area` | Tore für Wareneingang/-ausgang |
-| `lane` / `conveyor_segment` | Physische Verbindung/Fördertechnik zwischen Bereichen (**"kann"**) |
-| `reporting_point` (Meldepunkt) | Kommunikationspunkt zwischen WMS und SPS; wird technisch immer auch als `storage_point` abgebildet |
-| `resource` / `vehicle` | Ausführendes Element. `resource` = WMS-gesteuert, `vehicle` = SPS-autonom mit eigenem Auftragspuffer |
+| `warehouse` | Top level, a warehouse complex/a building |
+| `storage_type` | Storage area, groups `storage_point`s (e.g. high-bay rack, block storage) |
+| `section` | Subdivision of a `storage_type` by properties (e.g. access frequency) |
+| `storage_point` | Smallest physical/logical storage unit (formerly "storage bin"). Rack location or block location. |
+| `storage_point_generator` | Generates `storage_point`s from a grid instead of enumerating them individually |
+| `activity_area` | Functional cross-cutting grouping, orthogonal to the physical hierarchy. A `storage_point` can belong to multiple `activity_area`s simultaneously. |
+| `work_center` | Physical unit for activities such as packing, weighing |
+| `door` / `staging_area` | Doors for goods receipt/dispatch |
+| `lane` / `conveyor_segment` | Physical connection/conveyor technology between areas (**"can"**) |
+| `reporting_point` | Communication point between WMS and PLC; is technically always also modeled as a `storage_point` |
+| `resource` / `vehicle` | Executing element. `resource` = WMS-controlled, `vehicle` = PLC-autonomous with its own order buffer |
+| `plc_definition` (system/installation) | A distinct technical automation system within the warehouse (e.g. one AS/RS/shuttle system with its own PLC). A warehouse can contain several. Carries `name` and `reference_number` for identification (see `structure/wcs.yaml`). |
 
-## Regalplatz vs. Blockplatz
+## Rack Location vs. Block Location
 
-| | Regalplatz (`access_model: rack`) | Blockplatz (`access_model: block`) |
+| | Rack location (`access_model: rack`) | Block location (`access_model: block`) |
 |---|---|---|
-| Zugriff | Jeder Punkt einzeln erreichbar (`access_order: direct`) | Nur von vorne/oben (`access_order: lifo`) |
-| Kapazität | Meist 1 Ladeeinheit pro `storage_point` | Mehrere Ladeeinheiten pro `storage_point` (Tiefe x Höhe) |
-| Artikelmischung | Beliebig | Meist nur ein Artikel gleichzeitig (`homogeneity_required`) |
-| Typisch für | Hochregal, Shuttle-Lager | Großmengen, Saisonware |
+| Access | Every point individually reachable (`access_order: direct`) | Only from front/top (`access_order: lifo`) |
+| Capacity | Usually 1 load unit per `storage_point` | Multiple load units per `storage_point` (depth x height) |
+| Article mix | Any | Usually only one article at a time (`homogeneity_required`) |
+| Typical for | High-bay rack, shuttle storage | Large quantities, seasonal goods |
 
-## Prozessregeln (keine physische Struktur, eigener Lifecycle)
+## Process Rules (not physical structure, own lifecycle)
 
-| Begriff | Bedeutung |
+| Term | Meaning |
 |---|---|
-| `movement_rule` | Definiert, ob eine Warenbewegung fachlich erlaubt ist (**"darf"**) — unabhängig von physischer Erreichbarkeit (`lane`) |
-| `movement_policy` | `default_allow` (manuelle Bereiche, nur Verbote explizit) vs. `explicit_only` (Fördertechnik-Bereiche, jede Route muss explizit definiert sein) |
-| `replenishment_strategy` | Nachschub-Regel: `min_max`, `quantity_based`, `zero_stock`, `predictive` |
+| `movement_rule` | Defines whether a goods movement is functionally permitted (**"may"**) — independent of physical reachability (`lane`) |
+| `movement_policy` | `default_allow` (manual areas, only prohibitions explicit) vs. `explicit_only` (conveyor areas, every route must be explicitly defined) |
+| `replenishment_strategy` | Replenishment rule: `min_max`, `quantity_based`, `zero_stock`, `predictive` |
 
-## Wichtige Architekturprinzipien
+## Key Architectural Principles
 
-1. **Struktur vs. Laufzeitzustand**: Diese YAML-Dateien beschreiben nur den
-   Soll-Zustand. Aktuelle Belegung, Verfügbarkeit, Bestand leben in der
-   Runtime-Datenbank — analog zu Terraform-Code vs. tatsächlichem
-   Cloud-Ressourcen-Status.
+1. **Structure vs. runtime state**: These YAML files describe only the
+   desired state. Current occupancy, availability, and inventory live in
+   the runtime database — analogous to Terraform code vs. actual
+   cloud resource status.
 
-2. **`lane`/`conveyor_segment` ("kann") vs. `movement_rule` ("darf")**:
-   Ein Shuttle kann physisch von der Kühlzone in die Ambient-Zone fahren
-   (Lane existiert), aber die Bewegung von Ware ist fachlich verboten
-   (Kühlkette). Beide Ebenen bewusst getrennt modelliert.
+2. **`lane`/`conveyor_segment` ("can") vs. `movement_rule` ("may")**:
+   A shuttle can physically travel from the cold zone to the ambient
+   zone (lane exists), but the movement of goods is functionally
+   forbidden (cold chain). Both levels are deliberately modeled separately.
 
-3. **`movement_policy` je nach Automatisierungsgrad**:
-   - Manuelle Bereiche: physische Flexibilität ist immer da (Stapler kann
-     überall hinfahren, wo ein Weg existiert) → `default_allow` mit
-     expliziten Verboten reicht aus.
-   - Automatisierte/Fördertechnik-Bereiche: die Infrastruktur selbst ist
-     die Einschränkung, es gibt keine implizite Flexibilität → jede Route
-     muss explizit existieren (`explicit_only`).
+3. **`movement_policy` depending on degree of automation**:
+   - Manual areas: physical flexibility always exists (a forklift can
+     drive anywhere a path exists) → `default_allow` with
+     explicit prohibitions is sufficient.
+   - Automated/conveyor areas: the infrastructure itself is
+     the constraint, there is no implicit flexibility → every route
+     must exist explicitly (`explicit_only`).
 
-4. **`storage_point_generator` statt Enumeration**: Bei tausenden
-   `storage_point`s wird eine flache Auflistung unhandhabbar (Git-Diffs,
-   Merge-Konflikte). Templates + explizite `exceptions` halten die Datei
-   kompakt, unabhängig von der physischen Lagergröße.
+4. **`storage_point_generator` instead of enumeration**: With thousands
+   of `storage_point`s, a flat listing becomes unmanageable (Git diffs,
+   merge conflicts). Templates + explicit `exceptions` keep the file
+   compact, independent of the physical warehouse size.
 
-5. **Struktur (`structure/`) vs. Strategien (`strategies/`)**: Getrennte
-   Ordner/Lifecycle, weil sie unterschiedlich oft geändert werden und
-   unterschiedliche Zielgruppen haben (Techniker vs. Logistikplaner).
+5. **Structure (`structure/`) vs. strategies (`strategies/`)**: Separate
+   folders/lifecycles, because they change at different frequencies and
+   have different target audiences (technician vs. logistics planner).
