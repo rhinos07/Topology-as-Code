@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://kardex.internal/schemas/movement-rule.schema.json",
+  "$id": "https://warehouse-as-code.internal/schemas/movement-rule.schema.json",
   "title": "Movement Rule",
   "description": "Defines whether a goods movement between two areas is functionally permitted. Independent of physical reachability (see lanes.yaml).",
   "type": "object",

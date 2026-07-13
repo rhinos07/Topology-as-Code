@@ -57,3 +57,11 @@ movement_rules:
     to: { storage_type: "STAGING", section: "SEC_STAGING_OUT" }
     allowed: true
     trigger: "pick_task"
+
+  # --- Cross-dock: inbound staging straight to outbound staging, bypassing storage ---
+  - id: "MOVE_CROSSDOCK_IN_TO_OUT"
+    applies_to_policy: "default_allow"
+    from: { storage_type: "STAGING", section: "SEC_STAGING_IN" }
+    to: { storage_type: "STAGING", section: "SEC_STAGING_OUT" }
+    allowed: true
+    trigger: "cross_dock_task"

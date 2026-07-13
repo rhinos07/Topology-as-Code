@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://warehouse-as-code.internal/schemas/wcs.schema.json",
+  "title": "Warehouse Control System (WCS)",
+  "description": "PLC definitions, reporting points, telegram actions and resources - the communication layer between WMS and PLC.",
+  "type": "object",
+  "properties": {
+    "plc_definitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": {
+            "type": "string",
+            "description": "Plant/installation name (Anlagenname)."
+          },
+          "reference_number": {
+            "type": "string",
+            "description": "Plant reference number (Anlagenreferenznummer)."
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": { "type": "string" },
+                "ip": { "type": "string" },
+                "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+                "telegram_length": { "type": "integer", "minimum": 1 },
+                "handshake_mode": { "type": "string" }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "reporting_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "plc"],
+        "properties": {
+          "id": { "type": "string" },
+          "storage_point_ref": { "type": "boolean" },
+          "plc": {
+            "type": "string",
+            "description": "References an id in plc_definitions."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["identification_point", "aisle_decision_point", "clarification_point"]
+          },
+          "capacity": { "type": "integer", "minimum": 1 },
+          "availability": { "type": "string", "enum": ["available", "unavailable"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "telegram_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["telegram_type", "action"],
+        "properties": {
+          "telegram_type": { "type": "string" },
+          "action": { "type": "string" },
+          "from_point": { "type": "string" },
+          "to_point": { "type": "string" },
+          "next_target": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "mode"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "description": "References an id in elements/resource_types.yaml."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["resource", "vehicle"],
+            "description": "resource: WMS-controlled. vehicle: PLC-autonomous with its own buffer."
+          },
+          "bin_access_type": { "type": "string" },
+          "served_points": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "fleet_interface": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

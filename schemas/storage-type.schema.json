@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://kardex.internal/schemas/storage-type.schema.json",
+  "$id": "https://warehouse-as-code.internal/schemas/storage-type.schema.json",
   "title": "Storage Type",
   "description": "A storage area (e.g. high-bay rack, block storage) that groups storage_points.",
   "type": "object",
@@ -23,8 +23,8 @@
     },
     "access_model": {
       "type": "string",
-      "enum": ["rack", "block"],
-      "description": "rack: rack location, individually addressable. block: block location, multiple load units, LIFO access."
+      "enum": ["rack", "block", "channel"],
+      "description": "rack: rack location, individually addressable. block: block location, multiple load units, LIFO access. channel: channel/flow storage (e.g. satellite/drive-in racking), sequential access only - see channel_depth/entry_side/exit_side."
     },
     "depth": {
       "type": "integer",
@@ -43,7 +43,22 @@
     },
     "homogeneity_required": {
       "type": "boolean",
-      "description": "For 'block': only one article may be in the block at a time."
+      "description": "For 'block'/'channel': only one article may be in the block/channel at a time."
+    },
+    "channel_depth": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "For 'channel': number of positions per channel, in depth. Positions can only be filled/retrieved in sequence."
+    },
+    "entry_side": {
+      "type": "string",
+      "enum": ["front", "back"],
+      "description": "For 'channel': side from which load units enter the channel."
+    },
+    "exit_side": {
+      "type": "string",
+      "enum": ["front", "back"],
+      "description": "For 'channel': side from which load units are retrieved. Same value as entry_side => LIFO channel (single-side access). Different value => FIFO channel (flow-through, e.g. gravity or satellite)."
     },
     "storage_point_generator": {
       "type": "object",
@@ -59,13 +74,58 @@
         }
       }
     },
+    "layout_variants": {
+      "type": "array",
+      "description": "Alternative, mutually exclusive bin configurations for the same physical bay footprint (e.g. a bay can be occupied by either 2 industrial pallets or 3 euro pallets side by side, but not both at once - the coordinate sets overlap physically). Use instead of storage_point_generator when a bay supports more than one load unit layout. Only one variant can be occupied per bay at runtime; enforcing that at booking time is a runtime/compiler concern, not part of this structure definition.",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "load_unit_type", "positions_per_bay", "coordinate_pattern"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique variant ID, e.g. '2_industrial', '3_euro'"
+          },
+          "load_unit_type": {
+            "type": "string",
+            "description": "References an id in elements/load_unit_types.yaml."
+          },
+          "positions_per_bay": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of load units of this type that fit side by side in one bay."
+          },
+          "coordinate_pattern": {
+            "type": "string",
+            "description": "e.g. '{aisle:02d}-{bay:02d}-EUR-{slot:1d}'. Must encode the variant so coordinates across variants don't collide as strings, even though they occupy the same physical space."
+          }
+        },
+        "additionalProperties": true
+      }
+    },
     "default_attributes": {
       "type": "object",
       "description": "Attributes that apply to all generated storage_points, unless an exception overrides them.",
       "properties": {
         "max_weight": { "type": "string" },
         "temperature_zone": { "type": "string" },
-        "capacity_per_point": { "type": "integer", "minimum": 1 }
+        "capacity_per_point": { "type": "integer", "minimum": 1 },
+        "size": { "$ref": "#/definitions/size" },
+        "position": { "$ref": "#/definitions/position" },
+        "allowed_load_unit_types": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "References ids in elements/load_unit_types.yaml. Restricts which load unit types may be stored at this storage_type."
+        },
+        "capacity_volume": {
+          "type": "string",
+          "description": "Usable volumetric capacity per storage_point, e.g. '1.5m3'. Not the same as size.width*depth*height: the usable cube is typically smaller than the outer envelope (rack beams, clearance, structural loss). 'size' describes the physical footprint/dimensions of the storage_point for fit checks; 'capacity_volume' is the nominal usable capacity for simple cube-sum checks (sum of load_unit_type.volume across stored goods <= capacity_volume), not a 3D bin-packing/geometric-fit calculation."
+        },
+        "hazmat_classes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "References ids in elements/hazmat_classes.yaml. If set, this storage_type is certified/restricted for these hazard classes; goods requiring a class not listed here must not be stored."
+        }
       },
       "additionalProperties": true
     },
@@ -82,6 +142,13 @@
           "blocked_reason": {
             "type": "string",
             "description": "References an id in elements/blocking_reasons.yaml. Required when blocked is true."
+          },
+          "size": { "$ref": "#/definitions/size" },
+          "position": { "$ref": "#/definitions/position" },
+          "allowed_load_unit_types": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "References ids in elements/load_unit_types.yaml. Overrides the storage_type default for this coordinate."
           }
         },
         "additionalProperties": true
@@ -100,5 +167,39 @@
       }
     }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "if": {
+    "properties": { "access_model": { "const": "channel" } }
+  },
+  "then": {
+    "required": ["channel_depth", "entry_side", "exit_side"]
+  },
+  "definitions": {
+    "size": {
+      "type": "object",
+      "description": "Outer physical dimensions (envelope) of the storage_point, used for geometric fit checks. Note: usable volume can be smaller than width*depth*height - see default_attributes.capacity_volume.",
+      "properties": {
+        "width": { "type": "string" },
+        "depth": { "type": "string" },
+        "height": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "position": {
+      "description": "Position of the storage_point in the warehouse - either a logical reference (e.g. matching the coordinate_pattern) or physical coordinates in meters, measured from a fixed reference point of the building.",
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "z": { "type": "number" }
+          },
+          "required": ["x", "y"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
 }

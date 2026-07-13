@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://warehouse-as-code.internal/schemas/lanes.schema.json",
+  "title": "Lanes",
+  "description": "Physical connectivity between storage_types, doors and work_centers ('can') - see strategies/movement_rules.yaml for functional permission ('may').",
+  "type": "object",
+  "properties": {
+    "lanes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "connects"],
+        "properties": {
+          "id": { "type": "string" },
+          "template": {
+            "type": "string",
+            "description": "References an id in elements/rack_templates.yaml (lane_templates)."
+          },
+          "connects": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 2
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "conveyor_segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to"],
+        "properties": {
+          "id": { "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "capacity": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "conveyor_main": {
+      "type": "object",
+      "properties": {
+        "connects": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "capacity_units_per_hour": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

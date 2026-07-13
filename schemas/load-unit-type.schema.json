@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://kardex.internal/schemas/load-unit-type.schema.json",
+  "$id": "https://warehouse-as-code.internal/schemas/load-unit-type.schema.json",
   "title": "Load Unit Type",
   "description": "Physical definition of a load unit (pallet, container, carton) that can be referenced by movement_rules and replenishment_strategies.",
   "type": "object",
@@ -14,6 +14,7 @@
     "description": { "type": "string" },
     "dimensions": {
       "type": "object",
+      "description": "Footprint/height of the empty carrier itself (e.g. an empty pallet's own height), used for geometric fit checks against storage_type.default_attributes.size.",
       "properties": {
         "width": { "type": "string" },
         "depth": { "type": "string" },
@@ -21,7 +22,11 @@
       }
     },
     "max_weight": { "type": "string" },
-    "stackable": { "type": "boolean" }
+    "stackable": { "type": "boolean" },
+    "volume": {
+      "type": "string",
+      "description": "Nominal loaded volume of this load unit type (carrier + typical goods on it), e.g. '0.55m3' - not width*depth*height of 'dimensions', since that only covers the empty carrier's own footprint/height. Used together with storage_type.default_attributes.capacity_volume for simple cube-sum capacity checks."
+    }
   },
   "additionalProperties": true
 }

@@ -1,0 +1,15 @@
+# Reusable catalog of hazardous material / compliance classifications.
+# Referenced by storage_type.default_attributes.hazmat_classes.
+
+hazmat_classes:
+  - id: "GHS02_FLAMMABLE"
+    description: "Flammable liquids/solids (GHS pictogram 02)"
+
+  - id: "GHS05_CORROSIVE"
+    description: "Corrosive substances (GHS pictogram 05)"
+
+  - id: "GHS06_TOXIC"
+    description: "Acute toxicity (GHS pictogram 06)"
+
+  - id: "GHS09_ENVIRONMENT"
+    description: "Hazardous to the aquatic environment (GHS pictogram 09)"

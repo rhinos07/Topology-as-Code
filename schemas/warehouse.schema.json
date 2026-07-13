@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://kardex.internal/schemas/warehouse.schema.json",
+  "$id": "https://warehouse-as-code.internal/schemas/warehouse.schema.json",
   "title": "Warehouse (Top-Level)",
   "type": "object",
   "required": ["warehouse"],

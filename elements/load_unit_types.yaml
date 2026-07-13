@@ -7,21 +7,25 @@ load_unit_types:
     dimensions: { width: "0.8m", depth: "1.2m", height: "0.144m" }
     max_weight: "1000kg"
     stackable: true
+    volume: "0.138m3"
 
   - id: "pallet_industrial"
     description: "Industrial pallet, 1000x1200mm"
     dimensions: { width: "1.0m", depth: "1.2m", height: "0.144m" }
     max_weight: "1500kg"
     stackable: true
+    volume: "0.173m3"
 
   - id: "mesh_box"
     description: "Wire mesh box container, 800x1200mm"
     dimensions: { width: "0.8m", depth: "1.2m", height: "0.97m" }
     max_weight: "700kg"
     stackable: true
+    volume: "0.931m3"
 
   - id: "carton"
     description: "Standard shipping carton"
     dimensions: { width: "0.4m", depth: "0.3m", height: "0.3m" }
     max_weight: "20kg"
     stackable: false
+    volume: "0.036m3"

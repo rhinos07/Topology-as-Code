@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://kardex.internal/schemas/door.schema.json",
+  "$id": "https://warehouse-as-code.internal/schemas/door.schema.json",
   "title": "Door",
   "description": "A physical door for goods receipt or goods dispatch, staging inventory in a designated section.",
   "type": "object",
@@ -13,8 +13,8 @@
     },
     "direction": {
       "type": "string",
-      "enum": ["inbound", "outbound"],
-      "description": "inbound: goods receipt door. outbound: goods dispatch door."
+      "enum": ["inbound", "outbound", "returns"],
+      "description": "inbound: goods receipt door. outbound: goods dispatch door. returns: reverse-logistics door, kept separate from normal inbound so returns can be routed/inspected differently."
     },
     "staging_section": {
       "type": "string",

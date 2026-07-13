@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://kardex.internal/schemas/process-type.schema.json",
+  "$id": "https://warehouse-as-code.internal/schemas/process-type.schema.json",
   "title": "Process Type",
   "description": "Catalog entry describing a category of warehouse process (goods receipt, goods issue, internal movement) that can trigger a movement_rule.",
   "type": "object",
@@ -13,7 +13,7 @@
     },
     "category": {
       "type": "string",
-      "enum": ["inbound", "outbound", "internal_movement"]
+      "enum": ["inbound", "outbound", "internal_movement", "cross_dock"]
     },
     "description": { "type": "string" }
   },

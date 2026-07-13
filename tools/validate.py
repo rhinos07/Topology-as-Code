@@ -30,6 +30,7 @@ ELEMENT_CATALOGS = {
     "resource_types.yaml": ("resource-type.schema.json", "resource_types"),
     "process_types.yaml": ("process-type.schema.json", "process_types"),
     "blocking_reasons.yaml": ("blocking-reason.schema.json", "blocking_reasons"),
+    "hazmat_classes.yaml": ("hazmat-class.schema.json", "hazmat_classes"),
 }
 
 
@@ -167,7 +168,10 @@ def main(argv: list[str]) -> int:
             all_errors += validate_movement_rules(imported)
         elif name == "replenishment.yaml":
             all_errors += validate_replenishment(imported)
-        # lanes.yaml, wcs.yaml: currently only existence/parse check via load_yaml
+        elif name == "lanes.yaml":
+            all_errors += validate_file(imported, "lanes.schema.json", None)
+        elif name == "wcs.yaml":
+            all_errors += validate_file(imported, "wcs.schema.json", None)
         else:
             data = load_yaml(imported)
             if data is None:

@@ -11,24 +11,33 @@ industry vocabulary), but named independently where it made more sense
 | `warehouse` | Top level, a warehouse complex/a building |
 | `storage_type` | Storage area, groups `storage_point`s (e.g. high-bay rack, block storage) |
 | `section` | Subdivision of a `storage_type` by properties (e.g. access frequency) |
-| `storage_point` | Smallest physical/logical storage unit (formerly "storage bin"). Rack location or block location. |
+| `storage_point` | Smallest physical/logical storage unit (formerly "storage bin"). Rack location or block location. Can carry `size` ({width, depth, height}), `position` (logical string or metric {x, y, z}), `capacity_volume` (cube capacity for volume-based checks), and `hazmat_classes` via `default_attributes`/`exceptions` in `storage_type`. |
 | `storage_point_generator` | Generates `storage_point`s from a grid instead of enumerating them individually |
+| `layout_variants` | Alternative to `storage_point_generator` for bays that support more than one physical layout (e.g. "2/3 Platz-Lagerung": a bay fits either 2 industrial pallets or 3 euro pallets, never both). Each variant has its own `coordinate_pattern` and `load_unit_type`; the coordinate sets overlap physically but not as strings. Mutual exclusivity at booking time is a runtime concern, not enforced by this schema. |
 | `activity_area` | Functional cross-cutting grouping, orthogonal to the physical hierarchy. A `storage_point` can belong to multiple `activity_area`s simultaneously. |
 | `work_center` | Physical unit for activities such as packing, weighing. Set `storage_point_ref: true` if WIP inventory can be booked directly at the work center (same pattern as `reporting_point`). |
-| `door` / `staging_area` | Doors for goods receipt/dispatch |
+| `door` / `staging_area` | Doors for goods receipt/dispatch/returns. `direction`: `inbound`, `outbound`, or `returns` (kept separate from `inbound` so returns can be routed/inspected differently). |
 | `lane` / `conveyor_segment` | Physical connection/conveyor technology between areas (**"can"**) |
 | `reporting_point` | Communication point between WMS and PLC; is technically always also modeled as a `storage_point` |
 | `resource` / `vehicle` | Executing element. `resource` = WMS-controlled, `vehicle` = PLC-autonomous with its own order buffer |
 | `plc_definition` (system/installation) | A distinct technical automation system within the warehouse (e.g. one AS/RS/shuttle system with its own PLC). A warehouse can contain several. Carries `name` and `reference_number` for identification (see `structure/wcs.yaml`). |
 
-## Rack Location vs. Block Location
+## Rack vs. Block vs. Channel Location
 
-| | Rack location (`access_model: rack`) | Block location (`access_model: block`) |
-|---|---|---|
-| Access | Every point individually reachable (`access_order: direct`) | Only from front/top (`access_order: lifo`) |
-| Capacity | Usually 1 load unit per `storage_point` | Multiple load units per `storage_point` (depth x height) |
-| Article mix | Any | Usually only one article at a time (`homogeneity_required`) |
-| Typical for | High-bay rack, shuttle storage | Large quantities, seasonal goods |
+| | Rack (`access_model: rack`) | Block (`access_model: block`) | Channel (`access_model: channel`) |
+|---|---|---|---|
+| Access | Every point individually reachable (`access_order: direct`) | Only from front/top (`access_order: lifo`) | Only in sequence, front-to-back (`channel_depth` positions) |
+| Flow direction | n/a | Single side (LIFO) | `entry_side` = `exit_side` → LIFO. `entry_side` ≠ `exit_side` → FIFO (flow-through) |
+| Capacity | Usually 1 load unit per `storage_point` | Multiple load units per `storage_point` (depth x height) | Multiple load units per channel (`channel_depth`) |
+| Article mix | Any | Usually only one article at a time (`homogeneity_required`) | Usually only one article per channel (`homogeneity_required`) |
+| Typical for | High-bay rack, shuttle storage | Large quantities, seasonal goods | Satellite/drive-in racking, flow racks, high-turnover pallet channels |
+
+**Channel logic (Kanallogik):** A `channel` is a storage lane with several positions in
+depth (`channel_depth`). Positions must be filled/emptied strictly in sequence — you
+cannot access a position in the middle without moving the ones in front of it. If
+`entry_side` and `exit_side` are the same, it behaves like a LIFO block (last pallet in,
+first pallet out). If they differ, it's a FIFO flow channel (goods enter one side, exit
+the opposite side — typical for satellite/drive-in racking or gravity flow racks).
 
 ## Process Rules (not physical structure, own lifecycle)
 
@@ -37,6 +46,7 @@ industry vocabulary), but named independently where it made more sense
 | `movement_rule` | Defines whether a goods movement is functionally permitted (**"may"**) — independent of physical reachability (`lane`) |
 | `movement_policy` | `default_allow` (manual areas, only prohibitions explicit) vs. `explicit_only` (conveyor areas, every route must be explicitly defined) |
 | `replenishment_strategy` | Replenishment rule: `min_max`, `quantity_based`, `zero_stock`, `predictive` |
+| Cross-dock | A `movement_rule` with `trigger: "cross_dock_task"` connecting inbound staging directly to outbound staging, bypassing storage entirely. Modeled as a normal `movement_rule` between two `section`s of the `STAGING` storage_type - no separate entity needed. |
 
 ## Reusable Catalogs (`elements/`)
 
@@ -45,10 +55,11 @@ all customers, referenced by ID from structure and strategy files.
 
 | Term | Meaning |
 |---|---|
-| `load_unit_type` | Physical definition of a load unit (pallet, mesh box, carton). Referenced by `movement_rule.allowed_load_unit_types`. SAP EWM equivalent: Ladeeinheitentyp (LE-Typ). |
+| `load_unit_type` | Physical definition of a load unit (pallet, mesh box, carton). Referenced by `movement_rule.allowed_load_unit_types` (which unit types a *route* accepts) and by `storage_type.default_attributes.allowed_load_unit_types` (which unit types a *storage place* accepts). SAP EWM equivalent: Ladeeinheitentyp (LE-Typ). |
 | `resource_type` | Catalog of resource classes with their capabilities (payload, speed). Referenced by `resource.type` in `structure/wcs.yaml`. SAP EWM equivalent: Ressourcentyp. |
 | `process_type` | Category of warehouse process (inbound/outbound/internal movement). Referenced by `movement_rule.trigger`. SAP EWM equivalent: Prozesstyp/Lagerprozess. |
 | `blocking_reason` | Catalog of reasons a `storage_point` can be blocked. Referenced by `storage_type.exceptions[].blocked_reason`. SAP EWM equivalent: Sperrgrund. |
+| `hazmat_class` | Catalog of hazardous material / compliance classifications. Referenced by `storage_type.default_attributes.hazmat_classes` to certify/restrict a storage area to specific hazard classes. Manhattan WMS equivalent: compliance zone classification. |
 
 ## Key Architectural Principles
 

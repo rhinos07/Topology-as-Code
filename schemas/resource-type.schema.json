@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://kardex.internal/schemas/resource-type.schema.json",
+  "$id": "https://warehouse-as-code.internal/schemas/resource-type.schema.json",
   "title": "Resource Type",
   "description": "Catalog entry describing a class of resource (forklift, shuttle, AGV) and its capabilities.",
   "type": "object",

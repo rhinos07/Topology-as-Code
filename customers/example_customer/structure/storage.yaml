@@ -20,10 +20,15 @@ storage_types:
       max_weight: "500kg"
       temperature_zone: "ambient"
       capacity_per_point: 1
+      size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+      position: "ZONE_HBR"     # logical position; use x/y/z per-coordinate override where exact placement matters
+      allowed_load_unit_types: ["pallet_euro", "pallet_industrial"]
+      capacity_volume: "0.25m3"
 
     exceptions:
       - coordinate: "01-01-06"
         max_weight: "800kg"      # top level, reinforced rack
+        position: { x: 4.8, y: 12.0, z: 3.6 }    # metric override, measured from building reference point
       - coordinate: "03-04-01"
         blocked: true
         blocked_reason: "OBSTRUCTION"    # column in the way
@@ -33,6 +38,30 @@ storage_types:
         criteria: { access_frequency: "high" }
       - id: "SEC_SLOW"
         criteria: { access_frequency: "low" }
+
+  # --- Rack location area, flexible bay width (2/3 storage) ---
+  # Each bay can be occupied by EITHER 2 industrial pallets OR 3 euro pallets,
+  # never both at once - the two coordinate sets physically overlap.
+  - id: "HBR_FLEX"
+    automation_level: "manual"
+    movement_policy: "default_allow"
+    access_model: "rack"
+    access_order: "direct"
+
+    layout_variants:
+      - id: "2_industrial"
+        load_unit_type: "pallet_industrial"
+        positions_per_bay: 2
+        coordinate_pattern: "FLEX-{aisle:02d}-{bay:02d}-IND-{slot:1d}"
+      - id: "3_euro"
+        load_unit_type: "pallet_euro"
+        positions_per_bay: 3
+        coordinate_pattern: "FLEX-{aisle:02d}-{bay:02d}-EUR-{slot:1d}"
+
+    default_attributes:
+      max_weight: "1000kg"
+      temperature_zone: "ambient"
+      capacity_per_point: 1
 
   # --- Block location area, manual (forklift) ---
   - id: "BLK"
@@ -54,6 +83,9 @@ storage_types:
       max_weight: "1000kg"       # per load unit
       temperature_zone: "ambient"
       capacity_per_point: 15     # 5 deep x 3 high
+      size: { width: "2.4m", depth: "4.0m", height: "3.0m" }
+      position: "ZONE_BLK"
+      allowed_load_unit_types: ["pallet_euro", "pallet_industrial", "mesh_box"]
 
   # --- Fixed-location picking area, manual ---
   - id: "FIX"
@@ -72,6 +104,9 @@ storage_types:
       max_weight: "50kg"
       temperature_zone: "ambient"
       capacity_per_point: 1
+      size: { width: "0.4m", depth: "0.3m", height: "0.3m" }
+      position: "ZONE_FIX"
+      allowed_load_unit_types: ["carton"]
 
     sections:
       - id: "SEC_PICKFACE"
@@ -94,6 +129,56 @@ storage_types:
       max_weight: "400kg"
       temperature_zone: "2-8C"
       capacity_per_point: 1
+      size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+      position: "ZONE_COLD_B"
+      allowed_load_unit_types: ["pallet_euro"]
+
+  # --- Channel/flow storage, satellite-operated (FIFO) ---
+  - id: "CHANNEL_A"
+    automation_level: "conveyor_automated"
+    movement_policy: "explicit_only"
+    access_model: "channel"
+    channel_depth: 6
+    entry_side: "front"
+    exit_side: "back"        # entry != exit -> FIFO channel
+    homogeneity_required: true
+
+    storage_point_generator:
+      aisles: 3
+      stacks: 6
+      levels: 4
+      coordinate_pattern: "CH-{aisle:02d}-{stack:02d}-{level:02d}"
+
+    default_attributes:
+      max_weight: "600kg"
+      temperature_zone: "ambient"
+      capacity_per_point: 1
+      size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+      position: "ZONE_CHANNEL_A"
+      allowed_load_unit_types: ["pallet_euro"]
+
+  # --- Hazardous materials storage, manual, compliance-restricted ---
+  - id: "HAZMAT_A"
+    automation_level: "manual"
+    movement_policy: "default_allow"
+    access_model: "rack"
+    access_order: "direct"
+
+    storage_point_generator:
+      aisles: 1
+      stacks: 4
+      levels: 2
+      coordinate_pattern: "HZ-{aisle:02d}-{stack:02d}-{level:02d}"
+
+    default_attributes:
+      max_weight: "500kg"
+      temperature_zone: "ambient"
+      capacity_per_point: 1
+      size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+      position: "ZONE_HAZMAT_A"
+      allowed_load_unit_types: ["pallet_euro", "mesh_box"]
+      capacity_volume: "0.25m3"
+      hazmat_classes: ["GHS02_FLAMMABLE", "GHS05_CORROSIVE"]
 
   # --- Staging area at the doors, manual ---
   - id: "STAGING"
@@ -114,12 +199,15 @@ storage_types:
       max_weight: "1000kg"
       temperature_zone: "ambient"
       capacity_per_point: 1
+      allowed_load_unit_types: ["pallet_euro", "pallet_industrial", "mesh_box", "carton"]
 
     sections:
       - id: "SEC_STAGING_IN"
         criteria: { flow_direction: "inbound" }
       - id: "SEC_STAGING_OUT"
         criteria: { flow_direction: "outbound" }
+      - id: "SEC_STAGING_RETURNS"
+        criteria: { flow_direction: "returns" }
 
 # Functional cross-cutting grouping - orthogonal to the physical hierarchy.
 # A storage_point can be in multiple activity_areas at the same time.
@@ -153,4 +241,9 @@ doors:
   - id: "DOOR_02"
     direction: "outbound"
     staging_section: "STAGING.SEC_STAGING_OUT"
+    determination_group: "pallets"
+
+  - id: "DOOR_03"
+    direction: "returns"
+    staging_section: "STAGING.SEC_STAGING_RETURNS"
     determination_group: "pallets"

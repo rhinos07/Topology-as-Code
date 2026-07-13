@@ -28,8 +28,9 @@ warehouse-definitions/
 │   ├── rack_templates.yaml       # Rack/lane/workstation templates
 │   ├── load_unit_types.yaml      # Pallet/container/carton definitions
 │   ├── resource_types.yaml       # Resource classes and capabilities
-│   ├── process_types.yaml        # Inbound/outbound/internal movement categories
-│   └── blocking_reasons.yaml     # Reasons a storage_point can be blocked
+│   ├── process_types.yaml        # Inbound/outbound/internal movement/cross-dock categories
+│   ├── blocking_reasons.yaml     # Reasons a storage_point can be blocked
+│   └── hazmat_classes.yaml       # Hazardous material / compliance classifications
 ├── customers/
 │   └── <customer>/
 │       ├── warehouse.yaml        # Top level, imports the other files
@@ -78,9 +79,40 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 
 ## Next Steps for This Repo
 
-- [ ] Complete JSON Schemas in `schemas/` (currently a basic skeleton)
-- [ ] Extend `tools/validate.py` with consistency checks (referential
-      integrity between files: does every `movement_rule` reference an
-      existing `storage_type`?)
 - [ ] Implement storage point generator logic (template → concrete points)
 - [ ] Optional: import mapper for AutomationML (CAEX) as an alternative source
+
+### Open Validation Gaps
+
+`tools/validate.py` currently validates each file only against its own
+JSON Schema. It does **not** check consistency across files or within a
+file's cross-references. Known gaps:
+
+1. **No cross-file referential integrity.** A typo in a referenced ID is
+   not caught. Affected references:
+   - `movement_rule.from/to.storage_type` (`movement_rules.yaml`) → `storage_type.id` (`storage.yaml`)
+   - `movement_rule.allowed_load_unit_types` (`movement_rules.yaml`) → `load_unit_types.id` (`elements/`)
+   - `movement_rule.trigger` (`movement_rules.yaml`) → `process_types.id` (`elements/`)
+   - `storage_type.default_attributes.allowed_load_unit_types` (`storage.yaml`) → `load_unit_types.id` (`elements/`)
+   - `storage_type.exceptions[].blocked_reason` (`storage.yaml`) → `blocking_reasons.id` (`elements/`)
+   - `door.staging_section` → `storage_type.sections[].id` (both in `storage.yaml`)
+   - `reporting_point.plc` → `plc_definitions.id` (both in `wcs.yaml`)
+   - `resource.type` (`wcs.yaml`) → `resource_types.id` (`elements/`)
+   - `activity_area.bins_from` → `storage_type`/`section` ids (`storage.yaml`)
+   - `replenishment_strategy.source/destination` (`replenishment.yaml`) → `storage_type`/`activity_area` (`storage.yaml`)
+   - `lane.connects` / `conveyor_segment.from/to` (`lanes.yaml`) → `storage_type`/`door`/`reporting_point`/`work_center` ids (multiple files)
+2. **`explicit_only` completeness is not checked.** For a `storage_type`
+   with `movement_policy: "explicit_only"`, every `lane`/`conveyor_segment`
+   should have a matching `movement_rule` — not verified.
+3. **`layout_variants` exclusivity is undeclared to tooling.** That two
+   variants (e.g. "2 industrial pallets" vs. "3 euro pallets" per bay)
+   physically overlap is documented but not machine-checked.
+4. **`storage_point_generator`/`layout_variants` are not compiled.** The
+   schema validates the template, not the generated `storage_point`
+   instances (see "Implement storage point generator logic" above).
+5. **No physical compatibility check** between a `storage_type`'s
+   `size`/`max_weight` and its referenced `allowed_load_unit_types` (e.g.
+   whether a euro pallet actually fits a 0.4m-wide bay).
+6. **Minor:** `jsonschema.RefResolver` is deprecated (warning on every
+   run, still functional). `validate_file()`'s `root_key` parameter is
+   currently unused dead code.

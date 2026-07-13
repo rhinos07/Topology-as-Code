@@ -17,3 +17,7 @@ process_types:
   - id: "clarification"
     category: "internal_movement"
     description: "Manual clarification of an identification error at a reporting point"
+
+  - id: "cross_dock_task"
+    category: "cross_dock"
+    description: "Move goods directly from inbound staging to outbound staging, bypassing storage"
