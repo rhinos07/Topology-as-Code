@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """
-Validates a warehouse.yaml (and all files imported by it) against
-the JSON schemas in schemas/ and runs simple consistency checks.
+Validates a company.yaml, facility.yaml, or warehouse.yaml (and everything
+it references, cascading down the Company -> Facility -> Building
+hierarchy) against the JSON schemas in schemas/ and runs simple
+consistency checks.
 
 Usage:
-    python tools/validate.py customers/example_customer/warehouse.yaml
+    python tools/validate.py customers/example_customer/company.yaml
+    python tools/validate.py customers/example_customer/facilities/facility_pa11/facility.yaml
+    python tools/validate.py customers/example_customer/facilities/facility_pa11/buildings/hall_3/warehouse.yaml
+
+Any of the three levels can be passed directly; validation cascades
+downward from whichever level you start at (company -> all facilities ->
+all buildings; facility -> all buildings; warehouse -> just that building).
 
 Extension planned (see README "Next Steps"):
     - Referential integrity across file boundaries (movement_rule ->
@@ -60,6 +68,13 @@ def collect_imports(warehouse_file: Path) -> list[Path]:
     imports = data.get("warehouse", {}).get("imports", [])
     base_dir = warehouse_file.parent
     return [base_dir / rel for rel in imports]
+
+
+def collect_relative_refs(path: Path, root_key: str, list_key: str) -> list[Path]:
+    data = load_yaml(path)
+    refs = data.get(root_key, {}).get(list_key, [])
+    base_dir = path.parent
+    return [base_dir / rel for rel in refs]
 
 
 def validate_file(path: Path, schema_name: str, root_key: str | None) -> list[str]:
@@ -133,27 +148,12 @@ def validate_replenishment(path: Path) -> list[str]:
     return errors
 
 
-def main(argv: list[str]) -> int:
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-
-    if len(argv) != 2:
-        print("Usage: python tools/validate.py <path-to-warehouse.yaml>")
-        return 2
-
-    warehouse_file = Path(argv[1]).resolve()
+def validate_warehouse_file(warehouse_file: Path) -> list[str]:
+    """Validates a single building-level warehouse.yaml and everything it imports."""
     if not warehouse_file.exists():
-        print(f"File not found: {warehouse_file}")
-        return 2
+        return [f"warehouse file missing: {warehouse_file}"]
 
-    all_errors: list[str] = []
-
-    for filename, (schema_name, list_key) in ELEMENT_CATALOGS.items():
-        catalog_file = ELEMENTS_DIR / filename
-        if catalog_file.exists():
-            all_errors += validate_element_catalog(catalog_file, schema_name, list_key)
-
-    all_errors += validate_file(warehouse_file, "warehouse.schema.json", "warehouse")
+    all_errors = validate_file(warehouse_file, "warehouse.schema.json", "warehouse")
 
     for imported in collect_imports(warehouse_file):
         if not imported.exists():
@@ -176,6 +176,67 @@ def main(argv: list[str]) -> int:
             data = load_yaml(imported)
             if data is None:
                 all_errors.append(f"{imported}: File is empty or invalid.")
+
+    return all_errors
+
+
+def validate_facility_file(facility_file: Path) -> list[str]:
+    """Validates a facility.yaml and cascades into every building it lists."""
+    if not facility_file.exists():
+        return [f"facility file missing: {facility_file}"]
+
+    all_errors = validate_file(facility_file, "facility.schema.json", "facility")
+
+    for building_file in collect_relative_refs(facility_file, "facility", "buildings"):
+        all_errors += validate_warehouse_file(building_file)
+
+    return all_errors
+
+
+def validate_company_file(company_file: Path) -> list[str]:
+    """Validates a company.yaml and cascades into every facility it lists."""
+    all_errors = validate_file(company_file, "company.schema.json", "company")
+
+    for facility_file in collect_relative_refs(company_file, "company", "facilities"):
+        all_errors += validate_facility_file(facility_file)
+
+    return all_errors
+
+
+def main(argv: list[str]) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    if len(argv) != 2:
+        print("Usage: python tools/validate.py <path-to-company|facility|warehouse.yaml>")
+        return 2
+
+    target_file = Path(argv[1]).resolve()
+    if not target_file.exists():
+        print(f"File not found: {target_file}")
+        return 2
+
+    all_errors: list[str] = []
+
+    for filename, (schema_name, list_key) in ELEMENT_CATALOGS.items():
+        catalog_file = ELEMENTS_DIR / filename
+        if catalog_file.exists():
+            all_errors += validate_element_catalog(catalog_file, schema_name, list_key)
+
+    data = load_yaml(target_file)
+    if data is None:
+        all_errors.append(f"{target_file}: File is empty or invalid.")
+    elif "company" in data:
+        all_errors += validate_company_file(target_file)
+    elif "facility" in data:
+        all_errors += validate_facility_file(target_file)
+    elif "warehouse" in data:
+        all_errors += validate_warehouse_file(target_file)
+    else:
+        all_errors.append(
+            f"{target_file}: unrecognized root key (expected one of "
+            f"'company', 'facility', 'warehouse')."
+        )
 
     if all_errors:
         print(f"❌ {len(all_errors)} validation errors found:\n")

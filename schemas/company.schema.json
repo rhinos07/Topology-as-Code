@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://warehouse-as-code.internal/schemas/company.schema.json",
+  "title": "Company (Top-Level)",
+  "description": "Top-level tenant/organization. Groups one or more facilities.",
+  "type": "object",
+  "required": ["company"],
+  "properties": {
+    "company": {
+      "type": "object",
+      "required": ["id", "name", "facilities"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "facilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Relative paths to facility.yaml files."
+        }
+      }
+    }
+  }
+}

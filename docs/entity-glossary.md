@@ -4,11 +4,24 @@ Terms modeled after SAP EWM/MFS terminology (for compatibility with
 industry vocabulary), but named independently where it made more sense
 (`storage_point` instead of "Bin").
 
+## Organizational Hierarchy
+
+| Term | Meaning |
+|---|---|
+| `company` | Top-level tenant/organization (`company.yaml`). Lists one or more `facility` files. Maps to a `customers/<customer>/` folder. |
+| `facility` | A physical site/plant/distribution center belonging to a `company` (`facility.yaml`). Lists one or more `warehouse`/building files. Carries `reference_number` (plant code, e.g. `PA11`) and `address`. |
+| `warehouse` (Building) | A single building/hall within a `facility`. Imports its own `structure/` and `strategies/`. |
+
+A `company` can have multiple `facility`s (sites), and each `facility` can
+have multiple `warehouse`/buildings (halls) - **Company → Facility →
+Building**. `tools/validate.py` accepts a path at any of the three
+levels and cascades validation downward automatically.
+
 ## Structure
 
 | Term | Meaning |
 |---|---|
-| `warehouse` | Top level, a warehouse complex/a building |
+| `warehouse` | Building-level entity within a `facility` - see Organizational Hierarchy above |
 | `storage_type` | Storage area, groups `storage_point`s (e.g. high-bay rack, block storage) |
 | `section` | Subdivision of a `storage_type` by properties (e.g. access frequency) |
 | `storage_point` | Smallest physical/logical storage unit (formerly "storage bin"). Rack location or block location. Can carry `size` ({width, depth, height}), `position` (logical string or metric {x, y, z}), `capacity_volume` (cube capacity for volume-based checks), and `hazmat_classes` via `default_attributes`/`exceptions` in `storage_type`. |

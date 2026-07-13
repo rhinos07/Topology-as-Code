@@ -1,8 +1,8 @@
-# Top-level file. Short and stable - references everything else.
-# This file validates against schemas/warehouse.schema.json
+# Building-level file. Short and stable - references everything else.
+# Part of a facility (see ../../facility.yaml). This file validates
+# against schemas/warehouse.schema.json
 
 warehouse:
-  number: "PA11"
   name: "Hall_3"
   automation_level: "mixed"
 

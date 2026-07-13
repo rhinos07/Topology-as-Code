@@ -10,8 +10,15 @@ runtime entities.
 | Layer | What | Change Frequency | Who Changes It |
 |---|---|---|---|
 | `elements/` | Reusable templates (rack types, etc.) | very rarely | Technician/Architect |
-| `customers/<customer>/structure/` | Physical warehouse structure of a customer | rarely (during rebuilds) | Technician, strict review |
-| `customers/<customer>/strategies/` | Replenishment, movement, and slotting rules | frequently | Logistics planner, lenient review |
+| `customers/<customer>/company.yaml` | Tenant/organization identity | very rarely (onboarding/offboarding) | Admin |
+| `customers/<customer>/facilities/<facility>/facility.yaml` | Site/plant identity (one per physical site) | rarely | Admin/Technician |
+| `.../buildings/<building>/structure/` | Physical warehouse structure of one building | rarely (during rebuilds) | Technician, strict review |
+| `.../buildings/<building>/strategies/` | Replenishment, movement, and slotting rules | frequently | Logistics planner, lenient review |
+
+A company can have multiple facilities (sites/plants), and each facility
+can have multiple buildings (halls) - Company → Facility → Building. Each
+building has its own `warehouse.yaml` plus `structure/`/`strategies/`, as
+described below.
 
 Runtime state (current inventory, occupancy, equipment availability) does
 **not** live here, but in the WMS runtime database. These repos only
@@ -32,15 +39,21 @@ warehouse-definitions/
 │   ├── blocking_reasons.yaml     # Reasons a storage_point can be blocked
 │   └── hazmat_classes.yaml       # Hazardous material / compliance classifications
 ├── customers/
-│   └── <customer>/
-│       ├── warehouse.yaml        # Top level, imports the other files
-│       ├── structure/            # Physical structure
-│       │   ├── storage.yaml      # Storage types + storage point generators
-│       │   ├── lanes.yaml        # Conveyor technology / lanes / conveyor segments
-│       │   └── wcs.yaml          # Warehouse Control System: reporting points, PLC, telegram actions
-│       └── strategies/           # Process rules
-│           ├── replenishment.yaml
-│           └── movement_rules.yaml
+│   └── <customer>/                       # = Company
+│       ├── company.yaml                  # Top level, lists facilities
+│       └── facilities/
+│           └── <facility>/               # = Facility (site/plant)
+│               ├── facility.yaml         # Lists buildings
+│               └── buildings/
+│                   └── <building>/       # = Building (hall)
+│                       ├── warehouse.yaml        # Imports structure/strategies below
+│                       ├── structure/            # Physical structure
+│                       │   ├── storage.yaml      # Storage types + storage point generators
+│                       │   ├── lanes.yaml        # Conveyor technology / lanes / conveyor segments
+│                       │   └── wcs.yaml          # Warehouse Control System: reporting points, PLC, telegram actions
+│                       └── strategies/           # Process rules
+│                           ├── replenishment.yaml
+│                           └── movement_rules.yaml
 ├── tools/
 │   ├── validate.py       # Validation script (schema + consistency checks)
 │   └── compile.py        # Expands storage_point_generator/layout_variants into
@@ -57,10 +70,13 @@ python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-python tools/validate.py customers/example_customer/warehouse.yaml
+# Validates a company.yaml, facility.yaml, or warehouse.yaml - cascades
+# down to every facility/building it references
+python tools/validate.py customers/example_customer/company.yaml
 
 # Expand storage_point_generator/layout_variants into concrete storage_points
-python tools/compile.py customers/example_customer/warehouse.yaml --output build/storage_points.yaml
+# for one specific building
+python tools/compile.py customers/example_customer/facilities/facility_pa11/buildings/hall_3/warehouse.yaml --output build/storage_points.yaml
 ```
 
 ## Core Concepts (Quick Reference)
@@ -91,6 +107,10 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
       conformance - run `validate.py` first. It does warn (not error) when
       an `exceptions[].coordinate` doesn't match any generated point
       (likely a typo), and errors on duplicate generated ids.
+- [x] Company → Facility → Building hierarchy: `company.yaml` lists
+      facilities, `facility.yaml` lists buildings, each building has its
+      own `warehouse.yaml`. `tools/validate.py` accepts any of the three
+      levels and cascades downward automatically.
 - [ ] Optional: import mapper for AutomationML (CAEX) as an alternative source
 - [ ] Map `compile.py` output to actual WMS/runtime entities (e.g. a
       Linq2db model) - currently it only produces an intermediate YAML,
@@ -134,8 +154,6 @@ file's cross-references. Known gaps:
 
 ### Structural Gaps (Not Yet Modeled)
 
-- **No multi-facility hierarchy.** Currently one `warehouse` per customer
-  folder, no Company → Facility → Building structure (as in Manhattan WMS).
 - **No UOM hierarchy concept** (Each → Case → Pallet conversion ratios)
   beyond what `replenishment_strategy.unit_conversion` already covers.
 - **No slotting optimization module** — deliberately excluded, this is

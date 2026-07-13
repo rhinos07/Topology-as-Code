@@ -1,7 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://warehouse-as-code.internal/schemas/warehouse.schema.json",
-  "title": "Warehouse (Top-Level)",
+  "title": "Warehouse (Building-Level)",
+  "description": "A single building within a facility (see facility.schema.json). Part of the Company -> Facility -> Building hierarchy.",
   "type": "object",
   "required": ["warehouse"],
   "properties": {
@@ -9,7 +10,10 @@
       "type": "object",
       "required": ["name", "imports"],
       "properties": {
-        "number": { "type": "string" },
+        "number": {
+          "type": "string",
+          "description": "Optional building-internal code. The facility/plant code (e.g. 'PA11') belongs on the parent facility, not here."
+        },
         "name": { "type": "string" },
         "automation_level": {
           "type": "string",

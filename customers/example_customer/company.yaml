@@ -1,0 +1,9 @@
+# Top-level tenant. Rarely changes - only when onboarding/offboarding a customer.
+# This file validates against schemas/company.schema.json
+
+company:
+  id: "example_customer"
+  name: "Example Customer GmbH"
+
+  facilities:
+    - "facilities/facility_pa11/facility.yaml"

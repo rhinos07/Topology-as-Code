@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://warehouse-as-code.internal/schemas/facility.schema.json",
+  "title": "Facility (Site / Distribution Center)",
+  "description": "A physical site belonging to a company (e.g. one plant/DC). Groups one or more buildings.",
+  "type": "object",
+  "required": ["facility"],
+  "properties": {
+    "facility": {
+      "type": "object",
+      "required": ["id", "name", "buildings"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "reference_number": {
+          "type": "string",
+          "description": "Plant/site code, e.g. 'PA11'."
+        },
+        "address": {
+          "type": "object",
+          "properties": {
+            "street": { "type": "string" },
+            "postal_code": { "type": "string" },
+            "city": { "type": "string" },
+            "country": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
+        "buildings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Relative paths to building-level warehouse.yaml files."
+        }
+      }
+    }
+  }
+}

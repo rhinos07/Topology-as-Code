@@ -1,0 +1,15 @@
+# A physical site (plant/distribution center). Changes rarely - only when a
+# site is added/closed. This file validates against schemas/facility.schema.json
+
+facility:
+  id: "PA11"
+  name: "Distribution Center PA11"
+  reference_number: "PA11"
+  address:
+    street: "Logistikstrasse 1"
+    postal_code: "12345"
+    city: "Musterstadt"
+    country: "DE"
+
+  buildings:
+    - "buildings/hall_3/warehouse.yaml"

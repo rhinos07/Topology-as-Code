@@ -17,9 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Validate each customer folder with warehouse.yaml individually.
-        # For multiple customers, extend the list here or generate it
-        # dynamically from the filesystem via a preliminary job.
+        # Validate each customer folder via its company.yaml, which cascades
+        # into every facility and building automatically. For multiple
+        # customers, extend the list here or generate it dynamically from
+        # the filesystem via a preliminary job.
         customer: ["example_customer"]
     steps:
       - uses: actions/checkout@v4
@@ -30,4 +31,4 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - run: python tools/validate.py customers/${{ matrix.customer }}/warehouse.yaml
+      - run: python tools/validate.py customers/${{ matrix.customer }}/company.yaml
