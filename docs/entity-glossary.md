@@ -19,7 +19,7 @@ industry vocabulary), but named independently where it made more sense
 | `door` / `staging_area` | Doors for goods receipt/dispatch/returns. `direction`: `inbound`, `outbound`, or `returns` (kept separate from `inbound` so returns can be routed/inspected differently). |
 | `lane` / `conveyor_segment` | Physical connection/conveyor technology between areas (**"can"**) |
 | `reporting_point` | Communication point between WMS and PLC; is technically always also modeled as a `storage_point` |
-| `resource` / `vehicle` | Executing element. `resource` = WMS-controlled, `vehicle` = PLC-autonomous with its own order buffer |
+| `equipment` | Executing element (shuttle, forklift, AGV). `mode: wms_controlled` = WMS decides the route explicitly (SAP EWM: "Resource"), `mode: plc_autonomous` = PLC-autonomous with its own order buffer (SAP EWM: "Vehicle"). Named `equipment` rather than SAP's "Resource" to avoid collision with the Terraform `resource` keyword this repo's analogy relies on; matches Manhattan WMS terminology instead. |
 | `plc_definition` (system/installation) | A distinct technical automation system within the warehouse (e.g. one AS/RS/shuttle system with its own PLC). A warehouse can contain several. Carries `name` and `reference_number` for identification (see `structure/wcs.yaml`). |
 
 ## Rack vs. Block vs. Channel Location
@@ -56,7 +56,7 @@ all customers, referenced by ID from structure and strategy files.
 | Term | Meaning |
 |---|---|
 | `load_unit_type` | Physical definition of a load unit (pallet, mesh box, carton). Referenced by `movement_rule.allowed_load_unit_types` (which unit types a *route* accepts) and by `storage_type.default_attributes.allowed_load_unit_types` (which unit types a *storage place* accepts). SAP EWM equivalent: Ladeeinheitentyp (LE-Typ). |
-| `resource_type` | Catalog of resource classes with their capabilities (payload, speed). Referenced by `resource.type` in `structure/wcs.yaml`. SAP EWM equivalent: Ressourcentyp. |
+| `equipment_type` | Catalog of equipment classes with their capabilities (payload, speed). Referenced by `equipment.type` in `structure/wcs.yaml`. SAP EWM equivalent: Ressourcentyp. Manhattan WMS equivalent: Equipment Type. |
 | `process_type` | Category of warehouse process (inbound/outbound/internal movement). Referenced by `movement_rule.trigger`. SAP EWM equivalent: Prozesstyp/Lagerprozess. |
 | `blocking_reason` | Catalog of reasons a `storage_point` can be blocked. Referenced by `storage_type.exceptions[].blocked_reason`. SAP EWM equivalent: Sperrgrund. |
 | `hazmat_class` | Catalog of hazardous material / compliance classifications. Referenced by `storage_type.default_attributes.hazmat_classes` to certify/restrict a storage area to specific hazard classes. Manhattan WMS equivalent: compliance zone classification. |

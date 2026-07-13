@@ -13,7 +13,7 @@ runtime entities.
 | `customers/<customer>/structure/` | Physical warehouse structure of a customer | rarely (during rebuilds) | Technician, strict review |
 | `customers/<customer>/strategies/` | Replenishment, movement, and slotting rules | frequently | Logistics planner, lenient review |
 
-Runtime state (current inventory, occupancy, resource availability) does
+Runtime state (current inventory, occupancy, equipment availability) does
 **not** live here, but in the WMS runtime database. These repos only
 describe the **desired state** of the structure and rules — analogous to
 Terraform: the code describes the infrastructure, not its current live
@@ -27,7 +27,7 @@ warehouse-definitions/
 ├── elements/             # Reusable templates and catalogs
 │   ├── rack_templates.yaml       # Rack/lane/workstation templates
 │   ├── load_unit_types.yaml      # Pallet/container/carton definitions
-│   ├── resource_types.yaml       # Resource classes and capabilities
+│   ├── equipment_types.yaml      # Equipment classes and capabilities
 │   ├── process_types.yaml        # Inbound/outbound/internal movement/cross-dock categories
 │   ├── blocking_reasons.yaml     # Reasons a storage_point can be blocked
 │   └── hazmat_classes.yaml       # Hazardous material / compliance classifications
@@ -97,7 +97,7 @@ file's cross-references. Known gaps:
    - `storage_type.exceptions[].blocked_reason` (`storage.yaml`) → `blocking_reasons.id` (`elements/`)
    - `door.staging_section` → `storage_type.sections[].id` (both in `storage.yaml`)
    - `reporting_point.plc` → `plc_definitions.id` (both in `wcs.yaml`)
-   - `resource.type` (`wcs.yaml`) → `resource_types.id` (`elements/`)
+   - `equipment.type` (`wcs.yaml`) → `equipment_types.id` (`elements/`)
    - `activity_area.bins_from` → `storage_type`/`section` ids (`storage.yaml`)
    - `replenishment_strategy.source/destination` (`replenishment.yaml`) → `storage_type`/`activity_area` (`storage.yaml`)
    - `lane.connects` / `conveyor_segment.from/to` (`lanes.yaml`) → `storage_type`/`door`/`reporting_point`/`work_center` ids (multiple files)

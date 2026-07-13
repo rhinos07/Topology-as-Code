@@ -1,7 +1,7 @@
-# Reusable catalog of resource classes with their capabilities.
-# Referenced by resources[].type in structure/wcs.yaml.
+# Reusable catalog of equipment classes with their capabilities.
+# Referenced by equipment[].type in structure/wcs.yaml.
 
-resource_types:
+equipment_types:
   - id: "shuttle_4way"
     description: "4-way shuttle for automated rack storage"
     automation_level: "conveyor_automated"

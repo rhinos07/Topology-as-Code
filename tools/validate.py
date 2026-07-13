@@ -27,7 +27,7 @@ ELEMENTS_DIR = REPO_ROOT / "elements"
 
 ELEMENT_CATALOGS = {
     "load_unit_types.yaml": ("load-unit-type.schema.json", "load_unit_types"),
-    "resource_types.yaml": ("resource-type.schema.json", "resource_types"),
+    "equipment_types.yaml": ("equipment-type.schema.json", "equipment_types"),
     "process_types.yaml": ("process-type.schema.json", "process_types"),
     "blocking_reasons.yaml": ("blocking-reason.schema.json", "blocking_reasons"),
     "hazmat_classes.yaml": ("hazmat-class.schema.json", "hazmat_classes"),

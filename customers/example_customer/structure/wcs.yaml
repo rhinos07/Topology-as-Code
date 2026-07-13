@@ -41,10 +41,10 @@ telegram_actions:
     to_point: "RP_C02"
     next_target: "RP_C03"
 
-resources:
+equipment:
   - id: "SRM_01"
-    type: "shuttle_4way"      # references elements/resource_types.yaml
-    mode: "resource"          # "resource" = WMS-controlled, "vehicle" = PLC-autonomous with its own buffer
+    type: "shuttle_4way"          # references elements/equipment_types.yaml
+    mode: "wms_controlled"        # "wms_controlled" = WMS decides the route, "plc_autonomous" = PLC-autonomous with its own buffer
     bin_access_type: "AUTO"
     served_points: ["RP_C01", "RP_C02", "RP_C03"]
     fleet_interface: "vda5050"
