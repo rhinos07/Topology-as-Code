@@ -1,0 +1,122 @@
+# Physische Lagerstruktur. Aendert sich nur bei echtem Umbau.
+# Validiert gegen schemas/storage-type.schema.json (je Eintrag in storage_types)
+
+storage_types:
+
+  # --- Regalplatz-Bereich, automatisiert (Shuttle) ---
+  - id: "HRK"
+    automation_level: "conveyor_automated"
+    movement_policy: "explicit_only"     # jede Route muss explizit definiert sein
+    access_model: "rack"
+    access_order: "direct"
+
+    storage_point_generator:
+      aisles: 12
+      stacks: 8
+      levels: 6
+      coordinate_pattern: "{aisle:02d}-{stack:02d}-{level:02d}"
+
+    default_attributes:
+      max_weight: "500kg"
+      temperature_zone: "ambient"
+      capacity_per_point: 1
+
+    exceptions:
+      - coordinate: "01-01-06"
+        max_weight: "800kg"      # oberste Ebene, verstaerktes Regal
+      - coordinate: "03-04-01"
+        blocked: true            # Saeule im Weg
+
+    sections:
+      - id: "SEC_FAST"
+        criteria: { access_frequency: "hoch" }
+      - id: "SEC_SLOW"
+        criteria: { access_frequency: "niedrig" }
+
+  # --- Blockplatz-Bereich, manuell (Stapler) ---
+  - id: "BLK"
+    automation_level: "manual"
+    movement_policy: "default_allow"     # Ausnahmen explizit verbieten reicht
+    access_model: "block"
+    depth: 5
+    stack_height: 3
+    access_order: "lifo"
+    homogeneity_required: true
+
+    storage_point_generator:
+      aisles: 4
+      stacks: 1
+      levels: 1
+      coordinate_pattern: "BLK-{aisle:02d}"
+
+    default_attributes:
+      max_weight: "1000kg"       # pro Ladeeinheit
+      temperature_zone: "ambient"
+      capacity_per_point: 15     # 5 tief x 3 hoch
+
+  # --- Fixplatz-Kommissionierbereich, manuell ---
+  - id: "FIX"
+    automation_level: "manual"
+    movement_policy: "default_allow"
+    access_model: "rack"
+    access_order: "direct"
+
+    storage_point_generator:
+      aisles: 6
+      stacks: 4
+      levels: 1
+      coordinate_pattern: "FIX-{aisle:02d}-{stack:02d}"
+
+    default_attributes:
+      max_weight: "50kg"
+      temperature_zone: "ambient"
+      capacity_per_point: 1
+
+    sections:
+      - id: "SEC_PICKFACE"
+        criteria: { access_frequency: "sehr_hoch" }
+
+  # --- Kuehlzone, manuell ---
+  - id: "KUEHLZONE_B"
+    automation_level: "manual"
+    movement_policy: "default_allow"
+    access_model: "rack"
+    access_order: "direct"
+
+    storage_point_generator:
+      aisles: 2
+      stacks: 6
+      levels: 3
+      coordinate_pattern: "KB-{aisle:02d}-{stack:02d}-{level:02d}"
+
+    default_attributes:
+      max_weight: "400kg"
+      temperature_zone: "2-8C"
+      capacity_per_point: 1
+
+# Funktionale Querschnitts-Gruppierung - orthogonal zur physischen Hierarchie.
+# Ein storage_point kann gleichzeitig in mehreren activity_areas sein.
+activity_areas:
+  - id: "PICK_ZONE_A"
+    activity: "picking"
+    bins_from: ["FIX.SEC_PICKFACE"]
+
+  - id: "PUTAWAY_ZONE_A"
+    activity: "putaway"
+    bins_from: ["HRK.SEC_FAST", "HRK.SEC_SLOW"]
+
+  - id: "INVENTORY_ZONE_A"
+    activity: "physical_inventory"
+    bins_from: ["HRK.SEC_SLOW", "BLK"]
+
+# Arbeitsstationen
+work_centers:
+  - id: "WC_PACK_01"
+    step: "packing"
+    workstation_template: "ws_pick_to_light"
+
+# Tore / Wareneingang-Ausgang
+doors:
+  - id: "DOOR_01"
+    staging_section: "SEC_STAGING_IN"
+    determination_group: "pallets"

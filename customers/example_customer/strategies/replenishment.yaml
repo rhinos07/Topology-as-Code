@@ -1,0 +1,45 @@
+# Prozessregeln, keine physische Struktur. Aendert sich haeufiger als
+# structure/ - eigener, leichtgewichtigerer Review-Flow denkbar.
+
+replenishment_strategies:
+
+  - id: "REPL_PICKFACE_A"
+    trigger:
+      type: "min_max"
+      min_qty: 10
+      max_qty: 50
+      check_interval: "5min"
+    source:
+      storage_type: "HRK"
+      section: "SEC_SLOW"
+    destination:
+      storage_type: "FIX"
+      activity_area: "PICK_ZONE_A"
+    unit_conversion:
+      from_uom: "pallet"
+      to_uom: "piece"
+    priority: "normal"
+    timing: "immediate"
+
+  - id: "REPL_ZERO_STOCK_A"
+    trigger:
+      type: "zero_stock"
+    source:
+      storage_type: "HRK"
+    destination:
+      activity_area: "PICK_ZONE_A"
+    priority: "urgent"
+    timing: "immediate"
+
+  - id: "REPL_PREDICTIVE_A"
+    trigger:
+      type: "predictive"
+      forecast_horizon: "2h"
+      based_on: "outbound_order_forecast"
+    source:
+      storage_type: "HRK"
+      section: "SEC_FAST"
+    destination:
+      activity_area: "PICK_ZONE_A"
+    priority: "normal"
+    timing: "batch_window: 22:00-06:00"

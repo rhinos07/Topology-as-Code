@@ -1,0 +1,33 @@
+# Beispiel-CI-Pipeline. Logik ist 1:1 nach TeamCity portierbar
+# (PowerShell-Build-Step: pip install -r requirements.txt && python tools/validate.py ...)
+name: Validate warehouse definitions
+
+on:
+  pull_request:
+    paths:
+      - "customers/**"
+      - "elements/**"
+      - "schemas/**"
+      - "tools/**"
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Jeden Kunden-Ordner mit warehouse.yaml einzeln validieren.
+        # Bei mehreren Kunden hier die Liste erweitern oder dynamisch
+        # per Vorab-Job aus dem Dateisystem generieren.
+        customer: ["example_customer"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - run: python tools/validate.py customers/${{ matrix.customer }}/warehouse.yaml

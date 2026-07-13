@@ -1,0 +1,51 @@
+# "Darf" - unabhaengig von "kann" (structure/lanes.yaml).
+# Policy haengt vom automation_level des jeweiligen storage_type ab:
+#   default_allow   -> manuelle Bereiche, nur Ausnahmen explizit auflisten
+#   explicit_only   -> automatisierte/Foerdertechnik-Bereiche, jede Route explizit
+
+movement_rules:
+
+  # --- explicit_only: automatisierter Bereich (HRK) ---
+  - id: "ROUTE_AKL_C01_TO_C02"
+    applies_to_policy: "explicit_only"
+    from: { reporting_point: "MP_C01" }
+    to: { reporting_point: "MP_C02" }
+    allowed: true
+    via_segment: "SEG_C01_C02"
+    trigger: "putaway_task"
+
+  - id: "ROUTE_AKL_C02_TO_C03"
+    applies_to_policy: "explicit_only"
+    from: { reporting_point: "MP_C02" }
+    to: { reporting_point: "MP_C03" }
+    allowed: true
+    via_segment: "SEG_C02_C03"
+    trigger: "clarification"
+
+  # --- default_allow: manuelle Bereiche, nur Verbote explizit ---
+  - id: "FORBID_COLD_TO_AMBIENT"
+    applies_to_policy: "default_allow"
+    from: { storage_type: "KUEHLZONE_B" }
+    to: { storage_type: "*" }
+    exclude_to: { storage_type: "KUEHLZONE_B" }
+    allowed: false
+    reason: "Kuehlkette darf nicht unterbrochen werden"
+
+  # --- Standard-Nachschubroute HRK -> FIX (Palette -> Stueck) ---
+  - id: "MOVE_STORAGE_TO_PICKFACE"
+    applies_to_policy: "default_allow"
+    from: { storage_type: "HRK" }
+    to: { storage_type: "FIX", activity_area: "PICK_ZONE_A" }
+    allowed: true
+    allowed_load_unit_types: ["pallet_euro"]
+    conversion_required: true
+    trigger: "replenishment_task"
+
+  # --- Blockplatz: nur ans offene Ende, nur gleicher Artikel ---
+  - id: "MOVE_INTO_BLOCK"
+    applies_to_policy: "default_allow"
+    to: { storage_type: "BLK" }
+    allowed: true
+    access_constraint: "lifo"
+    homogeneity_check: true
+    trigger: "putaway_task"

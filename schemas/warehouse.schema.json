@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kardex.internal/schemas/warehouse.schema.json",
+  "title": "Warehouse (Top-Level)",
+  "type": "object",
+  "required": ["warehouse"],
+  "properties": {
+    "warehouse": {
+      "type": "object",
+      "required": ["name", "imports"],
+      "properties": {
+        "number": { "type": "string" },
+        "name": { "type": "string" },
+        "automation_level": {
+          "type": "string",
+          "enum": ["manual", "conveyor_automated", "mixed"]
+        },
+        "imports": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Relative Pfade zu weiteren YAML-Dateien (structure/, strategies/)."
+        },
+        "fleet_interface": {
+          "type": "object",
+          "properties": {
+            "protocol": { "type": "string" },
+            "version": { "type": "string" },
+            "mqtt_broker": { "type": "string" },
+            "node_mapping": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kardex.internal/schemas/replenishment-strategy.schema.json",
+  "title": "Replenishment Strategy",
+  "description": "Nachschub-Regel. Ist Prozesskonfiguration, keine physische Struktur - eigener Lifecycle/Review-Flow.",
+  "type": "object",
+  "required": ["id", "trigger", "source", "destination"],
+  "properties": {
+    "id": { "type": "string" },
+    "trigger": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["min_max", "quantity_based", "zero_stock", "predictive"]
+        },
+        "min_qty": { "type": "number" },
+        "max_qty": { "type": "number" },
+        "check_interval": { "type": "string" },
+        "forecast_horizon": { "type": "string" },
+        "based_on": { "type": "string" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "storage_type": { "type": "string" },
+        "section": { "type": "string" }
+      }
+    },
+    "destination": {
+      "type": "object",
+      "properties": {
+        "storage_type": { "type": "string" },
+        "activity_area": { "type": "string" }
+      }
+    },
+    "unit_conversion": {
+      "type": "object",
+      "properties": {
+        "from_uom": { "type": "string" },
+        "to_uom": { "type": "string" }
+      }
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "urgent"]
+    },
+    "timing": { "type": "string" }
+  },
+  "additionalProperties": false
+}

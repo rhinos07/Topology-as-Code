@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kardex.internal/schemas/storage-type.schema.json",
+  "title": "Storage Type",
+  "description": "Ein Lagerbereich (z.B. Hochregal, Blocklager), der storage_points gruppiert.",
+  "type": "object",
+  "required": ["id", "access_model"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+$",
+      "description": "Eindeutige ID, z.B. 'HRK', 'AKL', 'BLK'"
+    },
+    "automation_level": {
+      "type": "string",
+      "enum": ["manual", "conveyor_automated", "mixed"],
+      "default": "manual"
+    },
+    "movement_policy": {
+      "type": "string",
+      "enum": ["default_allow", "explicit_only"],
+      "description": "default_allow: manuelle Bereiche, Ausnahmen explizit verbieten. explicit_only: Fördertechnik-Bereiche, jede Route muss explizit definiert sein."
+    },
+    "access_model": {
+      "type": "string",
+      "enum": ["rack", "block"],
+      "description": "rack: Regalplatz, einzeln adressierbar. block: Blockplatz, mehrere Ladeeinheiten, LIFO-Zugriff."
+    },
+    "depth": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Bei 'block': Anzahl Ladeeinheiten in der Tiefe."
+    },
+    "stack_height": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Bei 'block': Anzahl Ladeeinheiten übereinander gestapelt."
+    },
+    "access_order": {
+      "type": "string",
+      "enum": ["direct", "lifo"],
+      "description": "direct: jeder storage_point einzeln erreichbar. lifo: Last In First Out (Blockplatz)."
+    },
+    "homogeneity_required": {
+      "type": "boolean",
+      "description": "Bei 'block': darf nur ein Artikel gleichzeitig im Block liegen."
+    },
+    "storage_point_generator": {
+      "type": "object",
+      "description": "Generiert storage_points aus einem Raster statt sie einzeln aufzuzählen.",
+      "required": ["coordinate_pattern"],
+      "properties": {
+        "aisles": { "type": "integer", "minimum": 1 },
+        "stacks": { "type": "integer", "minimum": 1 },
+        "levels": { "type": "integer", "minimum": 1 },
+        "coordinate_pattern": {
+          "type": "string",
+          "description": "z.B. '{aisle:02d}-{stack:02d}-{level:02d}'"
+        }
+      }
+    },
+    "default_attributes": {
+      "type": "object",
+      "description": "Attribute, die für alle generierten storage_points gelten, sofern keine exception greift.",
+      "properties": {
+        "max_weight": { "type": "string" },
+        "temperature_zone": { "type": "string" },
+        "capacity_per_point": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "exceptions": {
+      "type": "array",
+      "description": "Explizite Abweichungen vom Template für einzelne Koordinaten.",
+      "items": {
+        "type": "object",
+        "required": ["coordinate"],
+        "properties": {
+          "coordinate": { "type": "string" },
+          "max_weight": { "type": "string" },
+          "blocked": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "sections": {
+      "type": "array",
+      "description": "Untergliederung des Storage Type nach Eigenschaften (z.B. Zugriffsfrequenz).",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "criteria": { "type": "object", "additionalProperties": true }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

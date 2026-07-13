@@ -1,0 +1,28 @@
+# Wiederverwendbare, selten geänderte Bausteine.
+# Werden von structure/storage.yaml referenziert.
+
+rack_templates:
+  - id: "rack_4way_standard"
+    description: "Standard-Regalfach für 4-Way-Shuttle"
+    dimensions: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+    max_weight: "500kg"
+    temperature_zone: "ambient"
+
+  - id: "rack_coldstorage_standard"
+    description: "Regalfach für Kühlzone"
+    dimensions: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+    max_weight: "400kg"
+    temperature_zone: "2-8C"
+
+lane_templates:
+  - id: "lane_shuttle_standard"
+    width: "2.5m"
+    direction: "bidirectional"
+    shuttle_compatible: true
+    max_speed: "1.5m/s"
+
+workstation_templates:
+  - id: "ws_pick_to_light"
+    type: "pick-to-light"
+    ergonomic_class: "standing"
+    throughput_capacity: 120  # picks per hour
