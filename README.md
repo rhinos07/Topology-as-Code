@@ -50,7 +50,7 @@ warehouse-definitions/
 │                       ├── structure/            # Physical structure
 │                       │   ├── storage.yaml      # Storage types + storage point generators
 │                       │   ├── lanes.yaml        # Conveyor technology / lanes / conveyor segments
-│                       │   └── wcs.yaml          # Warehouse Control System: reporting points, PLC, telegram actions
+│                       │   └── wcs.yaml          # Warehouse Control System: reporting points, controllers, telegram actions
 │                       └── strategies/           # Process rules
 │                           ├── replenishment.yaml
 │                           └── movement_rules.yaml
@@ -87,8 +87,9 @@ python tools/compile.py customers/example_customer/facilities/facility_pa11/buil
 - **storage_type** — storage area that groups storage_points (e.g. high-bay rack).
 - **activity_area** — functional cross-cutting grouping, orthogonal to the
   physical hierarchy (a storage_point can belong to multiple activity_areas).
-- **reporting_point** — communication point between WMS and PLC, is
-  technically always also modeled as a storage_point.
+- **reporting_point** — communication point between WMS and a downstream
+  controller (PLC, MFC, AS controller, etc.); technically always also
+  modeled as a storage_point.
 - **movement_rule** — defines allowed/forbidden goods movements between
   areas. Two policies: `default_allow` (manual areas, exceptions
   explicit) vs. `explicit_only` (automated/conveyor areas, every
@@ -119,7 +120,8 @@ file's cross-references. Known gaps:
    - `storage_type.default_attributes.allowed_load_unit_types` (`storage.yaml`) → `load_unit_types.id` (`elements/`)
    - `storage_type.exceptions[].blocked_reason` (`storage.yaml`) → `blocking_reasons.id` (`elements/`)
    - `door.staging_section` → `storage_type.sections[].id` (both in `storage.yaml`)
-   - `reporting_point.plc` → `plc_definitions.id` (both in `wcs.yaml`)
+   - `reporting_point.controller` → `controller_definitions.id` (both in `wcs.yaml`)
+   - `storage_type.controller` (`storage.yaml`) → `controller_definitions.id` (`wcs.yaml`)
    - `equipment.type` (`wcs.yaml`) → `equipment_types.id` (`elements/`)
    - `activity_area.bins_from` → `storage_type`/`section` ids (`storage.yaml`)
    - `replenishment_strategy.source/destination` (`replenishment.yaml`) → `storage_type`/`activity_area` (`storage.yaml`)

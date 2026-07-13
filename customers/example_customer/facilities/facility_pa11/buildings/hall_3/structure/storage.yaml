@@ -9,6 +9,7 @@ storage_types:
     movement_policy: "explicit_only"     # every route must be explicitly defined
     access_model: "rack"
     access_order: "direct"
+    controller: "CTRL_HBR_01"      # references structure/wcs.yaml controller_definitions
 
     storage_point_generator:
       aisles: 12
@@ -160,6 +161,33 @@ storage_types:
       size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
       position: "ZONE_CHANNEL_A"
       allowed_load_unit_types: ["pallet_euro"]
+
+  # --- AutoStore-style cube storage, automated (robots on a grid) ---
+  # Bins are stacked in columns; a robot can only ever remove the top bin
+  # of a column (LIFO per column) - modeled as 'block' with stack_height
+  # = bins per column and access_order 'lifo'.
+  - id: "AUTOSTORE_A"
+    automation_level: "conveyor_automated"
+    movement_policy: "explicit_only"
+    access_model: "block"
+    depth: 1
+    stack_height: 16          # bins stacked per grid column
+    access_order: "lifo"      # robot can only pick the top bin of a column
+    controller: "CTRL_AUTOSTORE_01"   # references structure/wcs.yaml controller_definitions
+
+    storage_point_generator:
+      aisles: 10    # grid columns, x-direction
+      stacks: 10    # grid columns, y-direction
+      levels: 1
+      coordinate_pattern: "AS-{aisle:02d}-{stack:02d}"
+
+    default_attributes:
+      max_weight: "30kg"       # per bin
+      temperature_zone: "ambient"
+      capacity_per_point: 16   # 16 bins stacked per column
+      size: { width: "0.649m", depth: "0.449m", height: "0.31m" }
+      position: "ZONE_AUTOSTORE_A"
+      allowed_load_unit_types: ["autostore_bin"]
 
   # --- Hazardous materials storage, manual, compliance-restricted ---
   - id: "HAZMAT_A"

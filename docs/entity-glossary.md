@@ -22,7 +22,7 @@ levels and cascades validation downward automatically.
 | Term | Meaning |
 |---|---|
 | `warehouse` | Building-level entity within a `facility` - see Organizational Hierarchy above |
-| `storage_type` | Storage area, groups `storage_point`s (e.g. high-bay rack, block storage) |
+| `storage_type` | Storage area, groups `storage_point`s (e.g. high-bay rack, block storage). A building can have arbitrarily many `storage_type`s side by side (e.g. HRL + AutoStore + manual block storage in one `warehouse`). Optional `controller` field links it to a `controller_definitions` entry in the building's `wcs.yaml` when it's operated by a specific automation system. |
 | `section` | Subdivision of a `storage_type` by properties (e.g. access frequency) |
 | `storage_point` | Smallest physical/logical storage unit (formerly "storage bin"). Rack location or block location. Can carry `size` ({width, depth, height}), `position` (logical string or metric {x, y, z}), `capacity_volume` (cube capacity for volume-based checks), and `hazmat_classes` via `default_attributes`/`exceptions` in `storage_type`. |
 | `storage_point_generator` | Generates `storage_point`s from a grid instead of enumerating them individually |
@@ -31,9 +31,9 @@ levels and cascades validation downward automatically.
 | `work_center` | Physical unit for activities such as packing, weighing. Set `storage_point_ref: true` if WIP inventory can be booked directly at the work center (same pattern as `reporting_point`). |
 | `door` / `staging_area` | Doors for goods receipt/dispatch/returns. `direction`: `inbound`, `outbound`, or `returns` (kept separate from `inbound` so returns can be routed/inspected differently). |
 | `lane` / `conveyor_segment` | Physical connection/conveyor technology between areas (**"can"**) |
-| `reporting_point` | Communication point between WMS and PLC; is technically always also modeled as a `storage_point` |
-| `equipment` | Executing element (shuttle, forklift, AGV). `mode: wms_controlled` = WMS decides the route explicitly (SAP EWM: "Resource"), `mode: plc_autonomous` = PLC-autonomous with its own order buffer (SAP EWM: "Vehicle"). Named `equipment` rather than SAP's "Resource" to avoid collision with the Terraform `resource` keyword this repo's analogy relies on; matches Manhattan WMS terminology instead. |
-| `plc_definition` (system/installation) | A distinct technical automation system within the warehouse (e.g. one AS/RS/shuttle system with its own PLC). A warehouse can contain several. Carries `name` and `reference_number` for identification (see `structure/wcs.yaml`). |
+| `reporting_point` | Communication point between WMS and a downstream `controller`; is technically always also modeled as a `storage_point` |
+| `equipment` | Executing element (shuttle, forklift, AGV). `mode: wms_controlled` = WMS decides the route explicitly (SAP EWM: "Resource"), `mode: controller_autonomous` = the downstream controller is autonomous with its own order buffer (SAP EWM: "Vehicle"). Named `equipment` rather than SAP's "Resource" to avoid collision with the Terraform `resource` keyword this repo's analogy relies on; matches Manhattan WMS terminology instead. |
+| `controller_definition` (system/installation) | A distinct technical automation system within the warehouse that the WCS delegates tasks to - a PLC, a Material Flow Controller (MFC), a vendor-specific AS controller (e.g. AutoStore), etc. Deliberately generic: "PLC" was too narrow since not every downstream system is a PLC. A warehouse can contain several. Carries `name` and `reference_number` for identification (see `structure/wcs.yaml`). Referenced by `reporting_point.controller` and `storage_type.controller`. |
 
 ## Rack vs. Block vs. Channel Location
 

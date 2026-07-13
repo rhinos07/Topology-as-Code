@@ -29,3 +29,10 @@ load_unit_types:
     max_weight: "20kg"
     stackable: false
     volume: "0.036m3"
+
+  - id: "autostore_bin"
+    description: "AutoStore standard grid bin, 649x449mm footprint"
+    dimensions: { width: "0.649m", depth: "0.449m", height: "0.31m" }
+    max_weight: "30kg"
+    stackable: true
+    volume: "0.09m3"

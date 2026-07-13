@@ -1,8 +1,8 @@
-# Warehouse Control System (WCS): PLC communication, reporting points, telegram actions.
+# Warehouse Control System (WCS): controller communication, reporting points, telegram actions.
 # A reporting_point is always also modeled as a storage_point.
 
-plc_definitions:
-  - id: "PLC_HBR_01"
+controller_definitions:
+  - id: "CTRL_HBR_01"
     name: "AS/RS Hall 3"
     reference_number: "AN-2024-0113"
     channels:
@@ -12,24 +12,34 @@ plc_definitions:
         telegram_length: 128
         handshake_mode: "confirmed"
 
+  - id: "CTRL_AUTOSTORE_01"
+    name: "AutoStore Grid 1"
+    reference_number: "AN-2024-0225"
+    channels:
+      - id: "CH_AS_01"
+        ip: "10.0.2.20"
+        port: 5000
+        telegram_length: 64
+        handshake_mode: "confirmed"
+
 reporting_points:
   - id: "RP_C01"
     storage_point_ref: true
-    plc: "PLC_HBR_01"
+    controller: "CTRL_HBR_01"
     type: "identification_point"     # or "aisle_decision_point", "clarification_point"
     capacity: 1
     availability: "available"
 
   - id: "RP_C02"
     storage_point_ref: true
-    plc: "PLC_HBR_01"
+    controller: "CTRL_HBR_01"
     type: "aisle_decision_point"
     capacity: 1
     availability: "available"
 
   - id: "RP_C03"
     storage_point_ref: true
-    plc: "PLC_HBR_01"
+    controller: "CTRL_HBR_01"
     type: "clarification_point"      # manual clarification on identification error
     capacity: 2
     availability: "available"
@@ -44,7 +54,7 @@ telegram_actions:
 equipment:
   - id: "SRM_01"
     type: "shuttle_4way"          # references elements/equipment_types.yaml
-    mode: "wms_controlled"        # "wms_controlled" = WMS decides the route, "plc_autonomous" = PLC-autonomous with its own buffer
+    mode: "wms_controlled"        # "wms_controlled" = WMS decides the route, "controller_autonomous" = controller-autonomous with its own buffer
     bin_access_type: "AUTO"
     served_points: ["RP_C01", "RP_C02", "RP_C03"]
     fleet_interface: "vda5050"

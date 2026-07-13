@@ -16,6 +16,10 @@
       "enum": ["manual", "conveyor_automated", "mixed"],
       "default": "manual"
     },
+    "controller": {
+      "type": "string",
+      "description": "References an id in a building's wcs.yaml controller_definitions. Links this storage_type to the technical automation system (Anlage) that operates it - a PLC, a Material Flow Controller (MFC), an AS controller (e.g. AutoStore), etc. Optional - manual areas typically have none."
+    },
     "movement_policy": {
       "type": "string",
       "enum": ["default_allow", "explicit_only"],
