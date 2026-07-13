@@ -1,0 +1,21 @@
+# Reusable catalog of resource classes with their capabilities.
+# Referenced by resources[].type in structure/wcs.yaml.
+
+resource_types:
+  - id: "shuttle_4way"
+    description: "4-way shuttle for automated rack storage"
+    automation_level: "conveyor_automated"
+    max_payload: "50kg"
+    max_speed: "3m/s"
+
+  - id: "forklift_counterbalance"
+    description: "Manual counterbalance forklift"
+    automation_level: "manual"
+    max_payload: "1500kg"
+    max_speed: "2m/s"
+
+  - id: "agv_pallet"
+    description: "Automated guided vehicle for pallet transport"
+    automation_level: "conveyor_automated"
+    max_payload: "1000kg"
+    max_speed: "1.5m/s"

@@ -78,7 +78,11 @@
         "properties": {
           "coordinate": { "type": "string" },
           "max_weight": { "type": "string" },
-          "blocked": { "type": "boolean" }
+          "blocked": { "type": "boolean" },
+          "blocked_reason": {
+            "type": "string",
+            "description": "References an id in elements/blocking_reasons.yaml. Required when blocked is true."
+          }
         },
         "additionalProperties": true
       }

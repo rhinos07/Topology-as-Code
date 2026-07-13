@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kardex.internal/schemas/blocking-reason.schema.json",
+  "title": "Blocking Reason",
+  "description": "Catalog entry describing why a storage_point can be blocked.",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+$",
+      "description": "Unique ID, e.g. 'OBSTRUCTION'"
+    },
+    "description": { "type": "string" }
+  },
+  "additionalProperties": true
+}

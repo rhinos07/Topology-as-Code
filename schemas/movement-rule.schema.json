@@ -18,7 +18,8 @@
     "allowed": { "type": "boolean" },
     "allowed_load_unit_types": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": { "type": "string" },
+      "description": "References ids in elements/load_unit_types.yaml."
     },
     "conversion_required": { "type": "boolean" },
     "access_constraint": {
@@ -28,7 +29,7 @@
     "homogeneity_check": { "type": "boolean" },
     "trigger": {
       "type": "string",
-      "description": "Which process may trigger this movement, e.g. 'putaway_task', 'replenishment_task', 'pick_task'."
+      "description": "References an id in elements/process_types.yaml, e.g. 'putaway_task', 'replenishment_task', 'pick_task'."
     },
     "via_segment": { "type": "string" },
     "reason": { "type": "string" }

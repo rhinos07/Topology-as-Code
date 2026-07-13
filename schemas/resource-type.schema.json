@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kardex.internal/schemas/resource-type.schema.json",
+  "title": "Resource Type",
+  "description": "Catalog entry describing a class of resource (forklift, shuttle, AGV) and its capabilities.",
+  "type": "object",
+  "required": ["id", "automation_level"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Unique ID, e.g. 'shuttle_4way'"
+    },
+    "description": { "type": "string" },
+    "automation_level": {
+      "type": "string",
+      "enum": ["manual", "conveyor_automated", "mixed"]
+    },
+    "max_payload": { "type": "string" },
+    "max_speed": { "type": "string" }
+  },
+  "additionalProperties": true
+}

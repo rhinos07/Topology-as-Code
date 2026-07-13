@@ -25,7 +25,8 @@ storage_types:
       - coordinate: "01-01-06"
         max_weight: "800kg"      # top level, reinforced rack
       - coordinate: "03-04-01"
-        blocked: true            # column in the way
+        blocked: true
+        blocked_reason: "OBSTRUCTION"    # column in the way
 
     sections:
       - id: "SEC_FAST"

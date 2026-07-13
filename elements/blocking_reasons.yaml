@@ -1,0 +1,15 @@
+# Reusable catalog of reasons a storage_point can be blocked.
+# Referenced by storage_type.exceptions[].blocked_reason.
+
+blocking_reasons:
+  - id: "OBSTRUCTION"
+    description: "Physical obstruction (e.g. a column) blocks the position"
+
+  - id: "MAINTENANCE"
+    description: "Position is under maintenance or repair"
+
+  - id: "DAMAGED"
+    description: "Rack or floor damage at this position"
+
+  - id: "QUALITY_HOLD"
+    description: "Position reserved for quality-hold stock"

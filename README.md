@@ -24,7 +24,12 @@ status.
 ```
 warehouse-definitions/
 ├── schemas/              # JSON Schema for validating all YAML files
-├── elements/             # Reusable templates (rack types, etc.)
+├── elements/             # Reusable templates and catalogs
+│   ├── rack_templates.yaml       # Rack/lane/workstation templates
+│   ├── load_unit_types.yaml      # Pallet/container/carton definitions
+│   ├── resource_types.yaml       # Resource classes and capabilities
+│   ├── process_types.yaml        # Inbound/outbound/internal movement categories
+│   └── blocking_reasons.yaml     # Reasons a storage_point can be blocked
 ├── customers/
 │   └── <customer>/
 │       ├── warehouse.yaml        # Top level, imports the other files

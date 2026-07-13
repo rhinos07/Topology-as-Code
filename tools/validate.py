@@ -23,6 +23,14 @@ from jsonschema import Draft7Validator, RefResolver
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_DIR = REPO_ROOT / "schemas"
+ELEMENTS_DIR = REPO_ROOT / "elements"
+
+ELEMENT_CATALOGS = {
+    "load_unit_types.yaml": ("load-unit-type.schema.json", "load_unit_types"),
+    "resource_types.yaml": ("resource-type.schema.json", "resource_types"),
+    "process_types.yaml": ("process-type.schema.json", "process_types"),
+    "blocking_reasons.yaml": ("blocking-reason.schema.json", "blocking_reasons"),
+}
 
 
 def load_yaml(path: Path) -> dict:
@@ -100,6 +108,19 @@ def validate_movement_rules(path: Path) -> list[str]:
     return errors
 
 
+def validate_element_catalog(path: Path, schema_name: str, list_key: str) -> list[str]:
+    errors = []
+    data = load_yaml(path)
+    if data is None:
+        return [f"{path}: File is empty or invalid."]
+    schema = load_schema(schema_name)
+    validator = Draft7Validator(schema)
+    for item in data.get(list_key, []):
+        for err in validator.iter_errors(item):
+            errors.append(f"{path}: {list_key} '{item.get('id', '?')}': {err.message}")
+    return errors
+
+
 def validate_replenishment(path: Path) -> list[str]:
     errors = []
     data = load_yaml(path)
@@ -125,6 +146,11 @@ def main(argv: list[str]) -> int:
         return 2
 
     all_errors: list[str] = []
+
+    for filename, (schema_name, list_key) in ELEMENT_CATALOGS.items():
+        catalog_file = ELEMENTS_DIR / filename
+        if catalog_file.exists():
+            all_errors += validate_element_catalog(catalog_file, schema_name, list_key)
 
     all_errors += validate_file(warehouse_file, "warehouse.schema.json", "warehouse")
 

@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kardex.internal/schemas/process-type.schema.json",
+  "title": "Process Type",
+  "description": "Catalog entry describing a category of warehouse process (goods receipt, goods issue, internal movement) that can trigger a movement_rule.",
+  "type": "object",
+  "required": ["id", "category"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Unique ID, e.g. 'putaway_task'"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["inbound", "outbound", "internal_movement"]
+    },
+    "description": { "type": "string" }
+  },
+  "additionalProperties": true
+}

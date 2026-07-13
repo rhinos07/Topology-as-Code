@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kardex.internal/schemas/load-unit-type.schema.json",
+  "title": "Load Unit Type",
+  "description": "Physical definition of a load unit (pallet, container, carton) that can be referenced by movement_rules and replenishment_strategies.",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Unique ID, e.g. 'pallet_euro'"
+    },
+    "description": { "type": "string" },
+    "dimensions": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "string" },
+        "depth": { "type": "string" },
+        "height": { "type": "string" }
+      }
+    },
+    "max_weight": { "type": "string" },
+    "stackable": { "type": "boolean" }
+  },
+  "additionalProperties": true
+}

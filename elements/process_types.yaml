@@ -1,0 +1,19 @@
+# Reusable catalog of warehouse process types (goods receipt, goods issue, internal movement).
+# Referenced by movement_rule.trigger.
+
+process_types:
+  - id: "putaway_task"
+    category: "inbound"
+    description: "Move goods from goods receipt into storage"
+
+  - id: "pick_task"
+    category: "outbound"
+    description: "Retrieve goods from storage for goods issue"
+
+  - id: "replenishment_task"
+    category: "internal_movement"
+    description: "Move goods from bulk storage to a pick face"
+
+  - id: "clarification"
+    category: "internal_movement"
+    description: "Manual clarification of an identification error at a reporting point"

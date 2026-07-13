@@ -38,6 +38,18 @@ industry vocabulary), but named independently where it made more sense
 | `movement_policy` | `default_allow` (manual areas, only prohibitions explicit) vs. `explicit_only` (conveyor areas, every route must be explicitly defined) |
 | `replenishment_strategy` | Replenishment rule: `min_max`, `quantity_based`, `zero_stock`, `predictive` |
 
+## Reusable Catalogs (`elements/`)
+
+Modeled after SAP EWM master data concepts. Rarely change, shared across
+all customers, referenced by ID from structure and strategy files.
+
+| Term | Meaning |
+|---|---|
+| `load_unit_type` | Physical definition of a load unit (pallet, mesh box, carton). Referenced by `movement_rule.allowed_load_unit_types`. SAP EWM equivalent: Ladeeinheitentyp (LE-Typ). |
+| `resource_type` | Catalog of resource classes with their capabilities (payload, speed). Referenced by `resource.type` in `structure/wcs.yaml`. SAP EWM equivalent: Ressourcentyp. |
+| `process_type` | Category of warehouse process (inbound/outbound/internal movement). Referenced by `movement_rule.trigger`. SAP EWM equivalent: Prozesstyp/Lagerprozess. |
+| `blocking_reason` | Catalog of reasons a `storage_point` can be blocked. Referenced by `storage_type.exceptions[].blocked_reason`. SAP EWM equivalent: Sperrgrund. |
+
 ## Key Architectural Principles
 
 1. **Structure vs. runtime state**: These YAML files describe only the

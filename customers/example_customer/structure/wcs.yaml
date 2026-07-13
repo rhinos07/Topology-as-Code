@@ -43,7 +43,7 @@ telegram_actions:
 
 resources:
   - id: "SRM_01"
-    type: "shuttle_4way"
+    type: "shuttle_4way"      # references elements/resource_types.yaml
     mode: "resource"          # "resource" = WMS-controlled, "vehicle" = PLC-autonomous with its own buffer
     bin_access_type: "AUTO"
     served_points: ["RP_C01", "RP_C02", "RP_C03"]
