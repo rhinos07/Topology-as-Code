@@ -241,8 +241,10 @@ def _dims_fit(lut_dims: dict, st_size: dict) -> bool:
     a load unit can be placed either way in a bay.  Height is always compared
     directly – load units cannot be tilted on their side.
 
-    Dimensions that are missing from either record are skipped so that partial
-    data does not trigger false positives.
+    When all four footprint dimensions are available, both orientations are
+    considered.  When only one of the load unit's footprint dimensions is known,
+    it must fit within the largest available storage footprint dimension (the most
+    conservative safe check given the missing data).
     """
     lut_w = parse_measure(lut_dims.get("width", ""))
     lut_d = parse_measure(lut_dims.get("depth", ""))
@@ -255,9 +257,17 @@ def _dims_fit(lut_dims: dict, st_size: dict) -> bool:
         return False
 
     if lut_w is not None and lut_d is not None and st_w is not None and st_d is not None:
+        # Full rotation check when all four footprint dimensions are present
         fits_straight = lut_w <= st_w and lut_d <= st_d
         fits_rotated = lut_d <= st_w and lut_w <= st_d
         if not (fits_straight or fits_rotated):
+            return False
+    elif st_w is not None and st_d is not None:
+        # Partial load unit data: a known dimension must fit in the larger storage axis
+        st_max = max(st_w, st_d)
+        if lut_w is not None and lut_w > st_max:
+            return False
+        if lut_d is not None and lut_d > st_max:
             return False
 
     return True
@@ -320,13 +330,14 @@ def check_load_unit_physical_compatibility(path: Path) -> list[str]:
                         f"load_unit_type '{lut_id}' dimensions {lut_dims} "
                         f"do not fit storage size {size}"
                     )
-                lut_mw = parse_measure(lut.get("max_weight", ""))
-                if st_mw is not None and lut_mw is not None and lut_mw > st_mw:
-                    errs.append(
-                        f"{path}: storage_type '{st_id}': {context}: "
-                        f"load_unit_type '{lut_id}' max_weight ({lut.get('max_weight')}) "
-                        f"exceeds storage max_weight ({max_weight_str})"
-                    )
+                if st_mw is not None:
+                    lut_mw = parse_measure(lut.get("max_weight", ""))
+                    if lut_mw is not None and lut_mw > st_mw:
+                        errs.append(
+                            f"{path}: storage_type '{st_id}': {context}: "
+                            f"load_unit_type '{lut_id}' max_weight ({lut.get('max_weight')}) "
+                            f"exceeds storage max_weight ({max_weight_str})"
+                        )
             return errs
 
         da_luts = da.get("allowed_load_unit_types", [])
