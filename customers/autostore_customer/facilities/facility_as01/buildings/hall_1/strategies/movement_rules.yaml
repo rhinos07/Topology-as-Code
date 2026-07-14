@@ -8,21 +8,25 @@
 #   - reporting_point RP_PORT_0x = controller side (bin handed to/from CTRL_ASC_01)
 # The two are the same physical port but distinct bookable storage_points
 # holding different stock: the autostore_bin sits at the reporting_point,
-# the operator's order_tote (WIP) at the work_center. The handoff between
-# them is an explicit leg (RP->WC on picking, WC->RP on induction).
+# the operator's WIP (inbound carton / picked order_tote) at the work_center.
+# The bin's up/down trips are the robot legs (GRID <-> RP_PORT); the operator
+# legs cross between the two sides (decant WC->RP on induction, pick RP->WC
+# on picking).
 
 movement_rules:
 
-  # === Induction: entry -> operator places bin -> controller stows it ===
+  # === Induction (decant): inbound goods are repacked into an empty AS bin ===
+  # Mirror of the pick side: the robot provides an empty bin at the port,
+  # the operator decants the inbound carton into it, the robot stows it full.
 
-  # entry -> induction workstation (operator receives/prepares the bin)
+  # entry -> induction workstation (inbound carton arrives as WIP)
   - id: "MOVE_ENTRY_TO_INDUCTION_01"
     applies_to_policy: "explicit_only"
     execution: "manual"
     from: { work_center: "ENTRY" }
     to: { work_center: "WC_PORT_01" }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["carton"]
     trigger: "putaway_task"
 
   - id: "MOVE_ENTRY_TO_INDUCTION_02"
@@ -31,45 +35,70 @@ movement_rules:
     from: { work_center: "ENTRY" }
     to: { work_center: "WC_PORT_02" }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["carton"]
     trigger: "putaway_task"
 
-  # operator side -> controller side (bin handed from WC_PORT to the port's
-  # reporting_point, i.e. into the AS controller's custody)
-  - id: "HANDOFF_INDUCTION_01"
+  # grid -> controller side: robot provides an empty bin at the port
+  - id: "PROVIDE_EMPTY_BIN_01"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { storage_type: "AUTOSTORE_GRID" }
+    to: { reporting_point: "RP_PORT_01" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "bin_provision"
+
+  - id: "PROVIDE_EMPTY_BIN_02"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { storage_type: "AUTOSTORE_GRID" }
+    to: { reporting_point: "RP_PORT_02" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "bin_provision"
+
+  # operator side -> controller side: decant the carton into the bin
+  # (goods change carton -> autostore_bin, hence conversion_required)
+  - id: "DECANT_INTO_BIN_01"
     applies_to_policy: "explicit_only"
     execution: "manual"
     from: { work_center: "WC_PORT_01" }
     to: { reporting_point: "RP_PORT_01" }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["carton"]
+    conversion_required: true
     trigger: "putaway_task"
 
-  - id: "HANDOFF_INDUCTION_02"
+  - id: "DECANT_INTO_BIN_02"
     applies_to_policy: "explicit_only"
     execution: "manual"
     from: { work_center: "WC_PORT_02" }
     to: { reporting_point: "RP_PORT_02" }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["carton"]
+    conversion_required: true
     trigger: "putaway_task"
 
-  # controller side -> grid (robot stows the bin)
-  - id: "ROUTE_INDUCTION_TO_GRID_01"
+  # controller side -> grid: robot stows the now-full bin
+  - id: "STOW_BIN_TO_GRID_01"
     applies_to_policy: "explicit_only"
     execution: "automated"
     from: { reporting_point: "RP_PORT_01" }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
     access_constraint: "lifo"
     trigger: "putaway_task"
 
-  - id: "ROUTE_INDUCTION_TO_GRID_02"
+  - id: "STOW_BIN_TO_GRID_02"
     applies_to_policy: "explicit_only"
     execution: "automated"
     from: { reporting_point: "RP_PORT_02" }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
     access_constraint: "lifo"
     trigger: "putaway_task"
 

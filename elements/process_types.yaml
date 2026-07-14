@@ -18,6 +18,10 @@ process_types:
     category: "internal_movement"
     description: "Return a bin/container to storage after a goods-to-person pick (e.g. an AutoStore bin re-stowed into the grid with its remaining stock)"
 
+  - id: "bin_provision"
+    category: "internal_movement"
+    description: "Provide an empty bin/container at a port for induction/decanting (e.g. an empty AutoStore bin retrieved from the grid so goods can be packed into it)"
+
   - id: "clarification"
     category: "internal_movement"
     description: "Manual clarification of an identification error at a reporting point"
