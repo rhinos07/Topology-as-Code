@@ -118,6 +118,30 @@ movement_rules:
     conversion_required: true
     trigger: "pick_task"
 
+  # controller side -> grid: once the operator has taken the ordered goods,
+  # the robot re-stows the bin (with its remaining stock) back into the
+  # grid. The bin itself never left the reporting_point, so the return
+  # starts there, not at the work_center.
+  - id: "RETURN_BIN_TO_GRID_03"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { reporting_point: "RP_PORT_03" }
+    to: { storage_type: "AUTOSTORE_GRID" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "bin_return"
+
+  - id: "RETURN_BIN_TO_GRID_04"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { reporting_point: "RP_PORT_04" }
+    to: { storage_type: "AUTOSTORE_GRID" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "bin_return"
+
   # operator side -> exit (the filled order_tote leaves the cell)
   - id: "MOVE_PICK_TO_EXIT_01"
     applies_to_policy: "explicit_only"

@@ -14,6 +14,10 @@ process_types:
     category: "internal_movement"
     description: "Move goods from bulk storage to a pick face"
 
+  - id: "bin_return"
+    category: "internal_movement"
+    description: "Return a bin/container to storage after a goods-to-person pick (e.g. an AutoStore bin re-stowed into the grid with its remaining stock)"
+
   - id: "clarification"
     category: "internal_movement"
     description: "Manual clarification of an identification error at a reporting point"
