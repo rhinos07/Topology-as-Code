@@ -72,6 +72,26 @@ def expand_storage_point_generator(storage_type: dict) -> tuple[list[dict], list
     return points, warnings
 
 
+def expand_explicit_storage_points(storage_type: dict) -> tuple[list[dict], list[str]]:
+    """Passes through explicitly enumerated storage_points, merging each
+    entry over default_attributes (same semantics as an exception). Used
+    for storage_types that declare a small, fixed set of points - e.g. a
+    single opaque block place for a controller-managed area - instead of
+    generating them from a grid."""
+    default_attributes = storage_type.get("default_attributes", {})
+    points = []
+    for entry in storage_type["storage_points"]:
+        coordinate = entry["coordinate"]
+        attributes = merge_attributes(default_attributes, entry)
+        points.append({
+            "id": f"{storage_type['id']}.{coordinate}",
+            "storage_type": storage_type["id"],
+            "coordinate": coordinate,
+            **attributes,
+        })
+    return points, []
+
+
 def expand_layout_variants(storage_type: dict) -> tuple[list[dict], list[str]]:
     variants = storage_type["layout_variants"]
     grid = storage_type.get("layout_grid", {})
@@ -110,11 +130,13 @@ def compile_storage_types(storage_data: dict) -> tuple[list[dict], list[str]]:
             points, w = expand_storage_point_generator(storage_type)
         elif "layout_variants" in storage_type:
             points, w = expand_layout_variants(storage_type)
+        elif "storage_points" in storage_type:
+            points, w = expand_explicit_storage_points(storage_type)
         else:
             warnings.append(
-                f"storage_type '{storage_type['id']}': has neither "
-                f"storage_point_generator nor layout_variants - skipped "
-                f"(assumed to be manually enumerated elsewhere)."
+                f"storage_type '{storage_type['id']}': has none of "
+                f"storage_point_generator / layout_variants / storage_points "
+                f"- skipped (assumed to be manually enumerated elsewhere)."
             )
             continue
 

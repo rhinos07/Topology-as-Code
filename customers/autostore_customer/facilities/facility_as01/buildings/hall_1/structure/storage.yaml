@@ -8,18 +8,16 @@ storage_types:
   # --- total bin capacity and books bins in/out of it; which column a   ---
   # --- bin actually sits in, and the LIFO column mechanics, are managed ---
   # --- internally by the AutoStore controller (CTRL_ASC_01), not here.  ---
-  # --- Hence a single storage_point (1x1x1 generator), not a 20x15 grid.---
+  # --- Declared as a single explicit storage_point (no generator, since ---
+  # --- there is nothing to generate - it's just the one block place).   ---
   - id: "AUTOSTORE_GRID"
     automation_level: "conveyor_automated"
     movement_policy: "explicit_only"     # every route must be explicitly defined
     access_model: "block"
     controller: "CTRL_ASC_01"      # references structure/wcs.yaml controller_definitions - owns the internal column/bin detail
 
-    storage_point_generator:
-      aisles: 1
-      stacks: 1
-      levels: 1
-      coordinate_pattern: "AS_GRID"    # one opaque block place for the whole grid
+    storage_points:
+      - coordinate: "AS_GRID"    # the whole grid, as one opaque block place
 
     default_attributes:
       max_weight: "30kg"        # per bin
