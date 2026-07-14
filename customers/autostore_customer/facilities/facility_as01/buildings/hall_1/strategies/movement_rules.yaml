@@ -2,14 +2,20 @@
 # minimal example - grid <-> port connectivity is intrinsic to the AS
 # itself, not modeled as separate conveyor/lane infrastructure).
 # Whole building is explicit_only - see structure/storage.yaml comments.
+#
+# Each port is modeled twice (see structure/storage.yaml / wcs.yaml):
+#   - work_center  WC_PORT_0x = operator / ergonomic side (manual handling)
+#   - reporting_point RP_PORT_0x = controller side (bin handed to/from CTRL_ASC_01)
+# The two are the same physical port; the manual legs touch the work_center,
+# the controller/robot legs touch the reporting_point.
 
 movement_rules:
 
-  # --- Induction: entry -> port -> grid ---
+  # --- Induction: entry -> induction port (operator places the bin) ---
   - id: "MOVE_ENTRY_TO_INDUCTION_01"
     applies_to_policy: "explicit_only"
     from: { work_center: "ENTRY" }
-    to: { reporting_point: "RP_PORT_01" }
+    to: { work_center: "WC_PORT_01" }
     allowed: true
     allowed_load_unit_types: ["autostore_bin"]
     trigger: "putaway_task"
@@ -17,11 +23,12 @@ movement_rules:
   - id: "MOVE_ENTRY_TO_INDUCTION_02"
     applies_to_policy: "explicit_only"
     from: { work_center: "ENTRY" }
-    to: { reporting_point: "RP_PORT_02" }
+    to: { work_center: "WC_PORT_02" }
     allowed: true
     allowed_load_unit_types: ["autostore_bin"]
     trigger: "putaway_task"
 
+  # --- Induction: port (controller side) -> grid (robot stows the bin) ---
   - id: "ROUTE_INDUCTION_TO_GRID_01"
     applies_to_policy: "explicit_only"
     from: { reporting_point: "RP_PORT_01" }
@@ -38,7 +45,7 @@ movement_rules:
     access_constraint: "lifo"
     trigger: "putaway_task"
 
-  # --- Picking: grid -> port -> exit ---
+  # --- Picking: grid -> port (controller side, robot delivers the bin) ---
   - id: "ROUTE_GRID_TO_PICK_01"
     applies_to_policy: "explicit_only"
     from: { storage_type: "AUTOSTORE_GRID" }
@@ -55,16 +62,21 @@ movement_rules:
     access_constraint: "lifo"
     trigger: "pick_task"
 
+  # --- Picking: port (operator side) -> exit (operator removes the goods) ---
+  # This is where the actual "Entnahme" happens: at the pick work_center a
+  # person takes the ordered goods out of the delivered bin and sends them
+  # to EXIT. Manual goods-to-person - no equipment/controller on this leg,
+  # unlike the grid->port leg above.
   - id: "MOVE_PICK_TO_EXIT_01"
     applies_to_policy: "explicit_only"
-    from: { reporting_point: "RP_PORT_03" }
+    from: { work_center: "WC_PORT_03" }
     to: { work_center: "EXIT" }
     allowed: true
     trigger: "pick_task"
 
   - id: "MOVE_PICK_TO_EXIT_02"
     applies_to_policy: "explicit_only"
-    from: { reporting_point: "RP_PORT_04" }
+    from: { work_center: "WC_PORT_04" }
     to: { work_center: "EXIT" }
     allowed: true
     trigger: "pick_task"
