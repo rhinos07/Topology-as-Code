@@ -5,6 +5,31 @@ structures, material-flow communication, and process strategies
 (replenishment, movement rules) as YAML, validated via CI, compiled into
 runtime entities.
 
+## Related Projects
+
+Part of a family of sibling "-as-Code" repos sharing the same declarative
+pattern (JSON Schema validation, `structure/` vs. `strategies/`,
+`elements/` catalogs):
+
+| Repo | Covers |
+|---|---|
+| **Warehouse-as-Code** (this repo) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
+| [`OrderOrchestration-as-Code`](https://github.com/rhinos07/OrderOrchestration-as-Code) | How incoming orders are split, and which downstream workflow each split triggers |
+| [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
+
+Two of this repo's own `elements/` catalogs are shared-vocabulary
+candidates for the siblings above, not yet acted on:
+- `elements/process_types.yaml` (`putaway_task`, `pick_task`, …) - meant
+  to be the same vocabulary `OrderOrchestration-as-Code`'s
+  `workflow_trigger` values reference when they hand off to the
+  warehouse.
+- `elements/load_unit_types.yaml` (`pallet_euro`, `carton`, …) -
+  conceptually packaging *master data*; a candidate to eventually move
+  to `MasterData-as-Code` (see that repo's "Shared Vocabulary" section).
+
+Both catalogs currently stay put and duplicated where needed - don't
+extract/move them until real drift or duplication pain shows up.
+
 ## Core Principle
 
 | Layer | What | Change Frequency | Who Changes It |
