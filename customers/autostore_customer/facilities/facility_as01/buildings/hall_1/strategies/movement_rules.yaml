@@ -1,0 +1,191 @@
+# "May" - independent of "can" (structure/lanes.yaml, not present in this
+# minimal example - grid <-> port connectivity is intrinsic to the AS
+# itself, not modeled as separate conveyor/lane infrastructure).
+# Whole building is explicit_only - see structure/storage.yaml comments.
+#
+# Each port is modeled twice (see structure/storage.yaml / wcs.yaml):
+#   - work_center  WC_PORT_0x = operator / ergonomic side (manual handling)
+#   - reporting_point RP_PORT_0x = controller side (bin handed to/from CTRL_ASC_01)
+# The two are the same physical port but distinct bookable storage_points
+# holding different stock: the autostore_bin sits at the reporting_point,
+# the operator's WIP (inbound carton / picked order_tote) at the work_center.
+# The bin's up/down trips are the robot legs (GRID <-> RP_PORT); the operator
+# legs cross between the two sides (decant WC->RP on induction, pick RP->WC
+# on picking).
+
+movement_rules:
+
+  # === Induction (decant): inbound goods are repacked into an empty AS bin ===
+  # Mirror of the pick side: the robot provides an empty bin at the port,
+  # the operator decants the inbound carton into it, the robot stows it full.
+
+  # entry -> induction workstation (inbound carton arrives as WIP)
+  - id: "MOVE_ENTRY_TO_INDUCTION_01"
+    applies_to_policy: "explicit_only"
+    execution: "manual"
+    from: { work_center: "ENTRY" }
+    to: { work_center: "WC_PORT_01" }
+    allowed: true
+    allowed_load_unit_types: ["carton"]
+    trigger: "putaway_task"
+
+  - id: "MOVE_ENTRY_TO_INDUCTION_02"
+    applies_to_policy: "explicit_only"
+    execution: "manual"
+    from: { work_center: "ENTRY" }
+    to: { work_center: "WC_PORT_02" }
+    allowed: true
+    allowed_load_unit_types: ["carton"]
+    trigger: "putaway_task"
+
+  # grid -> controller side: robot provides an empty bin at the port
+  - id: "PROVIDE_EMPTY_BIN_01"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { storage_type: "AUTOSTORE_GRID" }
+    to: { reporting_point: "RP_PORT_01" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "bin_provision"
+
+  - id: "PROVIDE_EMPTY_BIN_02"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { storage_type: "AUTOSTORE_GRID" }
+    to: { reporting_point: "RP_PORT_02" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "bin_provision"
+
+  # operator side -> controller side: decant the carton into the bin
+  # (goods change carton -> autostore_bin, hence conversion_required)
+  - id: "DECANT_INTO_BIN_01"
+    applies_to_policy: "explicit_only"
+    execution: "manual"
+    from: { work_center: "WC_PORT_01" }
+    to: { reporting_point: "RP_PORT_01" }
+    allowed: true
+    allowed_load_unit_types: ["carton"]
+    conversion_required: true
+    trigger: "putaway_task"
+
+  - id: "DECANT_INTO_BIN_02"
+    applies_to_policy: "explicit_only"
+    execution: "manual"
+    from: { work_center: "WC_PORT_02" }
+    to: { reporting_point: "RP_PORT_02" }
+    allowed: true
+    allowed_load_unit_types: ["carton"]
+    conversion_required: true
+    trigger: "putaway_task"
+
+  # controller side -> grid: robot stows the now-full bin
+  - id: "STOW_BIN_TO_GRID_01"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { reporting_point: "RP_PORT_01" }
+    to: { storage_type: "AUTOSTORE_GRID" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "putaway_task"
+
+  - id: "STOW_BIN_TO_GRID_02"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { reporting_point: "RP_PORT_02" }
+    to: { storage_type: "AUTOSTORE_GRID" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "putaway_task"
+
+  # === Picking: grid -> controller delivers bin -> operator picks into tote ===
+
+  # grid -> controller side (robot delivers the bin to the port)
+  - id: "ROUTE_GRID_TO_PICK_01"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { storage_type: "AUTOSTORE_GRID" }
+    to: { reporting_point: "RP_PORT_03" }
+    allowed: true
+    access_constraint: "lifo"
+    trigger: "pick_task"
+
+  - id: "ROUTE_GRID_TO_PICK_02"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { storage_type: "AUTOSTORE_GRID" }
+    to: { reporting_point: "RP_PORT_04" }
+    allowed: true
+    access_constraint: "lifo"
+    trigger: "pick_task"
+
+  # controller side -> operator side: the actual "Entnahme". The operator
+  # takes the ordered goods out of the delivered autostore_bin and places
+  # them into an order_tote that is booked as WIP at the pick work_center.
+  # Load unit changes bin -> order_tote, hence conversion_required.
+  - id: "PICK_FROM_BIN_01"
+    applies_to_policy: "explicit_only"
+    execution: "manual"
+    from: { reporting_point: "RP_PORT_03" }
+    to: { work_center: "WC_PORT_03" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    conversion_required: true
+    trigger: "pick_task"
+
+  - id: "PICK_FROM_BIN_02"
+    applies_to_policy: "explicit_only"
+    execution: "manual"
+    from: { reporting_point: "RP_PORT_04" }
+    to: { work_center: "WC_PORT_04" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    conversion_required: true
+    trigger: "pick_task"
+
+  # controller side -> grid: once the operator has taken the ordered goods,
+  # the robot re-stows the bin (with its remaining stock) back into the
+  # grid. The bin itself never left the reporting_point, so the return
+  # starts there, not at the work_center.
+  - id: "RETURN_BIN_TO_GRID_03"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { reporting_point: "RP_PORT_03" }
+    to: { storage_type: "AUTOSTORE_GRID" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "bin_return"
+
+  - id: "RETURN_BIN_TO_GRID_04"
+    applies_to_policy: "explicit_only"
+    execution: "automated"
+    from: { reporting_point: "RP_PORT_04" }
+    to: { storage_type: "AUTOSTORE_GRID" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    access_constraint: "lifo"
+    trigger: "bin_return"
+
+  # operator side -> exit (the filled order_tote leaves the cell)
+  - id: "MOVE_PICK_TO_EXIT_01"
+    applies_to_policy: "explicit_only"
+    execution: "manual"
+    from: { work_center: "WC_PORT_03" }
+    to: { work_center: "EXIT" }
+    allowed: true
+    allowed_load_unit_types: ["order_tote"]
+    trigger: "pick_task"
+
+  - id: "MOVE_PICK_TO_EXIT_02"
+    applies_to_policy: "explicit_only"
+    execution: "manual"
+    from: { work_center: "WC_PORT_04" }
+    to: { work_center: "EXIT" }
+    allowed: true
+    allowed_load_unit_types: ["order_tote"]
+    trigger: "pick_task"

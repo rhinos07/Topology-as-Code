@@ -26,3 +26,8 @@ workstation_templates:
     type: "pick-to-light"
     ergonomic_class: "standing"
     throughput_capacity: 120  # picks per hour
+
+  - id: "ws_autostore_port"
+    type: "goods-to-person"
+    ergonomic_class: "standing"
+    throughput_capacity: 650  # bins/totes per hour, nominal AutoStore port throughput

@@ -79,6 +79,18 @@ python tools/validate.py customers/example_customer/company.yaml
 python tools/compile.py customers/example_customer/facilities/facility_pa11/buildings/hall_3/warehouse.yaml --output build/storage_points.yaml
 ```
 
+## Examples
+
+- `customers/example_customer/` - one building mixing several technologies
+  side by side (high-bay rack, block storage, channel storage, a small
+  AutoStore grid, cold zone, hazmat) to show most entity types at once.
+- `customers/autostore_customer/` - a second, dedicated example: a single
+  building that is *entirely* one AutoStore grid - just the grid, its
+  ports, the controller and the robot fleet, with no conveyor/lane
+  infrastructure modeled (grid-to-port connectivity is intrinsic to the
+  AS itself). Shows the minimal pattern for a single-technology
+  automation cell.
+
 ## Core Concepts (Quick Reference)
 
 - **storage_point** — smallest physical/logical storage unit (formerly "bin").
@@ -108,9 +120,12 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 
 ### Open Validation Gaps
 
-`tools/validate.py` currently validates each file only against its own
-JSON Schema. It does **not** check consistency across files or within a
-file's cross-references. Known gaps:
+`tools/validate.py` validates each file against its own JSON Schema and
+runs one cross-file consistency check so far: a `movement_rule.execution`
+(`manual`/`automated`) is verified against the controllers its endpoints
+sit under (`storage_type.controller`/`reporting_point.controller`) and a
+contradiction is reported. Broader cross-reference checking is still
+missing. Known gaps:
 
 1. **No cross-file referential integrity.** A typo in a referenced ID is
    not caught. Affected references:

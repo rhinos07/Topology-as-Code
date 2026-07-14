@@ -12,6 +12,11 @@
       "enum": ["default_allow", "explicit_only"],
       "description": "Must match the movement_policy of the affected storage_type."
     },
+    "execution": {
+      "type": "string",
+      "enum": ["manual", "automated"],
+      "description": "Who carries out this leg. 'automated' = executed by the automation, i.e. both endpoints sit under the same downstream controller (storage_type.controller / reporting_point.controller), so the controller's equipment performs it. 'manual' = a human/operator leg, no equipment involved. Optional, and redundant with the endpoints' controllers by design - tools/validate.py flags an execution value that contradicts what the endpoints imply. The finer automation mode (controller_autonomous vs wms_controlled) lives on equipment.mode, not here."
+    },
     "from": { "$ref": "#/definitions/endpoint" },
     "to": { "$ref": "#/definitions/endpoint" },
     "exclude_to": { "$ref": "#/definitions/endpoint" },

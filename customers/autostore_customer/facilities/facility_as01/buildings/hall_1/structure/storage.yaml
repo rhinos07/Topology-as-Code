@@ -1,0 +1,79 @@
+# Physical warehouse structure. Only changes during an actual rebuild.
+# Validated against schemas/storage-type.schema.json (per entry in storage_types)
+
+storage_types:
+
+  # --- AutoStore grid: modeled as ONE opaque block location, not as     ---
+  # --- individual columns/bins. The WMS only sees "the grid" with a     ---
+  # --- total bin capacity and books bins in/out of it; which column a   ---
+  # --- bin actually sits in, and the LIFO column mechanics, are managed ---
+  # --- internally by the AutoStore controller (CTRL_ASC_01), not here.  ---
+  # --- Declared as a single explicit storage_point (no generator, since ---
+  # --- there is nothing to generate - it's just the one block place).   ---
+  - id: "AUTOSTORE_GRID"
+    automation_level: "conveyor_automated"
+    movement_policy: "explicit_only"     # every route must be explicitly defined
+    access_model: "block"
+    controller: "CTRL_ASC_01"      # references structure/wcs.yaml controller_definitions - owns the internal column/bin detail
+
+    storage_points:
+      - coordinate: "AS_GRID"    # the whole grid, as one opaque block place
+
+    default_attributes:
+      max_weight: "30kg"        # per bin
+      temperature_zone: "ambient"
+      capacity_per_point: 4800  # nominal total bin slots the controller reports for this grid
+      allowed_load_unit_types: ["autostore_bin"]
+      position: "ZONE_GRID_1"
+
+# Functional cross-cutting grouping - orthogonal to the physical hierarchy.
+activity_areas:
+  - id: "PUTAWAY_ZONE_GRID"
+    activity: "putaway"
+    bins_from: ["AUTOSTORE_GRID"]
+
+  - id: "INVENTORY_ZONE_GRID"
+    activity: "physical_inventory"
+    bins_from: ["AUTOSTORE_GRID"]
+
+# Ports: the physical location where an operator inducts or picks bins
+# that a robot has delivered to the top of the grid. Modeled twice on
+# purpose, same physical location, two different roles (see docs/entity-
+# glossary.md point 6, "storage_point_ref: true as a reusable pattern"):
+#   - here (work_center): the operator/ergonomic side (throughput, step)
+#   - structure/wcs.yaml (reporting_point RP_PORT_*): the controller-
+#     communication side that goods movements actually route through
+work_centers:
+  - id: "WC_PORT_01"
+    step: "induction"
+    workstation_template: "ws_autostore_port"
+    storage_point_ref: true
+
+  - id: "WC_PORT_02"
+    step: "induction"
+    workstation_template: "ws_autostore_port"
+    storage_point_ref: true
+
+  - id: "WC_PORT_03"
+    step: "picking"
+    workstation_template: "ws_autostore_port"
+    storage_point_ref: true
+
+  - id: "WC_PORT_04"
+    step: "picking"
+    workstation_template: "ws_autostore_port"
+    storage_point_ref: true
+
+# System boundary of the AS cell: where induction totes come from before
+# reaching a port, and where picked goods go after leaving a port. No
+# door/lane/conveyor here on purpose (see structure decisions above) -
+# these two work_centers just give movement_rules a visible source/
+# destination outside the AS itself; what happens beyond them (goods
+# receipt, packing, shipping) is the rest of the facility, not this cell.
+  - id: "ENTRY"
+    step: "goods_receipt"
+    storage_point_ref: true
+
+  - id: "EXIT"
+    step: "goods_dispatch"
+    storage_point_ref: true

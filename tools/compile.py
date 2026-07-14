@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """
-Compiles storage_point_generator and layout_variants templates in a
-customer's storage.yaml into concrete storage_point instances.
+Compiles a building's storage definitions into concrete storage_point
+instances. Sources, all reached via the warehouse.yaml imports:
+  - storage.yaml: storage_point_generator / layout_variants / explicit
+    storage_points on each storage_type, plus work_centers flagged
+    storage_point_ref: true
+  - wcs.yaml: reporting_points flagged storage_point_ref: true
 
 This is the "terraform apply"-equivalent expansion step: the WMS should
-only ever see concrete storage_points, never storage_point_generator or
-layout_variants template syntax. Run tools/validate.py first - this
-script does not re-validate schema conformance, only expands templates
-that are already assumed to be schema-valid.
+only ever see concrete storage_points, never the generator/variant
+template syntax. Run tools/validate.py first - this script does not
+re-validate schema conformance, only expands definitions that are
+already assumed to be schema-valid.
 
 Usage:
     python tools/compile.py customers/example_customer/warehouse.yaml
@@ -72,6 +76,26 @@ def expand_storage_point_generator(storage_type: dict) -> tuple[list[dict], list
     return points, warnings
 
 
+def expand_explicit_storage_points(storage_type: dict) -> tuple[list[dict], list[str]]:
+    """Passes through explicitly enumerated storage_points, merging each
+    entry over default_attributes (same semantics as an exception). Used
+    for storage_types that declare a small, fixed set of points - e.g. a
+    single opaque block place for a controller-managed area - instead of
+    generating them from a grid."""
+    default_attributes = storage_type.get("default_attributes", {})
+    points = []
+    for entry in storage_type["storage_points"]:
+        coordinate = entry["coordinate"]
+        attributes = merge_attributes(default_attributes, entry)
+        points.append({
+            "id": f"{storage_type['id']}.{coordinate}",
+            "storage_type": storage_type["id"],
+            "coordinate": coordinate,
+            **attributes,
+        })
+    return points, []
+
+
 def expand_layout_variants(storage_type: dict) -> tuple[list[dict], list[str]]:
     variants = storage_type["layout_variants"]
     grid = storage_type.get("layout_grid", {})
@@ -110,11 +134,13 @@ def compile_storage_types(storage_data: dict) -> tuple[list[dict], list[str]]:
             points, w = expand_storage_point_generator(storage_type)
         elif "layout_variants" in storage_type:
             points, w = expand_layout_variants(storage_type)
+        elif "storage_points" in storage_type:
+            points, w = expand_explicit_storage_points(storage_type)
         else:
             warnings.append(
-                f"storage_type '{storage_type['id']}': has neither "
-                f"storage_point_generator nor layout_variants - skipped "
-                f"(assumed to be manually enumerated elsewhere)."
+                f"storage_type '{storage_type['id']}': has none of "
+                f"storage_point_generator / layout_variants / storage_points "
+                f"- skipped (assumed to be manually enumerated elsewhere)."
             )
             continue
 
@@ -122,6 +148,52 @@ def compile_storage_types(storage_data: dict) -> tuple[list[dict], list[str]]:
         warnings += w
 
     return all_points, warnings
+
+
+def expand_storage_point_refs(storage_data: dict, wcs_data: dict | None) -> list[dict]:
+    """Emits a storage_point for every work_center (storage.yaml) and
+    reporting_point (wcs.yaml) flagged storage_point_ref: true. These are
+    not part of a storage_type - they are activity/communication points
+    that also carry bookable inventory (WIP, staged goods, an in-transit
+    HU at a reporting point) - so they are compiled here rather than via
+    a storage_type expansion. See docs/entity-glossary.md principle 6."""
+    points: list[dict] = []
+
+    for wc in storage_data.get("work_centers", []):
+        if not wc.get("storage_point_ref"):
+            continue
+        point = {
+            "id": wc["id"],
+            "ref_kind": "work_center",
+            "coordinate": wc["id"],
+            "storage_point_ref": True,
+        }
+        if "step" in wc:
+            point["step"] = wc["step"]
+        points.append(point)
+
+    for rp in (wcs_data or {}).get("reporting_points", []):
+        if not rp.get("storage_point_ref"):
+            continue
+        point = {
+            "id": rp["id"],
+            "ref_kind": "reporting_point",
+            "coordinate": rp["id"],
+            "storage_point_ref": True,
+        }
+        if "controller" in rp:
+            point["controller"] = rp["controller"]
+        if "capacity" in rp:
+            point["capacity_per_point"] = rp["capacity"]
+        points.append(point)
+
+    return points
+
+
+def point_group(point: dict) -> str:
+    """Grouping label for the per-group summary: the storage_type for
+    generated/explicit points, or the ref_kind for storage_point_ref points."""
+    return point.get("storage_type") or point.get("ref_kind") or "(unknown)"
 
 
 def find_duplicate_ids(points: list[dict]) -> list[str]:
@@ -144,7 +216,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--output", type=Path, default=None,
         help="Write the compiled storage_points to this YAML file. "
-             "Without this, only a per-storage_type summary is printed.",
+             "Without this, only a per-group summary is printed.",
     )
     args = parser.parse_args(argv[1:])
 
@@ -153,25 +225,28 @@ def main(argv: list[str]) -> int:
         print(f"File not found: {warehouse_file}")
         return 2
 
-    storage_file = next(
-        (p for p in collect_imports(warehouse_file) if p.name == "storage.yaml"),
-        None,
-    )
+    imports = collect_imports(warehouse_file)
+    storage_file = next((p for p in imports if p.name == "storage.yaml"), None)
     if storage_file is None or not storage_file.exists():
         print(f"{warehouse_file}: no storage.yaml import found")
         return 2
 
+    wcs_file = next((p for p in imports if p.name == "wcs.yaml"), None)
+    wcs_data = load_yaml(wcs_file) if wcs_file and wcs_file.exists() else None
+
     storage_data = load_yaml(storage_file)
     points, warnings = compile_storage_types(storage_data)
+    points += expand_storage_point_refs(storage_data, wcs_data)
     errors = find_duplicate_ids(points)
 
     counts: dict[str, int] = {}
     for point in points:
-        counts[point["storage_type"]] = counts.get(point["storage_type"], 0) + 1
+        group = point_group(point)
+        counts[group] = counts.get(group, 0) + 1
 
-    print("Compiled storage_points per storage_type:")
-    for storage_type_id, count in counts.items():
-        print(f"  {storage_type_id}: {count}")
+    print("Compiled storage_points per storage_type / ref_kind:")
+    for group, count in counts.items():
+        print(f"  {group}: {count}")
     print(f"  TOTAL: {len(points)}")
 
     if warnings:

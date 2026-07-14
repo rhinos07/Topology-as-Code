@@ -21,7 +21,7 @@ jobs:
         # into every facility and building automatically. For multiple
         # customers, extend the list here or generate it dynamically from
         # the filesystem via a preliminary job.
-        customer: ["example_customer"]
+        customer: ["example_customer", "autostore_customer"]
     steps:
       - uses: actions/checkout@v4
 

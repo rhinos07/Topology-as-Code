@@ -1,0 +1,25 @@
+# Building-level file. Short and stable - references everything else.
+# Part of a facility (see ../../facility.yaml). This file validates
+# against schemas/warehouse.schema.json
+
+warehouse:
+  name: "Hall_1"
+  # Whole building is one AutoStore cell - no manual pallet handling,
+  # unlike example_customer/hall_3 which mixes automation levels.
+  automation_level: "conveyor_automated"
+
+  imports:
+    - "structure/storage.yaml"
+    - "structure/wcs.yaml"
+    - "strategies/replenishment.yaml"
+    - "strategies/movement_rules.yaml"
+
+  # Connection to fleet control (VDA 5050). The AutoStore robots
+  # themselves are controller_autonomous (see structure/wcs.yaml) and are
+  # not part of this fleet interface - it exists here for any future
+  # WMS-controlled equipment (e.g. an outbound AGV shuttle).
+  fleet_interface:
+    protocol: "vda5050"
+    version: "3.0"
+    mqtt_broker: "internal://fleet-broker-as01"
+    node_mapping: "auto"

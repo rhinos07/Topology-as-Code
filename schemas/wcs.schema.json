@@ -93,6 +93,10 @@
             "enum": ["wms_controlled", "controller_autonomous"],
             "description": "wms_controlled: WMS decides the route explicitly (SAP EWM: 'Resource'). controller_autonomous: the downstream controller is autonomous with its own order buffer (SAP EWM: 'Vehicle')."
           },
+          "controller": {
+            "type": "string",
+            "description": "References an id in controller_definitions. The control system this equipment belongs to. For controller_autonomous equipment this is the binding that lets the WMS route a movement to the fleet: a movement whose endpoints carry the same controller (storage_type.controller / reporting_point.controller) is handed to that controller, which then dispatches this equipment and reports completion back over its channel. Optional for standalone/manually-dispatched equipment."
+          },
           "bin_access_type": { "type": "string" },
           "served_points": {
             "type": "array",

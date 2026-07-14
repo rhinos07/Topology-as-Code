@@ -1,0 +1,66 @@
+# Warehouse Control System (WCS): controller communication, reporting points, telegram actions.
+# A reporting_point is always also modeled as a storage_point.
+
+controller_definitions:
+  - id: "CTRL_ASC_01"
+    name: "AutoStore Controller Grid 1"
+    reference_number: "AS-2024-0001"
+    channels:
+      - id: "CH_ASC_01"
+        ip: "10.10.5.10"
+        port: 7100
+        telegram_length: 96
+        handshake_mode: "confirmed"
+
+# One reporting_point per physical port - see storage.yaml work_centers
+# for the operator/ergonomic side of the same physical location.
+reporting_points:
+  - id: "RP_PORT_01"
+    storage_point_ref: true
+    controller: "CTRL_ASC_01"
+    type: "identification_point"     # bin is identified/scanned as it surfaces at the port
+    capacity: 1
+    availability: "available"
+
+  - id: "RP_PORT_02"
+    storage_point_ref: true
+    controller: "CTRL_ASC_01"
+    type: "identification_point"
+    capacity: 1
+    availability: "available"
+
+  - id: "RP_PORT_03"
+    storage_point_ref: true
+    controller: "CTRL_ASC_01"
+    type: "identification_point"
+    capacity: 1
+    availability: "available"
+
+  - id: "RP_PORT_04"
+    storage_point_ref: true
+    controller: "CTRL_ASC_01"
+    type: "identification_point"
+    capacity: 1
+    availability: "available"
+
+equipment:
+  # The AutoStore Controller owns fleet optimization (bin retrieval order,
+  # robot routing, charging, traffic jams) - the WMS only ever requests
+  # "bring bin X to port Y", never a specific robot or path. That matches
+  # mode: controller_autonomous exactly (SAP EWM: "Vehicle", vs.
+  # wms_controlled: "Resource" - see docs/entity-glossary.md).
+  - id: "ROBOT_FLEET_01"
+    type: "autostore_robot"          # references elements/equipment_types.yaml
+    mode: "controller_autonomous"
+    controller: "CTRL_ASC_01"        # this fleet belongs to the AS controller - the binding that routes movements to it
+    bin_access_type: "TOP_LIFT"
+    # Only the ports are listed - NOT AUTOSTORE_GRID. A movement like
+    # RP_PORT_01 -> AUTOSTORE_GRID (putaway) is executed by this fleet
+    # not because the grid is a served_point, but because both endpoints
+    # carry controller: CTRL_ASC_01 (see storage.yaml AUTOSTORE_GRID and
+    # the reporting_points above). The WMS hands the whole movement to
+    # CTRL_ASC_01, the controller dispatches a robot, and reports success
+    # back over channel CH_ASC_01. The grid interior stays the controller's
+    # black box, so it deliberately does not appear here.
+    served_points: ["RP_PORT_01", "RP_PORT_02", "RP_PORT_03", "RP_PORT_04"]
+    fleet_interface: "asc_native"    # proprietary AutoStore fleet protocol, not VDA5050
