@@ -26,7 +26,10 @@
       "items": { "type": "string" },
       "description": "References ids in elements/load_unit_types.yaml."
     },
-    "conversion_required": { "type": "boolean" },
+    "conversion_of_load_unit_required": {
+      "type": "boolean",
+      "description": "True when the load unit type changes across this leg (e.g. pallet -> piece, or a bin's contents repacked into a different carrier). When set, allowed_load_unit_types names the SOURCE type present at 'from', not the resulting type at 'to' - there is no separate field for the resulting type."
+    },
     "access_constraint": {
       "type": "string",
       "enum": ["direct", "lifo"]
