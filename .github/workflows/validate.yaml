@@ -9,19 +9,37 @@ on:
       - "elements/**"
       - "schemas/**"
       - "tools/**"
+      - ".github/workflows/validate.yaml"
   push:
     branches: [main]
 
 jobs:
+  # Discover the customers to validate from the filesystem, so a new
+  # customers/<name>/company.yaml is picked up automatically without
+  # editing this workflow. Outputs a JSON array consumed by the matrix.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      customers: ${{ steps.list.outputs.customers }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: |
+          customers=$(for d in customers/*/; do
+            [ -f "$d/company.yaml" ] && basename "$d"
+          done | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "Discovered customers: $customers"
+          echo "customers=$customers" >> "$GITHUB_OUTPUT"
+
   validate:
+    needs: discover
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Validate each customer folder via its company.yaml, which cascades
-        # into every facility and building automatically. For multiple
-        # customers, extend the list here or generate it dynamically from
-        # the filesystem via a preliminary job.
-        customer: ["example_customer", "autostore_customer"]
+        # Fed dynamically from the discover job - each customer folder is
+        # validated via its company.yaml, which cascades into every
+        # facility and building automatically.
+        customer: ${{ fromJson(needs.discover.outputs.customers) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -31,4 +49,17 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - run: python tools/validate.py customers/${{ matrix.customer }}/company.yaml
+      - name: Validate (schema conformance)
+        run: python tools/validate.py customers/${{ matrix.customer }}/company.yaml
+
+      # Also run the compiler: it expands storage_point_generator/
+      # layout_variants/storage_points and storage_point_ref entities into
+      # concrete storage_points and fails on duplicate ids - a class of
+      # error the schema validation alone does not catch.
+      - name: Compile (template expansion + duplicate-id check)
+        run: |
+          shopt -s globstar nullglob
+          for wh in customers/${{ matrix.customer }}/**/warehouse.yaml; do
+            echo "== compiling $wh =="
+            python tools/compile.py "$wh"
+          done
