@@ -1,31 +1,16 @@
-# "May" - independent of "can" (structure/lanes.yaml).
+# "May" - independent of "can" (structure/lanes.yaml, not present in this
+# minimal example - grid <-> port connectivity is intrinsic to the AS
+# itself, not modeled as separate conveyor/lane infrastructure).
 # Whole building is explicit_only - see structure/storage.yaml comments.
 
 movement_rules:
 
-  # --- Induction: goods receipt -> port -> grid ---
-  - id: "MOVE_DOORIN_TO_INDUCTION_01"
-    applies_to_policy: "explicit_only"
-    from: { storage_type: "STAGING", section: "SEC_STAGING_IN" }
-    to: { work_center: "WC_PORT_01" }
-    allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
-    trigger: "putaway_task"
-
-  - id: "MOVE_DOORIN_TO_INDUCTION_02"
-    applies_to_policy: "explicit_only"
-    from: { storage_type: "STAGING", section: "SEC_STAGING_IN" }
-    to: { work_center: "WC_PORT_02" }
-    allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
-    trigger: "putaway_task"
-
+  # --- Induction: port -> grid (a robot takes the bin from the port and stows it) ---
   - id: "ROUTE_INDUCTION_TO_GRID_01"
     applies_to_policy: "explicit_only"
     from: { reporting_point: "RP_PORT_01" }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
-    via_segment: "SEG_GRID_PORT01"
     access_constraint: "lifo"
     trigger: "putaway_task"
 
@@ -34,17 +19,15 @@ movement_rules:
     from: { reporting_point: "RP_PORT_02" }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
-    via_segment: "SEG_GRID_PORT02"
     access_constraint: "lifo"
     trigger: "putaway_task"
 
-  # --- Picking: grid -> port -> goods dispatch ---
+  # --- Picking: grid -> port (a robot brings the bin to the port) ---
   - id: "ROUTE_GRID_TO_PICK_01"
     applies_to_policy: "explicit_only"
     from: { storage_type: "AUTOSTORE_GRID" }
     to: { reporting_point: "RP_PORT_03" }
     allowed: true
-    via_segment: "SEG_GRID_PORT03"
     access_constraint: "lifo"
     trigger: "pick_task"
 
@@ -53,20 +36,5 @@ movement_rules:
     from: { storage_type: "AUTOSTORE_GRID" }
     to: { reporting_point: "RP_PORT_04" }
     allowed: true
-    via_segment: "SEG_GRID_PORT04"
     access_constraint: "lifo"
-    trigger: "pick_task"
-
-  - id: "MOVE_PICK_TO_DOOROUT_01"
-    applies_to_policy: "explicit_only"
-    from: { work_center: "WC_PORT_03" }
-    to: { storage_type: "STAGING", section: "SEC_STAGING_OUT" }
-    allowed: true
-    trigger: "pick_task"
-
-  - id: "MOVE_PICK_TO_DOOROUT_02"
-    applies_to_policy: "explicit_only"
-    from: { work_center: "WC_PORT_04" }
-    to: { storage_type: "STAGING", section: "SEC_STAGING_OUT" }
-    allowed: true
     trigger: "pick_task"

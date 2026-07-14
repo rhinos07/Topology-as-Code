@@ -10,7 +10,6 @@ warehouse:
 
   imports:
     - "structure/storage.yaml"
-    - "structure/lanes.yaml"
     - "structure/wcs.yaml"
     - "strategies/replenishment.yaml"
     - "strategies/movement_rules.yaml"

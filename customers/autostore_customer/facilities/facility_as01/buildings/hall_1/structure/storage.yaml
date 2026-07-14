@@ -30,36 +30,6 @@ storage_types:
       position: "ZONE_GRID_1"
       allowed_load_unit_types: ["autostore_bin"]
 
-  # --- Staging area at the doors. Unlike example_customer/hall_3's ---
-  # --- STAGING (manual, default_allow), this building has no forklift ---
-  # --- traffic at all - staging is tote-conveyor fed, so it's ---
-  # --- explicit_only like the rest of the cell. ---
-  - id: "STAGING"
-    automation_level: "conveyor_automated"
-    movement_policy: "explicit_only"
-    access_model: "block"
-    depth: 1
-    stack_height: 1
-    access_order: "lifo"
-
-    storage_point_generator:
-      aisles: 4
-      stacks: 1
-      levels: 1
-      coordinate_pattern: "STG-{aisle:02d}"
-
-    default_attributes:
-      max_weight: "30kg"
-      temperature_zone: "ambient"
-      capacity_per_point: 1
-      allowed_load_unit_types: ["autostore_bin"]
-
-    sections:
-      - id: "SEC_STAGING_IN"
-        criteria: { flow_direction: "inbound" }
-      - id: "SEC_STAGING_OUT"
-        criteria: { flow_direction: "outbound" }
-
 # Functional cross-cutting grouping - orthogonal to the physical hierarchy.
 activity_areas:
   - id: "PUTAWAY_ZONE_GRID"
@@ -97,15 +67,3 @@ work_centers:
     step: "picking"
     workstation_template: "ws_autostore_port"
     storage_point_ref: true
-
-# Doors / goods receipt-dispatch
-doors:
-  - id: "DOOR_IN"
-    direction: "inbound"
-    staging_section: "STAGING.SEC_STAGING_IN"
-    determination_group: "totes"
-
-  - id: "DOOR_OUT"
-    direction: "outbound"
-    staging_section: "STAGING.SEC_STAGING_OUT"
-    determination_group: "totes"

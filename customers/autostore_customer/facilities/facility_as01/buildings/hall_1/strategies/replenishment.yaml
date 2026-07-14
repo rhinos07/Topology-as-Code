@@ -5,21 +5,10 @@
 # classic min_max replenishment moves goods from bulk storage to a
 # separate, fixed pick face (HBR -> FIX). AutoStore doesn't have that
 # distinction - the port *is* the pick face, a robot brings whichever bin
-# is needed directly to it. So there is no "replenish the pick face"
-# strategy here. What AutoStore installations do have is continuous
-# induction of newly received totes into the grid, modeled below as a
-# quantity_based strategy from goods-receipt staging into the grid.
+# is needed directly to it. This minimal example has no separate
+# goods-receipt/staging area either (see structure/storage.yaml), so
+# there is no upstream zone left to define a replenishment_strategy
+# against - induction happens directly at the ports
+# (strategies/movement_rules.yaml).
 
-replenishment_strategies:
-
-  - id: "REPL_AUTOSTORE_INDUCTION"
-    trigger:
-      type: "quantity_based"
-      check_interval: "continuous"
-    source:
-      storage_type: "STAGING"
-      section: "SEC_STAGING_IN"
-    destination:
-      storage_type: "AUTOSTORE_GRID"
-    priority: "normal"
-    timing: "immediate"
+replenishment_strategies: []

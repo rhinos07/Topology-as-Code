@@ -85,9 +85,11 @@ python tools/compile.py customers/example_customer/facilities/facility_pa11/buil
   side by side (high-bay rack, block storage, channel storage, a small
   AutoStore grid, cold zone, hazmat) to show most entity types at once.
 - `customers/autostore_customer/` - a second, dedicated example: a single
-  building that is *entirely* one AutoStore grid, wired end-to-end
-  (grid → ports → controller → robot fleet → movement rules), showing the
-  full pattern for a single-technology automation cell.
+  building that is *entirely* one AutoStore grid - just the grid, its
+  ports, the controller and the robot fleet, with no conveyor/lane
+  infrastructure modeled (grid-to-port connectivity is intrinsic to the
+  AS itself). Shows the minimal pattern for a single-technology
+  automation cell.
 
 ## Core Concepts (Quick Reference)
 
