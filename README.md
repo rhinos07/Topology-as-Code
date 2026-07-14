@@ -89,7 +89,8 @@ python tools/compile.py customers/example_customer/facilities/facility_pa11/buil
   ports, the controller and the robot fleet, with no conveyor/lane
   infrastructure modeled (grid-to-port connectivity is intrinsic to the
   AS itself). Shows the minimal pattern for a single-technology
-  automation cell.
+  automation cell. Walked through step by step in
+  [`docs/autostore-walkthrough.md`](docs/autostore-walkthrough.md).
 
 ## Core Concepts (Quick Reference)
 

@@ -4,6 +4,12 @@ Terms modeled after SAP EWM/MFS terminology (for compatibility with
 industry vocabulary), but named independently where it made more sense
 (`storage_point` instead of "Bin").
 
+For a worked example applying several of these terms together (the
+opaque-block grid, the dual work_center/reporting_point port, the
+equipment-controller binding, the induction/pick flows,
+`movement_rule.execution`), see
+[`autostore-walkthrough.md`](autostore-walkthrough.md).
+
 ## Organizational Hierarchy
 
 | Term | Meaning |
