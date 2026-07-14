@@ -24,7 +24,9 @@ import json
 from pathlib import Path
 
 import yaml
-from jsonschema import Draft7Validator, RefResolver
+from jsonschema import Draft7Validator
+from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT7
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_DIR = REPO_ROOT / "schemas"
@@ -49,10 +51,22 @@ def load_schema(name: str) -> dict:
         return json.load(f)
 
 
+def _build_schema_registry() -> Registry:
+    """Pre-load all local schemas into a referencing.Registry."""
+    resources = []
+    for schema_file in SCHEMA_DIR.glob("*.json"):
+        schema_data = json.loads(schema_file.read_text(encoding="utf-8"))
+        uri = schema_data.get("$id") or f"{SCHEMA_DIR.as_uri()}/{schema_file.name}"
+        resources.append((uri, Resource.from_contents(schema_data, default_specification=DRAFT7)))
+    return Registry().with_resources(resources)
+
+
+SCHEMA_REGISTRY: Registry = _build_schema_registry()
+
+
 def make_validator(schema_name: str) -> Draft7Validator:
     schema = load_schema(schema_name)
-    resolver = RefResolver(base_uri=f"{SCHEMA_DIR.as_uri()}/", referrer=schema)
-    return Draft7Validator(schema, resolver=resolver)
+    return Draft7Validator(schema, registry=SCHEMA_REGISTRY)
 
 
 VALIDATORS = {
@@ -74,15 +88,14 @@ def collect_relative_refs(path: Path, root_key: str, list_key: str) -> list[Path
     return [base_dir / rel for rel in refs]
 
 
-def validate_file(path: Path, schema_name: str, root_key: str | None) -> list[str]:
+def validate_file(path: Path, schema_name: str) -> list[str]:
     errors = []
     data = load_yaml(path)
     if data is None:
         return [f"{path}: File is empty or invalid."]
 
     validator = make_validator(schema_name)
-    target = data if root_key is None else data
-    for err in validator.iter_errors(target):
+    for err in validator.iter_errors(data):
         loc = " -> ".join(str(p) for p in err.absolute_path) or "(root)"
         errors.append(f"{path}: [{loc}] {err.message}")
     return errors
@@ -611,7 +624,7 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
     if not warehouse_file.exists():
         return [f"warehouse file missing: {warehouse_file}"]
 
-    all_errors = validate_file(warehouse_file, "warehouse.schema.json", "warehouse")
+    all_errors = validate_file(warehouse_file, "warehouse.schema.json")
 
     imports: dict[str, Path] = {}
     for imported in collect_imports(warehouse_file):
@@ -629,9 +642,9 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
         elif name == "replenishment.yaml":
             all_errors += validate_replenishment(imported)
         elif name == "lanes.yaml":
-            all_errors += validate_file(imported, "lanes.schema.json", None)
+            all_errors += validate_file(imported, "lanes.schema.json")
         elif name == "wcs.yaml":
-            all_errors += validate_file(imported, "wcs.schema.json", None)
+            all_errors += validate_file(imported, "wcs.schema.json")
         else:
             data = load_yaml(imported)
             if data is None:
@@ -679,7 +692,7 @@ def validate_facility_file(facility_file: Path, element_ids: dict[str, set[str]]
     if not facility_file.exists():
         return [f"facility file missing: {facility_file}"]
 
-    all_errors = validate_file(facility_file, "facility.schema.json", "facility")
+    all_errors = validate_file(facility_file, "facility.schema.json")
 
     for building_file in collect_relative_refs(facility_file, "facility", "buildings"):
         all_errors += validate_warehouse_file(building_file, element_ids)
@@ -689,7 +702,7 @@ def validate_facility_file(facility_file: Path, element_ids: dict[str, set[str]]
 
 def validate_company_file(company_file: Path, element_ids: dict[str, set[str]] = {}) -> list[str]:
     """Validates a company.yaml and cascades into every facility it lists."""
-    all_errors = validate_file(company_file, "company.schema.json", "company")
+    all_errors = validate_file(company_file, "company.schema.json")
 
     for facility_file in collect_relative_refs(company_file, "company", "facilities"):
         all_errors += validate_facility_file(facility_file, element_ids)
