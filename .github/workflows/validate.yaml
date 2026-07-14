@@ -31,4 +31,17 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - run: python tools/validate.py customers/${{ matrix.customer }}/company.yaml
+      - name: Validate (schema conformance)
+        run: python tools/validate.py customers/${{ matrix.customer }}/company.yaml
+
+      # Also run the compiler: it expands storage_point_generator/
+      # layout_variants/storage_points and storage_point_ref entities into
+      # concrete storage_points and fails on duplicate ids - a class of
+      # error the schema validation alone does not catch.
+      - name: Compile (template expansion + duplicate-id check)
+        run: |
+          shopt -s globstar nullglob
+          for wh in customers/${{ matrix.customer }}/**/warehouse.yaml; do
+            echo "== compiling $wh =="
+            python tools/compile.py "$wh"
+          done
