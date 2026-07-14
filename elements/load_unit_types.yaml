@@ -36,3 +36,10 @@ load_unit_types:
     max_weight: "30kg"
     stackable: true
     volume: "0.09m3"
+
+  - id: "order_tote"
+    description: "Order container that picked goods are placed into at a goods-to-person port (holds WIP for one or more orders)"
+    dimensions: { width: "0.6m", depth: "0.4m", height: "0.32m" }
+    max_weight: "25kg"
+    stackable: true
+    volume: "0.077m3"

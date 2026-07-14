@@ -6,12 +6,16 @@
 # Each port is modeled twice (see structure/storage.yaml / wcs.yaml):
 #   - work_center  WC_PORT_0x = operator / ergonomic side (manual handling)
 #   - reporting_point RP_PORT_0x = controller side (bin handed to/from CTRL_ASC_01)
-# The two are the same physical port; the manual legs touch the work_center,
-# the controller/robot legs touch the reporting_point.
+# The two are the same physical port but distinct bookable storage_points
+# holding different stock: the autostore_bin sits at the reporting_point,
+# the operator's order_tote (WIP) at the work_center. The handoff between
+# them is an explicit leg (RP->WC on picking, WC->RP on induction).
 
 movement_rules:
 
-  # --- Induction: entry -> induction port (operator places the bin) ---
+  # === Induction: entry -> operator places bin -> controller stows it ===
+
+  # entry -> induction workstation (operator receives/prepares the bin)
   - id: "MOVE_ENTRY_TO_INDUCTION_01"
     applies_to_policy: "explicit_only"
     from: { work_center: "ENTRY" }
@@ -28,7 +32,25 @@ movement_rules:
     allowed_load_unit_types: ["autostore_bin"]
     trigger: "putaway_task"
 
-  # --- Induction: port (controller side) -> grid (robot stows the bin) ---
+  # operator side -> controller side (bin handed from WC_PORT to the port's
+  # reporting_point, i.e. into the AS controller's custody)
+  - id: "HANDOFF_INDUCTION_01"
+    applies_to_policy: "explicit_only"
+    from: { work_center: "WC_PORT_01" }
+    to: { reporting_point: "RP_PORT_01" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    trigger: "putaway_task"
+
+  - id: "HANDOFF_INDUCTION_02"
+    applies_to_policy: "explicit_only"
+    from: { work_center: "WC_PORT_02" }
+    to: { reporting_point: "RP_PORT_02" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    trigger: "putaway_task"
+
+  # controller side -> grid (robot stows the bin)
   - id: "ROUTE_INDUCTION_TO_GRID_01"
     applies_to_policy: "explicit_only"
     from: { reporting_point: "RP_PORT_01" }
@@ -45,7 +67,9 @@ movement_rules:
     access_constraint: "lifo"
     trigger: "putaway_task"
 
-  # --- Picking: grid -> port (controller side, robot delivers the bin) ---
+  # === Picking: grid -> controller delivers bin -> operator picks into tote ===
+
+  # grid -> controller side (robot delivers the bin to the port)
   - id: "ROUTE_GRID_TO_PICK_01"
     applies_to_policy: "explicit_only"
     from: { storage_type: "AUTOSTORE_GRID" }
@@ -62,16 +86,35 @@ movement_rules:
     access_constraint: "lifo"
     trigger: "pick_task"
 
-  # --- Picking: port (operator side) -> exit (operator removes the goods) ---
-  # This is where the actual "Entnahme" happens: at the pick work_center a
-  # person takes the ordered goods out of the delivered bin and sends them
-  # to EXIT. Manual goods-to-person - no equipment/controller on this leg,
-  # unlike the grid->port leg above.
+  # controller side -> operator side: the actual "Entnahme". The operator
+  # takes the ordered goods out of the delivered autostore_bin and places
+  # them into an order_tote that is booked as WIP at the pick work_center.
+  # Load unit changes bin -> order_tote, hence conversion_required.
+  - id: "PICK_FROM_BIN_01"
+    applies_to_policy: "explicit_only"
+    from: { reporting_point: "RP_PORT_03" }
+    to: { work_center: "WC_PORT_03" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    conversion_required: true
+    trigger: "pick_task"
+
+  - id: "PICK_FROM_BIN_02"
+    applies_to_policy: "explicit_only"
+    from: { reporting_point: "RP_PORT_04" }
+    to: { work_center: "WC_PORT_04" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    conversion_required: true
+    trigger: "pick_task"
+
+  # operator side -> exit (the filled order_tote leaves the cell)
   - id: "MOVE_PICK_TO_EXIT_01"
     applies_to_policy: "explicit_only"
     from: { work_center: "WC_PORT_03" }
     to: { work_center: "EXIT" }
     allowed: true
+    allowed_load_unit_types: ["order_tote"]
     trigger: "pick_task"
 
   - id: "MOVE_PICK_TO_EXIT_02"
@@ -79,4 +122,5 @@ movement_rules:
     from: { work_center: "WC_PORT_04" }
     to: { work_center: "EXIT" }
     allowed: true
+    allowed_load_unit_types: ["order_tote"]
     trigger: "pick_task"
