@@ -1,0 +1,111 @@
+# Physical warehouse structure. Only changes during an actual rebuild.
+# Validated against schemas/storage-type.schema.json (per entry in storage_types)
+
+storage_types:
+
+  # --- AutoStore grid: bins stacked in columns, robots access only the ---
+  # --- top bin of a column - modeled as 'block' with stack_height =    ---
+  # --- bins per column and access_order 'lifo'. See docs/entity-       ---
+  # --- glossary.md "Rack vs. Block vs. Channel Location".              ---
+  - id: "AUTOSTORE_GRID"
+    automation_level: "conveyor_automated"
+    movement_policy: "explicit_only"     # every route must be explicitly defined
+    access_model: "block"
+    depth: 1
+    stack_height: 16          # bins stacked per grid column
+    access_order: "lifo"      # a robot can only pick the top bin of a column
+    controller: "CTRL_ASC_01"      # references structure/wcs.yaml controller_definitions
+
+    storage_point_generator:
+      aisles: 20    # grid columns, x-direction
+      stacks: 15    # grid columns, y-direction
+      levels: 1
+      coordinate_pattern: "AS-{aisle:02d}-{stack:02d}"
+
+    default_attributes:
+      max_weight: "30kg"        # per bin
+      temperature_zone: "ambient"
+      capacity_per_point: 16    # 16 bins stacked per column
+      size: { width: "0.649m", depth: "0.449m", height: "0.31m" }
+      position: "ZONE_GRID_1"
+      allowed_load_unit_types: ["autostore_bin"]
+
+  # --- Staging area at the doors. Unlike example_customer/hall_3's ---
+  # --- STAGING (manual, default_allow), this building has no forklift ---
+  # --- traffic at all - staging is tote-conveyor fed, so it's ---
+  # --- explicit_only like the rest of the cell. ---
+  - id: "STAGING"
+    automation_level: "conveyor_automated"
+    movement_policy: "explicit_only"
+    access_model: "block"
+    depth: 1
+    stack_height: 1
+    access_order: "lifo"
+
+    storage_point_generator:
+      aisles: 4
+      stacks: 1
+      levels: 1
+      coordinate_pattern: "STG-{aisle:02d}"
+
+    default_attributes:
+      max_weight: "30kg"
+      temperature_zone: "ambient"
+      capacity_per_point: 1
+      allowed_load_unit_types: ["autostore_bin"]
+
+    sections:
+      - id: "SEC_STAGING_IN"
+        criteria: { flow_direction: "inbound" }
+      - id: "SEC_STAGING_OUT"
+        criteria: { flow_direction: "outbound" }
+
+# Functional cross-cutting grouping - orthogonal to the physical hierarchy.
+activity_areas:
+  - id: "PUTAWAY_ZONE_GRID"
+    activity: "putaway"
+    bins_from: ["AUTOSTORE_GRID"]
+
+  - id: "INVENTORY_ZONE_GRID"
+    activity: "physical_inventory"
+    bins_from: ["AUTOSTORE_GRID"]
+
+# Ports: the physical location where an operator inducts or picks bins
+# that a robot has delivered to the top of the grid. Modeled twice on
+# purpose, same physical location, two different roles (see docs/entity-
+# glossary.md point 6, "storage_point_ref: true as a reusable pattern"):
+#   - here (work_center): the operator/ergonomic side (throughput, step)
+#   - structure/wcs.yaml (reporting_point RP_PORT_*): the controller-
+#     communication side that goods movements actually route through
+work_centers:
+  - id: "WC_PORT_01"
+    step: "induction"
+    workstation_template: "ws_autostore_port"
+    storage_point_ref: true
+
+  - id: "WC_PORT_02"
+    step: "induction"
+    workstation_template: "ws_autostore_port"
+    storage_point_ref: true
+
+  - id: "WC_PORT_03"
+    step: "picking"
+    workstation_template: "ws_autostore_port"
+    storage_point_ref: true
+
+  - id: "WC_PORT_04"
+    step: "picking"
+    workstation_template: "ws_autostore_port"
+    storage_point_ref: true
+
+# Doors / goods receipt-dispatch
+doors:
+  - id: "DOOR_IN"
+    direction: "inbound"
+    staging_section: "STAGING.SEC_STAGING_IN"
+    determination_group: "totes"
+
+  - id: "DOOR_OUT"
+    direction: "outbound"
+    staging_section: "STAGING.SEC_STAGING_OUT"
+    determination_group: "totes"

@@ -1,0 +1,15 @@
+# Top-level tenant. Rarely changes - only when onboarding/offboarding a customer.
+# This file validates against schemas/company.schema.json
+#
+# Second example customer, dedicated to a single automation technology
+# (AutoStore grid) end-to-end - see example_customer/hall_3 for a
+# mixed-technology building (HRL + AutoStore + manual block storage side
+# by side). Here the whole building is one AutoStore cell, so structure
+# and strategies can be fully explicit_only/conveyor_automated throughout.
+
+company:
+  id: "autostore_customer"
+  name: "AutoStore Fulfillment GmbH"
+
+  facilities:
+    - "facilities/facility_as01/facility.yaml"

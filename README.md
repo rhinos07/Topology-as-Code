@@ -79,6 +79,16 @@ python tools/validate.py customers/example_customer/company.yaml
 python tools/compile.py customers/example_customer/facilities/facility_pa11/buildings/hall_3/warehouse.yaml --output build/storage_points.yaml
 ```
 
+## Examples
+
+- `customers/example_customer/` - one building mixing several technologies
+  side by side (high-bay rack, block storage, channel storage, a small
+  AutoStore grid, cold zone, hazmat) to show most entity types at once.
+- `customers/autostore_customer/` - a second, dedicated example: a single
+  building that is *entirely* one AutoStore grid, wired end-to-end
+  (grid → ports → controller → robot fleet → movement rules), showing the
+  full pattern for a single-technology automation cell.
+
 ## Core Concepts (Quick Reference)
 
 - **storage_point** — smallest physical/logical storage unit (formerly "bin").

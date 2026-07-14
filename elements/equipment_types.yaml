@@ -19,3 +19,9 @@ equipment_types:
     automation_level: "conveyor_automated"
     max_payload: "1000kg"
     max_speed: "1.5m/s"
+
+  - id: "autostore_robot"
+    description: "AutoStore grid robot - retrieves/stacks bins within the grid and delivers them to ports"
+    automation_level: "conveyor_automated"
+    max_payload: "30kg"
+    max_speed: "3.0m/s"

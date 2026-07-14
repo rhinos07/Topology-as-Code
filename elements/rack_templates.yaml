@@ -21,8 +21,19 @@ lane_templates:
     shuttle_compatible: true
     max_speed: "1.5m/s"
 
+  - id: "lane_tote_conveyor"
+    width: "0.4m"
+    direction: "unidirectional"
+    shuttle_compatible: false
+    max_speed: "0.5m/s"
+
 workstation_templates:
   - id: "ws_pick_to_light"
     type: "pick-to-light"
     ergonomic_class: "standing"
     throughput_capacity: 120  # picks per hour
+
+  - id: "ws_autostore_port"
+    type: "goods-to-person"
+    ergonomic_class: "standing"
+    throughput_capacity: 650  # bins/totes per hour, nominal AutoStore port throughput

@@ -1,0 +1,15 @@
+# A physical site (plant/distribution center). Changes rarely - only when a
+# site is added/closed. This file validates against schemas/facility.schema.json
+
+facility:
+  id: "AS01"
+  name: "Micro-Fulfillment Center AS01"
+  reference_number: "AS01"
+  address:
+    street: "Gridstrasse 5"
+    postal_code: "54321"
+    city: "Musterstadt"
+    country: "DE"
+
+  buildings:
+    - "buildings/hall_1/warehouse.yaml"
