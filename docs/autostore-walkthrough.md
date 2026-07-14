@@ -144,7 +144,7 @@ AUTOSTORE_GRID ────────────► RP_PORT_01      PROVIDE_E
 
 WC_PORT_01 ─────────────────► RP_PORT_01     DECANT_INTO_BIN_01
   (carton → autostore_bin, manual,           operator decants the carton
-   conversion_required)                      into the bin - THIS is the
+   conversion_of_load_unit_required)         into the bin - THIS is the
                                               "Einlagerung" moment
 
 RP_PORT_01 ─────────────────► AUTOSTORE_GRID STOW_BIN_TO_GRID
@@ -171,7 +171,7 @@ AUTOSTORE_GRID ────────────► RP_PORT_03      ROUTE_GRI
 
 RP_PORT_03 ─────────────────► WC_PORT_03     PICK_FROM_BIN_01
   (autostore_bin → order_tote, manual,       operator takes the ordered
-   conversion_required)                      goods out of the bin into an
+   conversion_of_load_unit_required)         goods out of the bin into an
                                               order_tote - THIS is the
                                               "Entnahme" moment
 

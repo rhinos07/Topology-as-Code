@@ -53,7 +53,7 @@ movement_rules:
     trigger: "bin_provision"
 
   # operator side -> controller side: decant the carton into the bin
-  # (goods change carton -> autostore_bin, hence conversion_required).
+  # (goods change carton -> autostore_bin, hence conversion_of_load_unit_required).
   # Kept split per port: WC_PORT_01 only ever hands off to RP_PORT_01,
   # never to RP_PORT_02 - both endpoints vary together, not independently.
   - id: "DECANT_INTO_BIN_01"
@@ -63,7 +63,7 @@ movement_rules:
     to: { reporting_point: "RP_PORT_01" }
     allowed: true
     allowed_load_unit_types: ["carton"]
-    conversion_required: true
+    conversion_of_load_unit_required: true
     trigger: "putaway_task"
 
   - id: "DECANT_INTO_BIN_02"
@@ -73,7 +73,7 @@ movement_rules:
     to: { reporting_point: "RP_PORT_02" }
     allowed: true
     allowed_load_unit_types: ["carton"]
-    conversion_required: true
+    conversion_of_load_unit_required: true
     trigger: "putaway_task"
 
   # controller side -> grid: robot stows the now-full bin.
@@ -105,7 +105,7 @@ movement_rules:
   # controller side -> operator side: the actual "Entnahme". The operator
   # takes the ordered goods out of the delivered autostore_bin and places
   # them into an order_tote that is booked as WIP at the pick work_center.
-  # Load unit changes bin -> order_tote, hence conversion_required. Kept
+  # Load unit changes bin -> order_tote, hence conversion_of_load_unit_required. Kept
   # split per port for the same reason as DECANT_INTO_BIN_01/02 above.
   - id: "PICK_FROM_BIN_01"
     applies_to_policy: "explicit_only"
@@ -114,7 +114,7 @@ movement_rules:
     to: { work_center: "WC_PORT_03" }
     allowed: true
     allowed_load_unit_types: ["autostore_bin"]
-    conversion_required: true
+    conversion_of_load_unit_required: true
     trigger: "pick_task"
 
   - id: "PICK_FROM_BIN_02"
@@ -124,7 +124,7 @@ movement_rules:
     to: { work_center: "WC_PORT_04" }
     allowed: true
     allowed_load_unit_types: ["autostore_bin"]
-    conversion_required: true
+    conversion_of_load_unit_required: true
     trigger: "pick_task"
 
   # controller side -> grid: once the operator has taken the ordered goods,

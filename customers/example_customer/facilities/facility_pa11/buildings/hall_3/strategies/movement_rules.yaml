@@ -38,7 +38,7 @@ movement_rules:
     to: { storage_type: "FIX", activity_area: "PICK_ZONE_A" }
     allowed: true
     allowed_load_unit_types: ["pallet_euro"]
-    conversion_required: true
+    conversion_of_load_unit_required: true
     trigger: "replenishment_task"
 
   # --- Block location: only to the open end, only same article ---
