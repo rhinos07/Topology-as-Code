@@ -155,9 +155,6 @@ missing. Known gaps:
 5. **No physical compatibility check** between a `storage_type`'s
    `size`/`max_weight` and its referenced `allowed_load_unit_types` (e.g.
    whether a euro pallet actually fits a 0.4m-wide bay).
-6. **Minor:** `jsonschema.RefResolver` is deprecated (warning on every
-   run, still functional). `validate_file()`'s `root_key` parameter is
-   currently unused dead code.
 
 ### Structural Gaps (Not Yet Modeled)
 
