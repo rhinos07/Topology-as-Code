@@ -52,6 +52,15 @@ equipment:
   - id: "ROBOT_FLEET_01"
     type: "autostore_robot"          # references elements/equipment_types.yaml
     mode: "controller_autonomous"
+    controller: "CTRL_ASC_01"        # this fleet belongs to the AS controller - the binding that routes movements to it
     bin_access_type: "TOP_LIFT"
+    # Only the ports are listed - NOT AUTOSTORE_GRID. A movement like
+    # RP_PORT_01 -> AUTOSTORE_GRID (putaway) is executed by this fleet
+    # not because the grid is a served_point, but because both endpoints
+    # carry controller: CTRL_ASC_01 (see storage.yaml AUTOSTORE_GRID and
+    # the reporting_points above). The WMS hands the whole movement to
+    # CTRL_ASC_01, the controller dispatches a robot, and reports success
+    # back over channel CH_ASC_01. The grid interior stays the controller's
+    # black box, so it deliberately does not appear here.
     served_points: ["RP_PORT_01", "RP_PORT_02", "RP_PORT_03", "RP_PORT_04"]
     fleet_interface: "asc_native"    # proprietary AutoStore fleet protocol, not VDA5050
