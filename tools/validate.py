@@ -124,6 +124,63 @@ def validate_movement_rules(path: Path) -> list[str]:
     return errors
 
 
+def _endpoint_controller(
+    endpoint: dict | None,
+    storage_controllers: dict,
+    reporting_point_controllers: dict,
+) -> str | None:
+    """Resolves the controller an endpoint sits under, or None. Only
+    storage_type and reporting_point endpoints carry a controller;
+    work_centers/doors/activity_areas don't (they are manual/logical)."""
+    if not isinstance(endpoint, dict):
+        return None
+    if endpoint.get("reporting_point"):
+        return reporting_point_controllers.get(endpoint["reporting_point"])
+    if endpoint.get("storage_type"):
+        return storage_controllers.get(endpoint["storage_type"])
+    return None
+
+
+def check_execution_consistency(
+    movement_path: Path,
+    storage_data: dict | None,
+    wcs_data: dict | None,
+) -> list[str]:
+    """For every movement_rule that declares 'execution', checks it against
+    what the endpoints imply: 'automated' iff both endpoints sit under the
+    same controller, else 'manual'. Flags contradictions."""
+    errors: list[str] = []
+    movement_data = load_yaml(movement_path)
+    if movement_data is None:
+        return errors
+
+    storage_controllers = {
+        st.get("id"): st.get("controller")
+        for st in (storage_data or {}).get("storage_types", [])
+    }
+    reporting_point_controllers = {
+        rp.get("id"): rp.get("controller")
+        for rp in (wcs_data or {}).get("reporting_points", [])
+    }
+
+    for rule in movement_data.get("movement_rules", []):
+        declared = rule.get("execution")
+        if declared is None:
+            continue
+        c_from = _endpoint_controller(rule.get("from"), storage_controllers, reporting_point_controllers)
+        c_to = _endpoint_controller(rule.get("to"), storage_controllers, reporting_point_controllers)
+        implied = "automated" if (c_from and c_to and c_from == c_to) else "manual"
+        if declared != implied:
+            errors.append(
+                f"{movement_path}: movement_rule '{rule.get('id', '?')}': "
+                f"execution '{declared}' contradicts the endpoints "
+                f"(from controller={c_from!r}, to controller={c_to!r} -> "
+                f"implies '{implied}'). 'automated' requires both endpoints "
+                f"under the same controller."
+            )
+    return errors
+
+
 def validate_element_catalog(path: Path, schema_name: str, list_key: str) -> list[str]:
     errors = []
     data = load_yaml(path)
@@ -155,11 +212,13 @@ def validate_warehouse_file(warehouse_file: Path) -> list[str]:
 
     all_errors = validate_file(warehouse_file, "warehouse.schema.json", "warehouse")
 
+    imports: dict[str, Path] = {}
     for imported in collect_imports(warehouse_file):
         if not imported.exists():
             all_errors.append(f"{warehouse_file}: imported file missing: {imported}")
             continue
 
+        imports[imported.name] = imported
         name = imported.name
         if name == "storage.yaml":
             all_errors += validate_storage_types(imported)
@@ -176,6 +235,15 @@ def validate_warehouse_file(warehouse_file: Path) -> list[str]:
             data = load_yaml(imported)
             if data is None:
                 all_errors.append(f"{imported}: File is empty or invalid.")
+
+    # Cross-file consistency: movement_rule.execution vs. the controllers
+    # its endpoints sit under (needs storage.yaml + wcs.yaml together).
+    if "movement_rules.yaml" in imports:
+        storage_data = load_yaml(imports["storage.yaml"]) if "storage.yaml" in imports else {}
+        wcs_data = load_yaml(imports["wcs.yaml"]) if "wcs.yaml" in imports else {}
+        all_errors += check_execution_consistency(
+            imports["movement_rules.yaml"], storage_data, wcs_data
+        )
 
     return all_errors
 

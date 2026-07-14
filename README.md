@@ -120,9 +120,12 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 
 ### Open Validation Gaps
 
-`tools/validate.py` currently validates each file only against its own
-JSON Schema. It does **not** check consistency across files or within a
-file's cross-references. Known gaps:
+`tools/validate.py` validates each file against its own JSON Schema and
+runs one cross-file consistency check so far: a `movement_rule.execution`
+(`manual`/`automated`) is verified against the controllers its endpoints
+sit under (`storage_type.controller`/`reporting_point.controller`) and a
+contradiction is reported. Broader cross-reference checking is still
+missing. Known gaps:
 
 1. **No cross-file referential integrity.** A typo in a referenced ID is
    not caught. Affected references:

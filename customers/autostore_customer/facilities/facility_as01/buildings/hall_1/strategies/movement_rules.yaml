@@ -18,6 +18,7 @@ movement_rules:
   # entry -> induction workstation (operator receives/prepares the bin)
   - id: "MOVE_ENTRY_TO_INDUCTION_01"
     applies_to_policy: "explicit_only"
+    execution: "manual"
     from: { work_center: "ENTRY" }
     to: { work_center: "WC_PORT_01" }
     allowed: true
@@ -26,6 +27,7 @@ movement_rules:
 
   - id: "MOVE_ENTRY_TO_INDUCTION_02"
     applies_to_policy: "explicit_only"
+    execution: "manual"
     from: { work_center: "ENTRY" }
     to: { work_center: "WC_PORT_02" }
     allowed: true
@@ -36,6 +38,7 @@ movement_rules:
   # reporting_point, i.e. into the AS controller's custody)
   - id: "HANDOFF_INDUCTION_01"
     applies_to_policy: "explicit_only"
+    execution: "manual"
     from: { work_center: "WC_PORT_01" }
     to: { reporting_point: "RP_PORT_01" }
     allowed: true
@@ -44,6 +47,7 @@ movement_rules:
 
   - id: "HANDOFF_INDUCTION_02"
     applies_to_policy: "explicit_only"
+    execution: "manual"
     from: { work_center: "WC_PORT_02" }
     to: { reporting_point: "RP_PORT_02" }
     allowed: true
@@ -53,6 +57,7 @@ movement_rules:
   # controller side -> grid (robot stows the bin)
   - id: "ROUTE_INDUCTION_TO_GRID_01"
     applies_to_policy: "explicit_only"
+    execution: "automated"
     from: { reporting_point: "RP_PORT_01" }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
@@ -61,6 +66,7 @@ movement_rules:
 
   - id: "ROUTE_INDUCTION_TO_GRID_02"
     applies_to_policy: "explicit_only"
+    execution: "automated"
     from: { reporting_point: "RP_PORT_02" }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
@@ -72,6 +78,7 @@ movement_rules:
   # grid -> controller side (robot delivers the bin to the port)
   - id: "ROUTE_GRID_TO_PICK_01"
     applies_to_policy: "explicit_only"
+    execution: "automated"
     from: { storage_type: "AUTOSTORE_GRID" }
     to: { reporting_point: "RP_PORT_03" }
     allowed: true
@@ -80,6 +87,7 @@ movement_rules:
 
   - id: "ROUTE_GRID_TO_PICK_02"
     applies_to_policy: "explicit_only"
+    execution: "automated"
     from: { storage_type: "AUTOSTORE_GRID" }
     to: { reporting_point: "RP_PORT_04" }
     allowed: true
@@ -92,6 +100,7 @@ movement_rules:
   # Load unit changes bin -> order_tote, hence conversion_required.
   - id: "PICK_FROM_BIN_01"
     applies_to_policy: "explicit_only"
+    execution: "manual"
     from: { reporting_point: "RP_PORT_03" }
     to: { work_center: "WC_PORT_03" }
     allowed: true
@@ -101,6 +110,7 @@ movement_rules:
 
   - id: "PICK_FROM_BIN_02"
     applies_to_policy: "explicit_only"
+    execution: "manual"
     from: { reporting_point: "RP_PORT_04" }
     to: { work_center: "WC_PORT_04" }
     allowed: true
@@ -111,6 +121,7 @@ movement_rules:
   # operator side -> exit (the filled order_tote leaves the cell)
   - id: "MOVE_PICK_TO_EXIT_01"
     applies_to_policy: "explicit_only"
+    execution: "manual"
     from: { work_center: "WC_PORT_03" }
     to: { work_center: "EXIT" }
     allowed: true
@@ -119,6 +130,7 @@ movement_rules:
 
   - id: "MOVE_PICK_TO_EXIT_02"
     applies_to_policy: "explicit_only"
+    execution: "manual"
     from: { work_center: "WC_PORT_04" }
     to: { work_center: "EXIT" }
     allowed: true
