@@ -5,7 +5,23 @@
 
 movement_rules:
 
-  # --- Induction: port -> grid (a robot takes the bin from the port and stows it) ---
+  # --- Induction: entry -> port -> grid ---
+  - id: "MOVE_ENTRY_TO_INDUCTION_01"
+    applies_to_policy: "explicit_only"
+    from: { work_center: "ENTRY" }
+    to: { reporting_point: "RP_PORT_01" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    trigger: "putaway_task"
+
+  - id: "MOVE_ENTRY_TO_INDUCTION_02"
+    applies_to_policy: "explicit_only"
+    from: { work_center: "ENTRY" }
+    to: { reporting_point: "RP_PORT_02" }
+    allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
+    trigger: "putaway_task"
+
   - id: "ROUTE_INDUCTION_TO_GRID_01"
     applies_to_policy: "explicit_only"
     from: { reporting_point: "RP_PORT_01" }
@@ -22,7 +38,7 @@ movement_rules:
     access_constraint: "lifo"
     trigger: "putaway_task"
 
-  # --- Picking: grid -> port (a robot brings the bin to the port) ---
+  # --- Picking: grid -> port -> exit ---
   - id: "ROUTE_GRID_TO_PICK_01"
     applies_to_policy: "explicit_only"
     from: { storage_type: "AUTOSTORE_GRID" }
@@ -37,4 +53,18 @@ movement_rules:
     to: { reporting_point: "RP_PORT_04" }
     allowed: true
     access_constraint: "lifo"
+    trigger: "pick_task"
+
+  - id: "MOVE_PICK_TO_EXIT_01"
+    applies_to_policy: "explicit_only"
+    from: { reporting_point: "RP_PORT_03" }
+    to: { work_center: "EXIT" }
+    allowed: true
+    trigger: "pick_task"
+
+  - id: "MOVE_PICK_TO_EXIT_02"
+    applies_to_policy: "explicit_only"
+    from: { reporting_point: "RP_PORT_04" }
+    to: { work_center: "EXIT" }
+    allowed: true
     trigger: "pick_task"

@@ -67,3 +67,17 @@ work_centers:
     step: "picking"
     workstation_template: "ws_autostore_port"
     storage_point_ref: true
+
+# System boundary of the AS cell: where induction totes come from before
+# reaching a port, and where picked goods go after leaving a port. No
+# door/lane/conveyor here on purpose (see structure decisions above) -
+# these two work_centers just give movement_rules a visible source/
+# destination outside the AS itself; what happens beyond them (goods
+# receipt, packing, shipping) is the rest of the facility, not this cell.
+  - id: "ENTRY"
+    step: "goods_receipt"
+    storage_point_ref: true
+
+  - id: "EXIT"
+    step: "goods_dispatch"
+    storage_point_ref: true
