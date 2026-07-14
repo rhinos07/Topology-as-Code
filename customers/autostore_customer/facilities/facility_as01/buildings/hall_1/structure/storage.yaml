@@ -3,32 +3,30 @@
 
 storage_types:
 
-  # --- AutoStore grid: bins stacked in columns, robots access only the ---
-  # --- top bin of a column - modeled as 'block' with stack_height =    ---
-  # --- bins per column and access_order 'lifo'. See docs/entity-       ---
-  # --- glossary.md "Rack vs. Block vs. Channel Location".              ---
+  # --- AutoStore grid: modeled as ONE opaque block location, not as     ---
+  # --- individual columns/bins. The WMS only sees "the grid" with a     ---
+  # --- total bin capacity and books bins in/out of it; which column a   ---
+  # --- bin actually sits in, and the LIFO column mechanics, are managed ---
+  # --- internally by the AutoStore controller (CTRL_ASC_01), not here.  ---
+  # --- Hence a single storage_point (1x1x1 generator), not a 20x15 grid.---
   - id: "AUTOSTORE_GRID"
     automation_level: "conveyor_automated"
     movement_policy: "explicit_only"     # every route must be explicitly defined
     access_model: "block"
-    depth: 1
-    stack_height: 16          # bins stacked per grid column
-    access_order: "lifo"      # a robot can only pick the top bin of a column
-    controller: "CTRL_ASC_01"      # references structure/wcs.yaml controller_definitions
+    controller: "CTRL_ASC_01"      # references structure/wcs.yaml controller_definitions - owns the internal column/bin detail
 
     storage_point_generator:
-      aisles: 20    # grid columns, x-direction
-      stacks: 15    # grid columns, y-direction
+      aisles: 1
+      stacks: 1
       levels: 1
-      coordinate_pattern: "AS-{aisle:02d}-{stack:02d}"
+      coordinate_pattern: "AS_GRID"    # one opaque block place for the whole grid
 
     default_attributes:
       max_weight: "30kg"        # per bin
       temperature_zone: "ambient"
-      capacity_per_point: 16    # 16 bins stacked per column
-      size: { width: "0.649m", depth: "0.449m", height: "0.31m" }
-      position: "ZONE_GRID_1"
+      capacity_per_point: 4800  # nominal total bin slots the controller reports for this grid
       allowed_load_unit_types: ["autostore_bin"]
+      position: "ZONE_GRID_1"
 
 # Functional cross-cutting grouping - orthogonal to the physical hierarchy.
 activity_areas:
