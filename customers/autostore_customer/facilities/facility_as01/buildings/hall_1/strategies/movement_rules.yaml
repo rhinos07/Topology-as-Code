@@ -98,6 +98,7 @@ movement_rules:
     from: { storage_type: "AUTOSTORE_GRID" }
     to: { reporting_point: ["RP_PORT_03", "RP_PORT_04"] }
     allowed: true
+    allowed_load_unit_types: ["autostore_bin"]
     access_constraint: "lifo"
     trigger: "pick_task"
 
