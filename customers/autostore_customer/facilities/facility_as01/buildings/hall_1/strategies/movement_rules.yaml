@@ -12,6 +12,16 @@
 # The bin's up/down trips are the robot legs (GRID <-> RP_PORT); the operator
 # legs cross between the two sides (decant WC->RP on induction, pick RP->WC
 # on picking).
+#
+# Where a rule's ports all play the identical role (one endpoint is the
+# single shared AUTOSTORE_GRID/ENTRY/EXIT, only the *other* endpoint
+# varies per port), that endpoint is a list instead of repeating an
+# otherwise-identical rule per port (see schemas/movement-rule.schema.json
+# 'idOrIds'). Where BOTH endpoints vary together per port (port 1's
+# work_center only ever pairs with port 1's reporting_point, never port
+# 2's), the rules stay split - merging them into two lists would also
+# imply the cross combinations (port 1 <-> port 2), which don't exist
+# physically.
 
 movement_rules:
 
@@ -19,48 +29,33 @@ movement_rules:
   # Mirror of the pick side: the robot provides an empty bin at the port,
   # the operator decants the inbound carton into it, the robot stows it full.
 
-  # entry -> induction workstation (inbound carton arrives as WIP)
-  - id: "MOVE_ENTRY_TO_INDUCTION_01"
+  # entry -> induction workstations (inbound carton arrives as WIP).
+  # ENTRY is shared, so both ports are one rule.
+  - id: "MOVE_ENTRY_TO_INDUCTION"
     applies_to_policy: "explicit_only"
     execution: "manual"
     from: { work_center: "ENTRY" }
-    to: { work_center: "WC_PORT_01" }
+    to: { work_center: ["WC_PORT_01", "WC_PORT_02"] }
     allowed: true
     allowed_load_unit_types: ["carton"]
     trigger: "putaway_task"
 
-  - id: "MOVE_ENTRY_TO_INDUCTION_02"
-    applies_to_policy: "explicit_only"
-    execution: "manual"
-    from: { work_center: "ENTRY" }
-    to: { work_center: "WC_PORT_02" }
-    allowed: true
-    allowed_load_unit_types: ["carton"]
-    trigger: "putaway_task"
-
-  # grid -> controller side: robot provides an empty bin at the port
-  - id: "PROVIDE_EMPTY_BIN_01"
+  # grid -> controller side: robot provides an empty bin at the port.
+  # AUTOSTORE_GRID is shared, so both ports are one rule.
+  - id: "PROVIDE_EMPTY_BIN"
     applies_to_policy: "explicit_only"
     execution: "automated"
     from: { storage_type: "AUTOSTORE_GRID" }
-    to: { reporting_point: "RP_PORT_01" }
-    allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
-    access_constraint: "lifo"
-    trigger: "bin_provision"
-
-  - id: "PROVIDE_EMPTY_BIN_02"
-    applies_to_policy: "explicit_only"
-    execution: "automated"
-    from: { storage_type: "AUTOSTORE_GRID" }
-    to: { reporting_point: "RP_PORT_02" }
+    to: { reporting_point: ["RP_PORT_01", "RP_PORT_02"] }
     allowed: true
     allowed_load_unit_types: ["autostore_bin"]
     access_constraint: "lifo"
     trigger: "bin_provision"
 
   # operator side -> controller side: decant the carton into the bin
-  # (goods change carton -> autostore_bin, hence conversion_required)
+  # (goods change carton -> autostore_bin, hence conversion_required).
+  # Kept split per port: WC_PORT_01 only ever hands off to RP_PORT_01,
+  # never to RP_PORT_02 - both endpoints vary together, not independently.
   - id: "DECANT_INTO_BIN_01"
     applies_to_policy: "explicit_only"
     execution: "manual"
@@ -81,21 +76,12 @@ movement_rules:
     conversion_required: true
     trigger: "putaway_task"
 
-  # controller side -> grid: robot stows the now-full bin
-  - id: "STOW_BIN_TO_GRID_01"
+  # controller side -> grid: robot stows the now-full bin.
+  # AUTOSTORE_GRID is shared, so both ports are one rule.
+  - id: "STOW_BIN_TO_GRID"
     applies_to_policy: "explicit_only"
     execution: "automated"
-    from: { reporting_point: "RP_PORT_01" }
-    to: { storage_type: "AUTOSTORE_GRID" }
-    allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
-    access_constraint: "lifo"
-    trigger: "putaway_task"
-
-  - id: "STOW_BIN_TO_GRID_02"
-    applies_to_policy: "explicit_only"
-    execution: "automated"
-    from: { reporting_point: "RP_PORT_02" }
+    from: { reporting_point: ["RP_PORT_01", "RP_PORT_02"] }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
     allowed_load_unit_types: ["autostore_bin"]
@@ -104,21 +90,13 @@ movement_rules:
 
   # === Picking: grid -> controller delivers bin -> operator picks into tote ===
 
-  # grid -> controller side (robot delivers the bin to the port)
-  - id: "ROUTE_GRID_TO_PICK_01"
+  # grid -> controller side (robot delivers the bin to the port).
+  # AUTOSTORE_GRID is shared, so both ports are one rule.
+  - id: "ROUTE_GRID_TO_PICK"
     applies_to_policy: "explicit_only"
     execution: "automated"
     from: { storage_type: "AUTOSTORE_GRID" }
-    to: { reporting_point: "RP_PORT_03" }
-    allowed: true
-    access_constraint: "lifo"
-    trigger: "pick_task"
-
-  - id: "ROUTE_GRID_TO_PICK_02"
-    applies_to_policy: "explicit_only"
-    execution: "automated"
-    from: { storage_type: "AUTOSTORE_GRID" }
-    to: { reporting_point: "RP_PORT_04" }
+    to: { reporting_point: ["RP_PORT_03", "RP_PORT_04"] }
     allowed: true
     access_constraint: "lifo"
     trigger: "pick_task"
@@ -126,7 +104,8 @@ movement_rules:
   # controller side -> operator side: the actual "Entnahme". The operator
   # takes the ordered goods out of the delivered autostore_bin and places
   # them into an order_tote that is booked as WIP at the pick work_center.
-  # Load unit changes bin -> order_tote, hence conversion_required.
+  # Load unit changes bin -> order_tote, hence conversion_required. Kept
+  # split per port for the same reason as DECANT_INTO_BIN_01/02 above.
   - id: "PICK_FROM_BIN_01"
     applies_to_policy: "explicit_only"
     execution: "manual"
@@ -150,41 +129,24 @@ movement_rules:
   # controller side -> grid: once the operator has taken the ordered goods,
   # the robot re-stows the bin (with its remaining stock) back into the
   # grid. The bin itself never left the reporting_point, so the return
-  # starts there, not at the work_center.
-  - id: "RETURN_BIN_TO_GRID_03"
+  # starts there, not at the work_center. AUTOSTORE_GRID is shared, so
+  # both ports are one rule.
+  - id: "RETURN_BIN_TO_GRID"
     applies_to_policy: "explicit_only"
     execution: "automated"
-    from: { reporting_point: "RP_PORT_03" }
+    from: { reporting_point: ["RP_PORT_03", "RP_PORT_04"] }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
     allowed_load_unit_types: ["autostore_bin"]
     access_constraint: "lifo"
     trigger: "bin_return"
 
-  - id: "RETURN_BIN_TO_GRID_04"
-    applies_to_policy: "explicit_only"
-    execution: "automated"
-    from: { reporting_point: "RP_PORT_04" }
-    to: { storage_type: "AUTOSTORE_GRID" }
-    allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
-    access_constraint: "lifo"
-    trigger: "bin_return"
-
-  # operator side -> exit (the filled order_tote leaves the cell)
-  - id: "MOVE_PICK_TO_EXIT_01"
+  # operator side -> exit (the filled order_tote leaves the cell).
+  # EXIT is shared, so both ports are one rule.
+  - id: "MOVE_PICK_TO_EXIT"
     applies_to_policy: "explicit_only"
     execution: "manual"
-    from: { work_center: "WC_PORT_03" }
-    to: { work_center: "EXIT" }
-    allowed: true
-    allowed_load_unit_types: ["order_tote"]
-    trigger: "pick_task"
-
-  - id: "MOVE_PICK_TO_EXIT_02"
-    applies_to_policy: "explicit_only"
-    execution: "manual"
-    from: { work_center: "WC_PORT_04" }
+    from: { work_center: ["WC_PORT_03", "WC_PORT_04"] }
     to: { work_center: "EXIT" }
     allowed: true
     allowed_load_unit_types: ["order_tote"]

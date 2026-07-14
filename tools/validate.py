@@ -134,6 +134,16 @@ def validate_movement_rules(path: Path) -> list[str]:
     return errors
 
 
+def _as_id_list(value) -> list[str]:
+    """Normalizes a movement-rule endpoint field that may be a single id
+    or a list of ids (schemas/movement-rule.schema.json 'idOrIds')."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
 def _endpoint_controller(
     endpoint: dict | None,
     storage_controllers: dict,
@@ -141,13 +151,23 @@ def _endpoint_controller(
 ) -> str | None:
     """Resolves the controller an endpoint sits under, or None. Only
     storage_type and reporting_point endpoints carry a controller;
-    work_centers/doors/activity_areas don't (they are manual/logical)."""
+    work_centers/doors/activity_areas don't (they are manual/logical).
+    If an endpoint lists several ids, they must all resolve to the same
+    controller for the endpoint to count as sitting under one - a mixed
+    group can't be treated as a single automated leg."""
     if not isinstance(endpoint, dict):
         return None
-    if endpoint.get("reporting_point"):
-        return reporting_point_controllers.get(endpoint["reporting_point"])
-    if endpoint.get("storage_type"):
-        return storage_controllers.get(endpoint["storage_type"])
+
+    rps = _as_id_list(endpoint.get("reporting_point"))
+    if rps:
+        controllers = {reporting_point_controllers.get(rp) for rp in rps}
+        return controllers.pop() if len(controllers) == 1 else None
+
+    sts = [st for st in _as_id_list(endpoint.get("storage_type")) if st != "*"]
+    if sts:
+        controllers = {storage_controllers.get(st) for st in sts}
+        return controllers.pop() if len(controllers) == 1 else None
+
     return None
 
 
@@ -395,33 +415,36 @@ def _validate_endpoint_refs(
     work_center_ids: set[str],
     reporting_point_ids: set[str],
 ) -> list[str]:
-    """Validates all cross-reference fields of a single movement-rule endpoint."""
+    """Validates all cross-reference fields of a single movement-rule endpoint.
+    Each field may be a single id or a list of ids (schemas/movement-rule.schema.json
+    'idOrIds', e.g. several ports fed by one rule) - every id is checked."""
     errors: list[str] = []
     if not isinstance(endpoint, dict):
         return errors
 
-    st = endpoint.get("storage_type")
-    if st and st != "*":
+    for st in _as_id_list(endpoint.get("storage_type")):
+        if st == "*":
+            continue
         if storage_type_ids and st not in storage_type_ids:
             errors.append(f"{path}: {context}: storage_type '{st}' not found in storage.yaml")
         else:
-            sec = endpoint.get("section")
-            if sec and st in storage_type_ids and sec not in sections.get(st, set()):
-                errors.append(
-                    f"{path}: {context}: section '{sec}' not found in storage_type '{st}'"
-                )
+            for sec in _as_id_list(endpoint.get("section")):
+                if st in storage_type_ids and sec not in sections.get(st, set()):
+                    errors.append(
+                        f"{path}: {context}: section '{sec}' not found in storage_type '{st}'"
+                    )
 
-    aa = endpoint.get("activity_area")
-    if aa and activity_area_ids and aa not in activity_area_ids:
-        errors.append(f"{path}: {context}: activity_area '{aa}' not found in storage.yaml")
+    for aa in _as_id_list(endpoint.get("activity_area")):
+        if activity_area_ids and aa not in activity_area_ids:
+            errors.append(f"{path}: {context}: activity_area '{aa}' not found in storage.yaml")
 
-    wc = endpoint.get("work_center")
-    if wc and work_center_ids and wc not in work_center_ids:
-        errors.append(f"{path}: {context}: work_center '{wc}' not found in storage.yaml")
+    for wc in _as_id_list(endpoint.get("work_center")):
+        if work_center_ids and wc not in work_center_ids:
+            errors.append(f"{path}: {context}: work_center '{wc}' not found in storage.yaml")
 
-    rp = endpoint.get("reporting_point")
-    if rp and reporting_point_ids and rp not in reporting_point_ids:
-        errors.append(f"{path}: {context}: reporting_point '{rp}' not found in wcs.yaml")
+    for rp in _as_id_list(endpoint.get("reporting_point")):
+        if reporting_point_ids and rp not in reporting_point_ids:
+            errors.append(f"{path}: {context}: reporting_point '{rp}' not found in wcs.yaml")
 
     return errors
 

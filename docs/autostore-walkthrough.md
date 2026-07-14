@@ -132,13 +132,14 @@ is a mirror image.
 
 ### Induction (decant)
 
-An inbound carton is repacked into an AutoStore bin:
+An inbound carton is repacked into an AutoStore bin (shown for port 1 -
+port 2 is the identical pattern):
 
 ```
-ENTRY ────────────────────► WC_PORT_01      MOVE_ENTRY_TO_INDUCTION_01
+ENTRY ────────────────────► WC_PORT_01      MOVE_ENTRY_TO_INDUCTION
   (carton, manual)                          carton arrives as WIP at the port
 
-AUTOSTORE_GRID ────────────► RP_PORT_01      PROVIDE_EMPTY_BIN_01
+AUTOSTORE_GRID ────────────► RP_PORT_01      PROVIDE_EMPTY_BIN
   (autostore_bin, automated)                 robot delivers an EMPTY bin
 
 WC_PORT_01 ─────────────────► RP_PORT_01     DECANT_INTO_BIN_01
@@ -146,7 +147,7 @@ WC_PORT_01 ─────────────────► RP_PORT_01    
    conversion_required)                      into the bin - THIS is the
                                               "Einlagerung" moment
 
-RP_PORT_01 ─────────────────► AUTOSTORE_GRID STOW_BIN_TO_GRID_01
+RP_PORT_01 ─────────────────► AUTOSTORE_GRID STOW_BIN_TO_GRID
   (autostore_bin, automated)                 robot stows the now-full bin
 ```
 
@@ -162,8 +163,10 @@ Two things worth noting:
 
 ### Picking
 
+Shown for port 3 - port 4 is the identical pattern:
+
 ```
-AUTOSTORE_GRID ────────────► RP_PORT_03      ROUTE_GRID_TO_PICK_01
+AUTOSTORE_GRID ────────────► RP_PORT_03      ROUTE_GRID_TO_PICK
   (autostore_bin, automated)                 robot delivers the FULL bin
 
 RP_PORT_03 ─────────────────► WC_PORT_03     PICK_FROM_BIN_01
@@ -172,11 +175,11 @@ RP_PORT_03 ─────────────────► WC_PORT_03    
                                               order_tote - THIS is the
                                               "Entnahme" moment
 
-RP_PORT_03 ─────────────────► AUTOSTORE_GRID RETURN_BIN_TO_GRID_03
+RP_PORT_03 ─────────────────► AUTOSTORE_GRID RETURN_BIN_TO_GRID
   (autostore_bin, automated)                 robot re-stows the bin (with
                                               its remaining stock)
 
-WC_PORT_03 ─────────────────► EXIT           MOVE_PICK_TO_EXIT_01
+WC_PORT_03 ─────────────────► EXIT           MOVE_PICK_TO_EXIT
   (order_tote, manual)                       filled tote leaves the cell
 ```
 
@@ -184,8 +187,36 @@ Note the bin and the goods **separate** here: the bin goes back into the
 grid (`RP_PORT_03 → AUTOSTORE_GRID`), while the picked goods continue on
 as an `order_tote` (`WC_PORT_03 → EXIT`) - two different load unit types
 moving in two different directions from the same handoff point. The
-`RETURN_BIN_TO_GRID_03` leg starts at `RP_PORT_03`, not `WC_PORT_03`,
+`RETURN_BIN_TO_GRID` leg starts at `RP_PORT_03`, not `WC_PORT_03`,
 because the bin itself never left the reporting_point side.
+
+### Why some legs are one rule for both ports, and some aren't
+
+Notice `PROVIDE_EMPTY_BIN`/`STOW_BIN_TO_GRID`/`ROUTE_GRID_TO_PICK`/
+`RETURN_BIN_TO_GRID`/`MOVE_ENTRY_TO_INDUCTION`/`MOVE_PICK_TO_EXIT` above
+have no `_01`/`_02` suffix - each is **one** `movement_rule` covering
+both ports, via a list instead of a single id:
+
+```yaml
+- id: "PROVIDE_EMPTY_BIN"
+  from: { storage_type: "AUTOSTORE_GRID" }
+  to: { reporting_point: ["RP_PORT_01", "RP_PORT_02"] }
+  ...
+```
+
+This works because `AUTOSTORE_GRID` is the same physical grid regardless
+of which port receives the bin - only the `to` side varies, so it can be
+a list (`schemas/movement-rule.schema.json`'s `idOrIds`).
+
+`DECANT_INTO_BIN_01`/`_02` and `PICK_FROM_BIN_01`/`_02` stay split,
+deliberately. There, **both** endpoints vary together: port 1's
+`WC_PORT_01` only ever hands off to port 1's `RP_PORT_01`, never to
+`RP_PORT_02`. Turning both sides into lists (`from: [WC_PORT_01,
+WC_PORT_02]`, `to: [RP_PORT_01, RP_PORT_02]`) wouldn't just be shorter -
+it would also silently permit `WC_PORT_01 → RP_PORT_02`, a cross-port
+connection that doesn't exist physically. The rule of thumb: a list is
+safe exactly when the *other* endpoint is a single, shared id - once
+both sides vary in lockstep, keep them as separate rules.
 
 ## 5. `execution`: making manual vs. automated explicit - and checked
 
