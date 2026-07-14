@@ -46,13 +46,20 @@
       "properties": {
         "type": { "type": "string" },
         "id": { "type": "string" },
-        "storage_type": { "type": "string" },
-        "section": { "type": "string" },
-        "activity_area": { "type": "string" },
-        "work_center": { "type": "string" },
-        "reporting_point": { "type": "string" }
+        "storage_type": { "$ref": "#/definitions/idOrIds" },
+        "section": { "$ref": "#/definitions/idOrIds" },
+        "activity_area": { "$ref": "#/definitions/idOrIds" },
+        "work_center": { "$ref": "#/definitions/idOrIds" },
+        "reporting_point": { "$ref": "#/definitions/idOrIds" }
       },
       "additionalProperties": false
+    },
+    "idOrIds": {
+      "description": "A single id, or a list of ids that all play the identical role in this rule (e.g. several ports fed by the same movement). Use a list purely to avoid repeating an otherwise-identical rule per id - if the ids ever need different allowed_load_unit_types, trigger, execution, etc., split them back into separate rules instead.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 2 }
+      ]
     }
   }
 }
