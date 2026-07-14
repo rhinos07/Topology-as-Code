@@ -219,6 +219,145 @@ def collect_element_ids() -> dict[str, set[str]]:
     return ids
 
 
+def parse_measure(s: str) -> float | None:
+    """Parses a measurement string like '0.8m' or '1000kg' into a float.
+    Returns None if the string is absent or cannot be parsed."""
+    if not isinstance(s, str):
+        return None
+    s = s.strip()
+    for suffix in ("m", "kg"):
+        if s.endswith(suffix):
+            try:
+                return float(s[: -len(suffix)])
+            except ValueError:
+                return None
+    return None
+
+
+def _dims_fit(lut_dims: dict, st_size: dict) -> bool:
+    """Returns True if the load unit fits inside the storage point's envelope.
+
+    A single 90° horizontal rotation is allowed (swapping width and depth) since
+    a load unit can be placed either way in a bay.  Height is always compared
+    directly – load units cannot be tilted on their side.
+
+    Dimensions that are missing from either record are skipped so that partial
+    data does not trigger false positives.
+    """
+    lut_w = parse_measure(lut_dims.get("width", ""))
+    lut_d = parse_measure(lut_dims.get("depth", ""))
+    lut_h = parse_measure(lut_dims.get("height", ""))
+    st_w = parse_measure(st_size.get("width", ""))
+    st_d = parse_measure(st_size.get("depth", ""))
+    st_h = parse_measure(st_size.get("height", ""))
+
+    if lut_h is not None and st_h is not None and lut_h > st_h:
+        return False
+
+    if lut_w is not None and lut_d is not None and st_w is not None and st_d is not None:
+        fits_straight = lut_w <= st_w and lut_d <= st_d
+        fits_rotated = lut_d <= st_w and lut_w <= st_d
+        if not (fits_straight or fits_rotated):
+            return False
+
+    return True
+
+
+def check_load_unit_physical_compatibility(path: Path) -> list[str]:
+    """Checks that a storage_type's size and max_weight are physically compatible
+    with each of its allowed_load_unit_types:
+
+    - Dimensional fit: load unit dimensions (w/d/h) must fit within the storage
+      point's declared size.  A 90° horizontal rotation is allowed; tilting is not.
+    - Weight capacity: a load unit's max_weight must not exceed the storage point's
+      max_weight (a fully-loaded unit must fit within the structural limit).
+
+    Checks are applied to:
+    - default_attributes (covers all generated storage_points unless overridden)
+    - exceptions and storage_points that declare their own allowed_load_unit_types,
+      using that entry's own size/max_weight if set, otherwise inheriting from
+      default_attributes.
+    """
+    errors: list[str] = []
+    data = load_yaml(path)
+    if not data:
+        return errors
+
+    lut_catalog_path = ELEMENTS_DIR / "load_unit_types.yaml"
+    if not lut_catalog_path.exists():
+        return errors
+    lut_catalog = load_yaml(lut_catalog_path)
+    if not lut_catalog:
+        return errors
+    lut_by_id: dict[str, dict] = {
+        lut["id"]: lut
+        for lut in lut_catalog.get("load_unit_types", [])
+        if lut.get("id")
+    }
+
+    for st in data.get("storage_types", []):
+        st_id = st.get("id", "?")
+        da = st.get("default_attributes") or {}
+        da_size = da.get("size")
+        da_max_weight = da.get("max_weight")
+
+        def _check(
+            lut_ids: list[str],
+            size: dict | None,
+            max_weight_str: str | None,
+            context: str,
+        ) -> list[str]:
+            errs: list[str] = []
+            st_mw = parse_measure(max_weight_str) if max_weight_str else None
+            for lut_id in lut_ids:
+                lut = lut_by_id.get(lut_id)
+                if not lut:
+                    continue  # referential integrity is checked separately
+                lut_dims = lut.get("dimensions")
+                if size and lut_dims and not _dims_fit(lut_dims, size):
+                    errs.append(
+                        f"{path}: storage_type '{st_id}': {context}: "
+                        f"load_unit_type '{lut_id}' dimensions {lut_dims} "
+                        f"do not fit storage size {size}"
+                    )
+                lut_mw = parse_measure(lut.get("max_weight", ""))
+                if st_mw is not None and lut_mw is not None and lut_mw > st_mw:
+                    errs.append(
+                        f"{path}: storage_type '{st_id}': {context}: "
+                        f"load_unit_type '{lut_id}' max_weight ({lut.get('max_weight')}) "
+                        f"exceeds storage max_weight ({max_weight_str})"
+                    )
+            return errs
+
+        da_luts = da.get("allowed_load_unit_types", [])
+        if da_luts:
+            errors += _check(da_luts, da_size, da_max_weight, "default_attributes")
+
+        for exc in st.get("exceptions", []):
+            exc_luts = exc.get("allowed_load_unit_types")
+            if exc_luts is not None:
+                coord = exc.get("coordinate", "?")
+                errors += _check(
+                    exc_luts,
+                    exc.get("size") or da_size,
+                    exc.get("max_weight") or da_max_weight,
+                    f"exception at '{coord}'",
+                )
+
+        for sp in st.get("storage_points", []):
+            sp_luts = sp.get("allowed_load_unit_types")
+            if sp_luts is not None:
+                coord = sp.get("coordinate", "?")
+                errors += _check(
+                    sp_luts,
+                    sp.get("size") or da_size,
+                    sp.get("max_weight") or da_max_weight,
+                    f"storage_point '{coord}'",
+                )
+
+    return errors
+
+
 def check_storage_refs(
     path: Path,
     ctrl_ids: set[str],
@@ -653,6 +792,7 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
         all_errors += check_storage_refs(imports["storage.yaml"], ctrl_ids, element_ids)
         all_errors += check_door_staging_refs(imports["storage.yaml"])
         all_errors += check_activity_area_refs(imports["storage.yaml"])
+        all_errors += check_load_unit_physical_compatibility(imports["storage.yaml"])
 
     if "wcs.yaml" in imports:
         all_errors += check_wcs_refs(imports["wcs.yaml"], element_ids)

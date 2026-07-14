@@ -152,9 +152,13 @@ missing. Known gaps:
    **Resolved** by `tools/compile.py` — see "Next Steps" above. Note this
    only expands templates into concrete points; it does not validate them
    against the JSON schemas (run `validate.py` first).
-5. **No physical compatibility check** between a `storage_type`'s
+5. ~~**No physical compatibility check** between a `storage_type`'s
    `size`/`max_weight` and its referenced `allowed_load_unit_types` (e.g.
-   whether a euro pallet actually fits a 0.4m-wide bay).
+   whether a euro pallet actually fits a 0.4m-wide bay).~~
+   **Resolved** — `check_load_unit_physical_compatibility()` in `validate.py`
+   now checks that each allowed load unit type's dimensions fit within the
+   storage size (with 90° horizontal rotation allowed) and that the load
+   unit's `max_weight` does not exceed the storage point's structural limit.
 6. **Minor:** `jsonschema.RefResolver` is deprecated (warning on every
    run, still functional). `validate_file()`'s `root_key` parameter is
    currently unused dead code.
