@@ -9,6 +9,7 @@ on:
       - "elements/**"
       - "schemas/**"
       - "tools/**"
+      - ".github/workflows/validate.yaml"
   push:
     branches: [main]
 
