@@ -101,10 +101,10 @@ python tools/validate.py customers/example_customer/company.yaml
 
 # Expand storage_point_generator/layout_variants into concrete storage_points
 # for one specific building
-python tools/compile.py customers/example_customer/facilities/facility_pa11/buildings/hall_3/warehouse.yaml --output build/storage_points.yaml
+python tools/compile.py customers/example_customer/facilities/facility_pa11/buildings/hall_3/warehouse.yaml --output build/warehouse-artifact.yaml
 
 # Compare the last applied snapshot with the newly compiled desired snapshot
-python tools/plan.py build/applied.yaml build/storage_points.yaml --output build/plan.yaml
+python tools/plan.py build/applied.yaml build/warehouse-artifact.yaml --output build/plan.yaml
 ```
 
 ## Import Lifecycle
@@ -114,12 +114,17 @@ Every building-level `warehouse.yaml` owns a stable scope through
 It is a complete desired snapshot for that scope; unmanaged WMS objects are
 always preserved.
 
-`compile.py` writes a deterministic artifact. Its `artifact.content_hash`
-depends on the target, dataset ID and sorted desired entities, but not on the
-human revision. Re-importing the same hash is therefore idempotent.
+`compile.py` writes a deterministic artifact containing every building-owned
+desired-state entity: warehouse, storage types and points, sections, activity
+areas, work centers, doors, controllers, reporting points, equipment, telegram
+actions, lanes and conveyor topology, movement rules and replenishment
+strategies. Its `artifact.content_hash` depends on the target, dataset ID,
+sorted entities and extensions, but not on the human revision. Re-importing
+the same hash is therefore idempotent.
 
-`plan.py` is read-only. It emits creates, field-level updates, deactivations
-and conflicts. Missing desired objects are never physically deleted:
+`plan.py` is read-only and diffs all entity types generically. It emits creates,
+field-level updates, deactivations and conflicts. Missing desired objects are
+never physically deleted:
 `removal_policy: deactivate` plans a deactivation, while `reject` reports a
 conflict. `expected_current_hash` enables an eventual WMS adapter to reject a
 stale plan.

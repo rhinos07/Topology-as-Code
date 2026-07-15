@@ -32,8 +32,8 @@
                 "enum": [
                   "storage_point", "storage_type", "section", "activity_area",
                   "work_center", "door", "reporting_point", "controller",
-                  "equipment", "lane", "conveyor_segment", "movement_rule",
-                  "replenishment_strategy"
+                  "equipment", "telegram_action", "lane", "conveyor_segment",
+                  "conveyor_main", "movement_rule", "replenishment_strategy"
                 ]
               },
               "entity_id": { "type": "string", "minLength": 1 },

@@ -21,6 +21,13 @@ OPERATIONAL_FIELDS = {
     "max_weight", "physical_bay", "position", "size", "storage_type",
 }
 
+OPERATIONAL_ENTITY_TYPES = {
+    "activity_area", "controller", "conveyor_main", "conveyor_segment",
+    "door", "equipment", "lane", "movement_rule", "replenishment_strategy",
+    "reporting_point", "section", "storage_type", "telegram_action",
+    "work_center",
+}
+
 
 def load_artifact(path: Path) -> dict:
     with open(path, "r", encoding="utf-8") as file:
@@ -29,17 +36,20 @@ def load_artifact(path: Path) -> dict:
         raise ValueError(f"{path}: artifact must be a YAML object")
     required = {
         "api_version", "metadata", "target", "import_policy",
-        "artifact", "storage_points", "extensions",
+        "artifact", "entities", "extensions",
     }
     missing = sorted(required - data.keys())
     if missing:
         raise ValueError(f"{path}: missing fields: {', '.join(missing)}")
-    sorted_points = sorted(data["storage_points"], key=lambda point: point.get("id", ""))
+    normalized_entities = {
+        entity_type: sorted(items, key=lambda item: item.get("id", ""))
+        for entity_type, items in sorted(data["entities"].items())
+    }
     desired_state = {
         "api_version": data["api_version"],
         "dataset_id": data["metadata"].get("dataset_id"),
         "target": data["target"],
-        "storage_points": sorted_points,
+        "entities": normalized_entities,
         "extensions": data["extensions"],
     }
     canonical = json.dumps(
@@ -51,8 +61,11 @@ def load_artifact(path: Path) -> dict:
         raise ValueError(
             f"{path}: content_hash mismatch: declared={declared_hash!r}, actual={actual_hash!r}"
         )
-    if data["artifact"].get("entity_count") != len(data["storage_points"]):
-        raise ValueError(f"{path}: artifact.entity_count does not match storage_points")
+    actual_counts = {
+        entity_type: len(items) for entity_type, items in normalized_entities.items()
+    }
+    if data["artifact"].get("entity_counts") != actual_counts:
+        raise ValueError(f"{path}: artifact.entity_counts does not match entities")
     extension_count = sum(
         len(item.get("extension", {}).get("records", []))
         for item in data["extensions"]
@@ -62,15 +75,17 @@ def load_artifact(path: Path) -> dict:
     return data
 
 
-def index_points(artifact: dict, path: Path) -> dict[str, dict]:
-    result: dict[str, dict] = {}
-    for point in artifact["storage_points"]:
-        point_id = point.get("id")
-        if not point_id:
-            raise ValueError(f"{path}: storage_point without id")
-        if point_id in result:
-            raise ValueError(f"{path}: duplicate storage_point id '{point_id}'")
-        result[point_id] = point
+def index_entities(artifact: dict, path: Path) -> dict[tuple[str, str], dict]:
+    result: dict[tuple[str, str], dict] = {}
+    for entity_type, items in artifact["entities"].items():
+        for entity in items:
+            entity_id = entity.get("id")
+            if not entity_id:
+                raise ValueError(f"{path}: {entity_type} without id")
+            key = (entity_type, entity_id)
+            if key in result:
+                raise ValueError(f"{path}: duplicate {entity_type} id '{entity_id}'")
+            result[key] = entity
     return result
 
 
@@ -109,37 +124,48 @@ def build_plan(current: dict, desired: dict, current_path: Path, desired_path: P
     if current["target"] != desired["target"]:
         raise ValueError("target mismatch: artifacts must address the same WMS scope")
 
-    current_points = index_points(current, current_path)
-    desired_points = index_points(desired, desired_path)
+    current_entities = index_entities(current, current_path)
+    desired_entities = index_entities(desired, desired_path)
     creates, updates, deactivations, conflicts = [], [], [], []
     extension_creates, extension_updates, extension_removals = [], [], []
 
-    for point_id in sorted(desired_points.keys() - current_points.keys()):
+    for key in sorted(desired_entities.keys() - current_entities.keys()):
+        entity_type, entity_id = key
         creates.append({
-            "entity": "storage_point", "id": point_id,
-            "classification": "safe", "desired": desired_points[point_id],
+            "entity": entity_type, "id": entity_id,
+            "classification": (
+                "operational" if entity_type in OPERATIONAL_ENTITY_TYPES else "safe"
+            ),
+            "desired": desired_entities[key],
         })
 
-    for point_id in sorted(desired_points.keys() & current_points.keys()):
-        changes = field_changes(current_points[point_id], desired_points[point_id])
+    for key in sorted(desired_entities.keys() & current_entities.keys()):
+        entity_type, entity_id = key
+        changes = field_changes(current_entities[key], desired_entities[key])
         if changes:
-            classification = "operational" if OPERATIONAL_FIELDS.intersection(changes) else "safe"
+            classification = (
+                "operational"
+                if entity_type in OPERATIONAL_ENTITY_TYPES
+                or OPERATIONAL_FIELDS.intersection(changes)
+                else "safe"
+            )
             updates.append({
-                "entity": "storage_point", "id": point_id,
+                "entity": entity_type, "id": entity_id,
                 "classification": classification, "changes": changes,
             })
 
     removal_policy = desired["import_policy"]["removal_policy"]
-    for point_id in sorted(current_points.keys() - desired_points.keys()):
+    for key in sorted(current_entities.keys() - desired_entities.keys()):
+        entity_type, entity_id = key
         entry = {
-            "entity": "storage_point", "id": point_id,
+            "entity": entity_type, "id": entity_id,
             "classification": "destructive",
             "reason": "Object is absent from desired managed snapshot",
         }
         if removal_policy == "deactivate":
             deactivations.append(entry)
         else:
-            conflicts.append({**entry, "reason": f"Removal rejected by policy for '{point_id}'"})
+            conflicts.append({**entry, "reason": f"Removal rejected by policy for '{entity_type}/{entity_id}'"})
 
     current_extensions = index_extension_records(current)
     desired_extensions = index_extension_records(desired)
@@ -171,7 +197,7 @@ def build_plan(current: dict, desired: dict, current_path: Path, desired_path: P
                 "reason": "Extension record removal rejected by import policy",
             })
 
-    unchanged = len(current_points.keys() & desired_points.keys()) - len(updates)
+    unchanged = len(current_entities.keys() & desired_entities.keys()) - len(updates)
     return {
         "api_version": desired["api_version"],
         "dataset_id": desired_dataset,

@@ -285,6 +285,7 @@ def validate_wcs(path: Path) -> list[str]:
         ("controller_definitions", "controller_definition"),
         ("reporting_points", "reporting_point"),
         ("equipment", "equipment"),
+        ("telegram_actions", "telegram_action"),
     ):
         errors += duplicate_id_errors(data.get(key, []), context, path)
     for controller in data.get("controller_definitions", []):
@@ -1008,10 +1009,14 @@ def build_extension_entity_index(
             item["id"] for item in (wcs_data or {}).get("controller_definitions", []) if item.get("id")
         },
         "equipment": {item["id"] for item in (wcs_data or {}).get("equipment", []) if item.get("id")},
+        "telegram_action": {
+            item["id"] for item in (wcs_data or {}).get("telegram_actions", []) if item.get("id")
+        },
         "lane": {item["id"] for item in (lanes_data or {}).get("lanes", []) if item.get("id")},
         "conveyor_segment": {
             item["id"] for item in (lanes_data or {}).get("conveyor_segments", []) if item.get("id")
         },
+        "conveyor_main": {"CONVEYOR_MAIN"} if (lanes_data or {}).get("conveyor_main") else set(),
         "movement_rule": {
             item["id"] for item in (movement_data or {}).get("movement_rules", []) if item.get("id")
         },

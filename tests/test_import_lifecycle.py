@@ -27,7 +27,28 @@ class ArtifactTests(unittest.TestCase):
         first = build_import_artifact(warehouse_data("1"), points)
         second = build_import_artifact(warehouse_data("2"), list(reversed(points)))
         self.assertEqual(first["artifact"]["content_hash"], second["artifact"]["content_hash"])
-        self.assertEqual([point["id"] for point in first["storage_points"]], ["A", "B"])
+        self.assertEqual(
+            [point["id"] for point in first["entities"]["storage_point"]],
+            ["A", "B"],
+        )
+
+    def test_non_storage_entity_changes_artifact_hash(self):
+        current_entities = {
+            "storage_point": [{"id": "A"}],
+            "movement_rule": [{"id": "R", "allowed": True}],
+        }
+        desired_entities = {
+            "storage_point": [{"id": "A"}],
+            "movement_rule": [{"id": "R", "allowed": False, "reason": "closed"}],
+        }
+        current = build_import_artifact(warehouse_data(), [{"id": "A"}], entities=current_entities)
+        desired = build_import_artifact(warehouse_data("2"), [{"id": "A"}], entities=desired_entities)
+        self.assertNotEqual(
+            current["artifact"]["content_hash"], desired["artifact"]["content_hash"]
+        )
+        plan = build_plan(current, desired, Path("current.yaml"), Path("desired.yaml"))
+        self.assertEqual(plan["summary"]["update"], 1)
+        self.assertEqual(plan["updates"][0]["entity"], "movement_rule")
 
 
 class PlanTests(unittest.TestCase):
@@ -63,7 +84,7 @@ class PlanTests(unittest.TestCase):
         import yaml
 
         artifact = build_import_artifact(warehouse_data(), [{"id": "A"}])
-        artifact["storage_points"][0]["max_weight"] = "999kg"
+        artifact["entities"]["storage_point"][0]["max_weight"] = "999kg"
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "tampered.yaml"
             path.write_text(yaml.safe_dump(artifact), encoding="utf-8")

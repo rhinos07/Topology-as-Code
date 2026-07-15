@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """
-Compiles a building's storage definitions into concrete storage_point
-instances. Sources, all reached via the warehouse.yaml imports:
+Compiles a building's complete desired state into normalized, typed entities.
+Sources, all reached via the warehouse.yaml imports:
   - storage.yaml: storage_point_generator / layout_variants / explicit
     storage_points on each storage_type, plus work_centers flagged
     storage_point_ref: true
   - wcs.yaml: reporting_points flagged storage_point_ref: true
 
-This is the "terraform apply"-equivalent expansion step: the WMS should
-only ever see concrete storage_points, never the generator/variant
-template syntax. Run tools/validate.py first - this script does not
-re-validate schema conformance, only expands definitions that are
-already assumed to be schema-valid.
+This is the deterministic artifact step before planning/apply: the WMS sees
+concrete storage_points plus all building-owned topology, controller and
+strategy entities, never generator/variant template syntax. Run
+tools/validate.py first; this script assumes schema-valid input.
 
 Usage:
     python tools/compile.py customers/example_customer/warehouse.yaml
-    python tools/compile.py customers/example_customer/warehouse.yaml --output build/storage_points.yaml
+    python tools/compile.py customers/example_customer/warehouse.yaml --output build/warehouse-artifact.yaml
 """
 
 import argparse
@@ -223,19 +222,95 @@ def normalize_extensions(extensions: list[dict] | None) -> list[dict]:
     return sorted(normalized, key=lambda data: data["extension"]["namespace"])
 
 
+STORAGE_TYPE_SOURCE_FIELDS = {
+    "storage_point_generator", "layout_variants", "layout_grid",
+    "storage_points", "default_attributes", "exceptions", "sections",
+}
+
+
+def compile_entity_collections(
+    warehouse_data: dict,
+    storage_data: dict,
+    wcs_data: dict | None,
+    lanes_data: dict | None,
+    movement_data: dict | None,
+    replenishment_data: dict | None,
+    points: list[dict],
+) -> dict[str, list[dict]]:
+    """Normalize every building-owned desired-state entity for WMS import."""
+    warehouse = dict(warehouse_data["warehouse"])
+    warehouse.pop("imports", None)
+    warehouse.pop("extension_imports", None)
+    warehouse["id"] = warehouse_data["target"]["building"]
+
+    storage_types = []
+    sections = []
+    for source in storage_data.get("storage_types", []):
+        storage_types.append({
+            key: value for key, value in source.items()
+            if key not in STORAGE_TYPE_SOURCE_FIELDS
+        })
+        for section in source.get("sections", []):
+            sections.append({
+                **section,
+                "id": f"{source['id']}.{section['id']}",
+                "storage_type": source["id"],
+                "local_id": section["id"],
+            })
+
+    conveyor_main = []
+    if (lanes_data or {}).get("conveyor_main"):
+        conveyor_main.append({
+            "id": "CONVEYOR_MAIN",
+            **lanes_data["conveyor_main"],
+        })
+
+    entities = {
+        "warehouse": [warehouse],
+        "storage_type": storage_types,
+        "storage_point": list(points),
+        "section": sections,
+        "activity_area": list(storage_data.get("activity_areas", [])),
+        "work_center": list(storage_data.get("work_centers", [])),
+        "door": list(storage_data.get("doors", [])),
+        "controller": list((wcs_data or {}).get("controller_definitions", [])),
+        "reporting_point": list((wcs_data or {}).get("reporting_points", [])),
+        "equipment": list((wcs_data or {}).get("equipment", [])),
+        "telegram_action": list((wcs_data or {}).get("telegram_actions", [])),
+        "lane": list((lanes_data or {}).get("lanes", [])),
+        "conveyor_segment": list((lanes_data or {}).get("conveyor_segments", [])),
+        "conveyor_main": conveyor_main,
+        "movement_rule": list((movement_data or {}).get("movement_rules", [])),
+        "replenishment_strategy": list(
+            (replenishment_data or {}).get("replenishment_strategies", [])
+        ),
+    }
+    return {
+        entity_type: sorted(items, key=lambda item: item["id"])
+        for entity_type, items in sorted(entities.items())
+    }
+
+
 def build_import_artifact(
     warehouse_data: dict,
     points: list[dict],
     extensions: list[dict] | None = None,
+    entities: dict[str, list[dict]] | None = None,
 ) -> dict:
     """Build a deterministic, WMS-neutral reconciliation artifact."""
-    sorted_points = sorted(points, key=lambda point: point["id"])
+    normalized_entities = entities or {
+        "storage_point": sorted(points, key=lambda point: point["id"])
+    }
+    normalized_entities = {
+        entity_type: sorted(items, key=lambda item: item["id"])
+        for entity_type, items in sorted(normalized_entities.items())
+    }
     normalized_extensions = normalize_extensions(extensions)
     desired_state = {
         "api_version": warehouse_data["api_version"],
         "dataset_id": warehouse_data["metadata"]["dataset_id"],
         "target": warehouse_data["target"],
-        "storage_points": sorted_points,
+        "entities": normalized_entities,
         "extensions": normalized_extensions,
     }
     canonical = json.dumps(
@@ -249,13 +324,16 @@ def build_import_artifact(
         "import_policy": dict(warehouse_data["import_policy"]),
         "artifact": {
             "content_hash": content_hash,
-            "entity_count": len(sorted_points),
+            "entity_counts": {
+                entity_type: len(items)
+                for entity_type, items in normalized_entities.items()
+            },
             "extension_record_count": sum(
                 len(data["extension"].get("records", []))
                 for data in normalized_extensions
             ),
         },
-        "storage_points": sorted_points,
+        "entities": normalized_entities,
         "extensions": normalized_extensions,
     }
 
@@ -269,8 +347,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("warehouse_file", type=Path)
     parser.add_argument(
         "--output", type=Path, default=None,
-        help="Write the compiled storage_points to this YAML file. "
-             "Without this, only a per-group summary is printed.",
+        help="Write the complete desired-state artifact to this YAML file. "
+             "Without this, only a storage-point summary is printed.",
     )
     args = parser.parse_args(argv[1:])
 
@@ -287,6 +365,15 @@ def main(argv: list[str]) -> int:
 
     wcs_file = next((p for p in imports if p.name == "wcs.yaml"), None)
     wcs_data = load_yaml(wcs_file) if wcs_file and wcs_file.exists() else None
+    lanes_file = next((p for p in imports if p.name == "lanes.yaml"), None)
+    lanes_data = load_yaml(lanes_file) if lanes_file and lanes_file.exists() else None
+    movement_file = next((p for p in imports if p.name == "movement_rules.yaml"), None)
+    movement_data = load_yaml(movement_file) if movement_file and movement_file.exists() else None
+    replenishment_file = next((p for p in imports if p.name == "replenishment.yaml"), None)
+    replenishment_data = (
+        load_yaml(replenishment_file)
+        if replenishment_file and replenishment_file.exists() else None
+    )
 
     warehouse_data = load_yaml(warehouse_file)
     storage_data = load_yaml(storage_file)
@@ -320,14 +407,21 @@ def main(argv: list[str]) -> int:
         return 1
 
     if args.output:
-        artifact = build_import_artifact(warehouse_data, points, extension_data)
+        entities = compile_entity_collections(
+            warehouse_data, storage_data, wcs_data, lanes_data,
+            movement_data, replenishment_data, points,
+        )
+        artifact = build_import_artifact(
+            warehouse_data, points, extension_data, entities
+        )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with open(args.output, "w", encoding="utf-8") as f:
             yaml.safe_dump(artifact, f, sort_keys=False, allow_unicode=True)
         print(f"  content_hash: {artifact['artifact']['content_hash']}")
-        print(f"\n✅ Wrote {len(points)} storage_points to {args.output}")
+        total_entities = sum(artifact["artifact"]["entity_counts"].values())
+        print(f"\n✅ Wrote {total_entities} desired-state entities to {args.output}")
     else:
-        print("\nPass --output <file> to write the full expanded storage_point list.")
+        print("\nPass --output <file> to write the complete desired-state artifact.")
 
     return 0
 

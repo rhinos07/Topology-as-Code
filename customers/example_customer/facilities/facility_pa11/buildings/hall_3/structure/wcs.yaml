@@ -42,7 +42,8 @@ reporting_points:
     capacity: 2
 
 telegram_actions:
-  - telegram_type: "XX"
+  - id: "TG_CONFIRM_AND_ADVANCE"
+    telegram_type: "XX"
     action: "confirm_and_advance"
     from_point: "RP_C01"
     to_point: "RP_C02"

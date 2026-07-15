@@ -65,8 +65,9 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["telegram_type", "action"],
+        "required": ["id", "telegram_type", "action"],
         "properties": {
+          "id": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
           "telegram_type": { "type": "string" },
           "action": { "type": "string" },
           "from_point": { "type": "string" },
