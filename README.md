@@ -102,7 +102,32 @@ python tools/validate.py customers/example_customer/company.yaml
 # Expand storage_point_generator/layout_variants into concrete storage_points
 # for one specific building
 python tools/compile.py customers/example_customer/facilities/facility_pa11/buildings/hall_3/warehouse.yaml --output build/storage_points.yaml
+
+# Compare the last applied snapshot with the newly compiled desired snapshot
+python tools/plan.py build/applied.yaml build/storage_points.yaml --output build/plan.yaml
 ```
+
+## Import Lifecycle
+
+Every building-level `warehouse.yaml` owns a stable scope through
+`metadata.dataset_id` and declares its WMS target and reconciliation policy.
+It is a complete desired snapshot for that scope; unmanaged WMS objects are
+always preserved.
+
+`compile.py` writes a deterministic artifact. Its `artifact.content_hash`
+depends on the target, dataset ID and sorted desired entities, but not on the
+human revision. Re-importing the same hash is therefore idempotent.
+
+`plan.py` is read-only. It emits creates, field-level updates, deactivations
+and conflicts. Missing desired objects are never physically deleted:
+`removal_policy: deactivate` plans a deactivation, while `reject` reports a
+conflict. `expected_current_hash` enables an eventual WMS adapter to reject a
+stale plan.
+
+Renames are intentionally not inferred. Changing an ID appears as a
+destructive deactivation plus a create and requires review. Inventory, open
+task and reference checks must be performed by the target-specific WMS adapter
+before applying a deactivation.
 
 ## Examples
 
@@ -140,7 +165,7 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 ## Next Steps for This Repo
 
 - [ ] Optional: import mapper for AutomationML (CAEX) as an alternative source
-- [ ] Map `compile.py` output to actual WMS/runtime entities (e.g. a
+- [ ] Map the deterministic compile/plan output to actual WMS/runtime entities (e.g. a
       Linq2db model) - currently it only produces an intermediate YAML,
       not a WMS-specific import format
 

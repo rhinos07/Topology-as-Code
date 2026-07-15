@@ -4,8 +4,12 @@
   "title": "Warehouse (Building-Level)",
   "description": "A single building within a facility (see facility.schema.json). Part of the Company -> Facility -> Building hierarchy.",
   "type": "object",
-  "required": ["warehouse"],
+  "required": ["api_version", "metadata", "target", "import_policy", "warehouse"],
   "properties": {
+    "api_version": { "$ref": "import-manifest.schema.json#/properties/api_version" },
+    "metadata": { "$ref": "import-manifest.schema.json#/properties/metadata" },
+    "target": { "$ref": "import-manifest.schema.json#/properties/target" },
+    "import_policy": { "$ref": "import-manifest.schema.json#/properties/import_policy" },
     "warehouse": {
       "type": "object",
       "required": ["name", "imports"],
@@ -35,5 +39,6 @@
         }
       }
     }
-  }
+  },
+  "additionalProperties": false
 }

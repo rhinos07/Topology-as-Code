@@ -19,6 +19,8 @@ Usage:
 """
 
 import argparse
+import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -206,6 +208,32 @@ def find_duplicate_ids(points: list[dict]) -> list[str]:
     return errors
 
 
+def build_import_artifact(warehouse_data: dict, points: list[dict]) -> dict:
+    """Build a deterministic, WMS-neutral reconciliation artifact."""
+    sorted_points = sorted(points, key=lambda point: point["id"])
+    desired_state = {
+        "api_version": warehouse_data["api_version"],
+        "dataset_id": warehouse_data["metadata"]["dataset_id"],
+        "target": warehouse_data["target"],
+        "storage_points": sorted_points,
+    }
+    canonical = json.dumps(
+        desired_state, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    content_hash = f"sha256:{hashlib.sha256(canonical).hexdigest()}"
+    return {
+        "api_version": warehouse_data["api_version"],
+        "metadata": dict(warehouse_data["metadata"]),
+        "target": dict(warehouse_data["target"]),
+        "import_policy": dict(warehouse_data["import_policy"]),
+        "artifact": {
+            "content_hash": content_hash,
+            "entity_count": len(sorted_points),
+        },
+        "storage_points": sorted_points,
+    }
+
+
 def main(argv: list[str]) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -234,6 +262,7 @@ def main(argv: list[str]) -> int:
     wcs_file = next((p for p in imports if p.name == "wcs.yaml"), None)
     wcs_data = load_yaml(wcs_file) if wcs_file and wcs_file.exists() else None
 
+    warehouse_data = load_yaml(warehouse_file)
     storage_data = load_yaml(storage_file)
     points, warnings = compile_storage_types(storage_data)
     points += expand_storage_point_refs(storage_data, wcs_data)
@@ -261,9 +290,11 @@ def main(argv: list[str]) -> int:
         return 1
 
     if args.output:
+        artifact = build_import_artifact(warehouse_data, points)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with open(args.output, "w", encoding="utf-8") as f:
-            yaml.safe_dump({"storage_points": points}, f, sort_keys=False, allow_unicode=True)
+            yaml.safe_dump(artifact, f, sort_keys=False, allow_unicode=True)
+        print(f"  content_hash: {artifact['artifact']['content_hash']}")
         print(f"\n✅ Wrote {len(points)} storage_points to {args.output}")
     else:
         print("\nPass --output <file> to write the full expanded storage_point list.")

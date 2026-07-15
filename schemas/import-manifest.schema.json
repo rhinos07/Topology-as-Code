@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://warehouse-as-code.internal/schemas/import-manifest.schema.json",
+  "title": "Warehouse Import Manifest",
+  "description": "Ownership, versioning and reconciliation policy for a building-level warehouse dataset.",
+  "type": "object",
+  "required": ["api_version", "metadata", "target", "import_policy"],
+  "properties": {
+    "api_version": {
+      "const": "warehouse-as-code/v1"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["dataset_id", "revision"],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._/-]*$",
+          "description": "Stable owner of the managed WMS objects. Must never be reused for another building."
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable source revision. Idempotency is based on artifact.content_hash, not this value."
+        }
+      },
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "required": ["wms_type", "tenant", "facility", "building"],
+      "properties": {
+        "wms_type": { "type": "string", "minLength": 1 },
+        "tenant": { "type": "string", "minLength": 1 },
+        "facility": { "type": "string", "minLength": 1 },
+        "building": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "import_policy": {
+      "type": "object",
+      "required": ["mode", "removal_policy", "unmanaged_objects", "require_plan_approval"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["validate_only", "plan", "reconcile"]
+        },
+        "removal_policy": {
+          "type": "string",
+          "enum": ["reject", "deactivate"],
+          "description": "Objects absent from the desired snapshot are rejected or deactivated; normal imports never purge."
+        },
+        "unmanaged_objects": {
+          "const": "preserve"
+        },
+        "require_plan_approval": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

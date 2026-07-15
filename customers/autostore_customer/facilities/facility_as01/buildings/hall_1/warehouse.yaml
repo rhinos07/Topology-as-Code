@@ -2,6 +2,24 @@
 # Part of a facility (see ../../facility.yaml). This file validates
 # against schemas/warehouse.schema.json
 
+api_version: "warehouse-as-code/v1"
+
+metadata:
+  dataset_id: "autostore_customer/as01/hall_1"
+  revision: "1"
+
+target:
+  wms_type: "generic"
+  tenant: "autostore_customer"
+  facility: "AS01"
+  building: "hall_1"
+
+import_policy:
+  mode: "reconcile"
+  removal_policy: "deactivate"
+  unmanaged_objects: "preserve"
+  require_plan_approval: true
+
 warehouse:
   name: "Hall_1"
   # Whole building is one AutoStore cell - no manual pallet handling,
