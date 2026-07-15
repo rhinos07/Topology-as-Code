@@ -1293,9 +1293,22 @@ def build_extension_entity_index(
     replenishment_data: dict | None,
 ) -> dict[str, set[str]]:
     storage_types = (storage_data or {}).get("storage_types", [])
+    channel_ids: set[str] = set()
+    for storage_type in storage_types:
+        if storage_type.get("access_model") != "channel":
+            continue
+        generator = storage_type.get("storage_point_generator") or {}
+        for aisle in range(1, generator.get("aisles", 1) + 1):
+            for stack in range(1, generator.get("stacks", 1) + 1):
+                for level in range(1, generator.get("levels", 1) + 1):
+                    coordinate = generator["coordinate_pattern"].format(
+                        aisle=aisle, stack=stack, level=level
+                    )
+                    channel_ids.add(f"{storage_type['id']}.{coordinate}")
     return {
         "storage_point": _compiled_storage_point_ids(storage_data, wcs_data),
         "storage_type": {item["id"] for item in storage_types if item.get("id")},
+        "channel": channel_ids,
         "section": {
             f"{st['id']}.{section['id']}" for st in storage_types if st.get("id")
             for section in st.get("sections", []) if section.get("id")

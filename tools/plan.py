@@ -23,7 +23,7 @@ OPERATIONAL_FIELDS = {
 }
 
 OPERATIONAL_ENTITY_TYPES = {
-    "activity_area", "controller", "conveyor_main", "conveyor_segment",
+    "activity_area", "channel", "controller", "conveyor_main", "conveyor_segment",
     "door", "equipment", "lane", "movement_rule", "replenishment_strategy",
     "reporting_point", "section", "storage_type", "telegram_action",
     "work_center",

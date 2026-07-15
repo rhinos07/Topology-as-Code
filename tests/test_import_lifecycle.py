@@ -5,7 +5,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
-from compile import build_import_artifact  # noqa: E402
+from compile import (  # noqa: E402
+    build_import_artifact, compile_entity_collections, compile_storage_types,
+)
 from plan import build_plan, load_artifact  # noqa: E402
 
 
@@ -22,6 +24,40 @@ def warehouse_data(revision="1", removal_policy="deactivate"):
 
 
 class ArtifactTests(unittest.TestCase):
+    def test_channel_is_a_separate_compiled_entity(self):
+        storage_data = {"storage_types": [{
+            "id": "CHANNEL_A",
+            "access_model": "channel",
+            "channel_depth": 2,
+            "entry_side": "front",
+            "exit_side": "back",
+            "homogeneity_required": True,
+            "storage_point_generator": {
+                "aisles": 1, "stacks": 1, "levels": 1,
+                "coordinate_pattern": "CH-{aisle}-{stack}-{level}",
+            },
+            "default_attributes": {"capacity_per_point": 1},
+        }]}
+        points, warnings = compile_storage_types(storage_data)
+        self.assertEqual(warnings, [])
+        entities = compile_entity_collections(
+            {"warehouse": {}, "target": {"building": "B"}},
+            storage_data, {}, {}, {}, {}, points,
+        )
+        self.assertEqual(entities["channel"], [{
+            "id": "CHANNEL_A.CH-1-1-1",
+            "storage_type": "CHANNEL_A",
+            "depth": 2,
+            "entry_side": "front",
+            "exit_side": "back",
+            "flow": "fifo",
+            "positions": [
+                "CHANNEL_A.CH-1-1-1-D01", "CHANNEL_A.CH-1-1-1-D02",
+            ],
+            "homogeneity_required": True,
+        }])
+        self.assertTrue(all(set(point).isdisjoint({"channel_depth", "entry_side", "exit_side"}) for point in points))
+
     def test_hash_is_order_independent_and_ignores_revision(self):
         points = [
             {"id": "B", "max_weight": {"value": 2, "unit": "kg"}},

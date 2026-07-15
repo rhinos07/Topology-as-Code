@@ -173,9 +173,10 @@ effective storage-point attributes. It checks design weight, geometric fit
 capacity. For block storage, `capacity_per_point` must equal
 `depth * stack_height`. Every channel depth is compiled as an individual
 storage point with capacity 1; `size` therefore describes one depth position.
-Compiled channel places carry `channel`, `channel_position`, `channel_depth`,
-`entry_side` and `exit_side`. The block envelope is divided into its configured
-depth and height positions for the fit check.
+Compiled channel places carry only `channel` and `channel_position`, while a
+separate compiled `channel` entity owns depth, entry/exit sides,
+derived FIFO/LIFO flow and the ordered place list. The block envelope is
+divided into its configured depth and height positions for the fit check.
 Opaque controller-managed storage without modeled depth/stack geometry is not
 subject to that derivable-capacity rule.
 

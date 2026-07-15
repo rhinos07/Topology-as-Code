@@ -77,9 +77,6 @@ def expand_storage_point_generator(storage_type: dict) -> tuple[list[dict], list
                             "capacity_per_point": 1,
                             "channel": f"{storage_type['id']}.{channel_coordinate}",
                             "channel_position": depth,
-                            "channel_depth": storage_type["channel_depth"],
-                            "entry_side": storage_type["entry_side"],
-                            "exit_side": storage_type["exit_side"],
                         })
                     points.append(point)
 
@@ -380,10 +377,41 @@ def compile_entity_collections(
             **lanes_data["conveyor_main"],
         })
 
+    channels_by_id: dict[str, dict] = {}
+    channel_storage_types = {
+        item["id"]: item for item in storage_data.get("storage_types", [])
+        if item.get("access_model") == "channel"
+    }
+    for point in points:
+        channel_id = point.get("channel")
+        if not channel_id:
+            continue
+        source = channel_storage_types[point["storage_type"]]
+        channel = channels_by_id.setdefault(channel_id, {
+            "id": channel_id,
+            "storage_type": source["id"],
+            "depth": source["channel_depth"],
+            "entry_side": source["entry_side"],
+            "exit_side": source["exit_side"],
+            "flow": "lifo" if source["entry_side"] == source["exit_side"] else "fifo",
+            "positions": [],
+        })
+        if "homogeneity_required" in source:
+            channel["homogeneity_required"] = source["homogeneity_required"]
+        channel["positions"].append(point["id"])
+    channels = list(channels_by_id.values())
+    for channel in channels:
+        channel["positions"].sort(
+            key=lambda point_id: next(
+                point["channel_position"] for point in points if point["id"] == point_id
+            )
+        )
+
     entities = {
         "warehouse": [warehouse],
         "storage_type": storage_types,
         "storage_point": list(points),
+        "channel": channels,
         "section": sections,
         "activity_area": list(storage_data.get("activity_areas", [])),
         "work_center": list(storage_data.get("work_centers", [])),

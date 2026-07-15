@@ -30,7 +30,7 @@
               "entity_type": {
                 "type": "string",
                 "enum": [
-                  "storage_point", "storage_type", "section", "activity_area",
+                  "storage_point", "storage_type", "channel", "section", "activity_area",
                   "work_center", "door", "reporting_point", "controller",
                   "equipment", "telegram_action", "lane", "conveyor_segment",
                   "conveyor_main", "movement_rule", "replenishment_strategy"
