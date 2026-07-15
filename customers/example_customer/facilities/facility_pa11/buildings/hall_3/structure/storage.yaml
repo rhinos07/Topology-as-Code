@@ -184,10 +184,10 @@ storage_types:
     default_attributes:
       max_weight: { value: 1000, unit: "kg" }
       temperature_zone: "ambient"
-      capacity_per_point: 6
+      capacity_per_point: 1
       size:
         width: { value: 1.2, unit: "m" }
-        depth: { value: 4.8, unit: "m" }
+        depth: { value: 0.8, unit: "m" }
         height: { value: 0.4, unit: "m" }
       zone: "ZONE_CHANNEL_A"
       allowed_load_unit_types: ["pallet_euro"]

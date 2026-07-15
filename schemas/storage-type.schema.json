@@ -52,7 +52,7 @@
     "channel_depth": {
       "type": "integer",
       "minimum": 1,
-      "description": "For 'channel': number of positions per channel, in depth. Positions can only be filled/retrieved in sequence."
+      "description": "For 'channel': number of individually compiled storage_points per generated channel. Depth 1 is at the front, channel_depth is at the back."
     },
     "entry_side": {
       "type": "string",
@@ -297,7 +297,7 @@
     {
       "if": { "properties": { "access_model": { "const": "channel" } }, "required": ["access_model"] },
       "then": {
-        "required": ["channel_depth", "entry_side", "exit_side"],
+        "required": ["channel_depth", "entry_side", "exit_side", "storage_point_generator"],
         "not": {
           "anyOf": [
             { "required": ["depth"] }, { "required": ["stack_height"] },
@@ -384,6 +384,7 @@
             "aisles": { "$ref": "#/definitions/axisSelector" },
             "stacks": { "$ref": "#/definitions/axisSelector" },
             "levels": { "$ref": "#/definitions/axisSelector" },
+            "depths": { "$ref": "#/definitions/axisSelector" },
             "bays": { "$ref": "#/definitions/axisSelector" },
             "slots": { "$ref": "#/definitions/axisSelector" }
           },

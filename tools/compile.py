@@ -57,15 +57,31 @@ def expand_storage_point_generator(storage_type: dict) -> tuple[list[dict], list
     for aisle in range(1, aisles + 1):
         for stack in range(1, stacks + 1):
             for level in range(1, levels + 1):
-                coordinate = pattern.format(aisle=aisle, stack=stack, level=level)
-                exception = exceptions_by_coord.get(coordinate)
-                attributes = merge_attributes(default_attributes, exception)
-                points.append({
-                    "id": f"{storage_type['id']}.{coordinate}",
-                    "storage_type": storage_type["id"],
-                    "coordinate": coordinate,
-                    **attributes,
-                })
+                channel_coordinate = pattern.format(aisle=aisle, stack=stack, level=level)
+                depths = range(1, storage_type["channel_depth"] + 1) if storage_type.get("access_model") == "channel" else (None,)
+                for depth in depths:
+                    coordinate = (
+                        f"{channel_coordinate}-D{depth:02d}"
+                        if depth is not None else channel_coordinate
+                    )
+                    exception = exceptions_by_coord.get(coordinate)
+                    attributes = merge_attributes(default_attributes, exception)
+                    point = {
+                        "id": f"{storage_type['id']}.{coordinate}",
+                        "storage_type": storage_type["id"],
+                        "coordinate": coordinate,
+                        **attributes,
+                    }
+                    if depth is not None:
+                        point.update({
+                            "capacity_per_point": 1,
+                            "channel": f"{storage_type['id']}.{channel_coordinate}",
+                            "channel_position": depth,
+                            "channel_depth": storage_type["channel_depth"],
+                            "entry_side": storage_type["entry_side"],
+                            "exit_side": storage_type["exit_side"],
+                        })
+                    points.append(point)
 
     used_coordinates = {p["coordinate"] for p in points}
     for coordinate in exceptions_by_coord:
@@ -146,15 +162,19 @@ def section_selector_coordinates(storage_type: dict, selector: dict) -> set[str]
         for aisle in range(1, generator.get("aisles", 1) + 1):
             for stack in range(1, generator.get("stacks", 1) + 1):
                 for level in range(1, generator.get("levels", 1) + 1):
-                    if not (
-                        _axis_matches(selector.get("aisles"), aisle)
-                        and _axis_matches(selector.get("stacks"), stack)
-                        and _axis_matches(selector.get("levels"), level)
-                    ):
-                        continue
-                    coordinates.add(generator["coordinate_pattern"].format(
-                        aisle=aisle, stack=stack, level=level
-                    ))
+                    depths = range(1, storage_type["channel_depth"] + 1) if storage_type.get("access_model") == "channel" else (None,)
+                    for depth in depths:
+                        if not (
+                            _axis_matches(selector.get("aisles"), aisle)
+                            and _axis_matches(selector.get("stacks"), stack)
+                            and _axis_matches(selector.get("levels"), level)
+                            and (depth is None or _axis_matches(selector.get("depths"), depth))
+                        ):
+                            continue
+                        base = generator["coordinate_pattern"].format(
+                            aisle=aisle, stack=stack, level=level
+                        )
+                        coordinates.add(f"{base}-D{depth:02d}" if depth is not None else base)
     elif "layout_variants" in storage_type:
         if set(selector).intersection({"stacks", "levels"}):
             return set()

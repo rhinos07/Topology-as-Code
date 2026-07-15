@@ -48,12 +48,13 @@ levels and cascades validation downward automatically.
 |---|---|---|---|
 | Access | Every point individually reachable (`access_order: direct`) | Only from front/top (`access_order: lifo`) | Only in sequence, front-to-back (`channel_depth` positions) |
 | Flow direction | n/a | Single side (LIFO) | `entry_side` = `exit_side` → LIFO. `entry_side` ≠ `exit_side` → FIFO (flow-through) |
-| Capacity | Usually 1 load unit per `storage_point` | Multiple load units per `storage_point` (depth x height) | Multiple load units per channel (`channel_depth`) |
+| Capacity | Usually 1 load unit per `storage_point` | Multiple load units per `storage_point` (depth x height) | One load unit per depth `storage_point`; a channel contains `channel_depth` such places |
 | Article mix | Any | Usually only one article at a time (`homogeneity_required`) | Usually only one article per channel (`homogeneity_required`) |
 | Typical for | High-bay rack, shuttle storage | Large quantities, seasonal goods | Satellite/drive-in racking, flow racks, high-turnover pallet channels |
 
-**Channel logic (Kanallogik):** A `channel` is a storage lane with several positions in
-depth (`channel_depth`). Positions must be filled/emptied strictly in sequence — you
+**Channel logic (Kanallogik):** A `channel` is a storage lane with several individually
+identified storage points in depth (`channel_depth`). The compiler appends `-D01`,
+`-D02`, etc. to the generated channel coordinate. Positions must be filled/emptied strictly in sequence — you
 cannot access a position in the middle without moving the ones in front of it. If
 `entry_side` and `exit_side` are the same, it behaves like a LIFO block (last pallet in,
 first pallet out). If they differ, it's a FIFO flow channel (goods enter one side, exit

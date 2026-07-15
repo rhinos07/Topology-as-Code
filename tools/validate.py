@@ -462,9 +462,9 @@ def check_storage_compatibility(path: Path, storage_data: dict | None) -> list[s
     for st in (storage_data or {}).get("storage_types", []):
         st_id = st.get("id", "?")
         model = st.get("access_model")
-        depth_positions = st.get("depth", 1) if model == "block" else st.get("channel_depth", 1) if model == "channel" else 1
+        depth_positions = st.get("depth", 1) if model == "block" else 1
         height_positions = st.get("stack_height", 1) if model == "block" else 1
-        expected_capacity = depth_positions * height_positions
+        expected_capacity = depth_positions * height_positions if model == "block" else 1
 
         configurations: list[tuple[str, dict]] = []
         defaults = st.get("default_attributes") or {}
@@ -500,7 +500,7 @@ def check_storage_compatibility(path: Path, storage_data: dict | None) -> list[s
                 errors.append(
                     f"{path}: storage_type '{st_id}' {location}: capacity_per_point {capacity} "
                     f"must equal {expected_capacity} from "
-                    f"{'depth * stack_height' if model == 'block' else 'channel_depth'}"
+                f"{'depth * stack_height' if model == 'block' else 'one load unit per compiled channel position'}"
                 )
 
             envelope = None
@@ -1023,11 +1023,14 @@ def check_storage_coordinate_integrity(
                 for aisle in range(1, generator.get("aisles", 1) + 1):
                     for stack in range(1, generator.get("stacks", 1) + 1):
                         for level in range(1, generator.get("levels", 1) + 1):
-                            coordinate = generator["coordinate_pattern"].format(
+                            base = generator["coordinate_pattern"].format(
                                 aisle=aisle, stack=stack, level=level
                             )
-                            generated_coordinates.add(coordinate)
-                            register(st_id, coordinate)
+                            depths = range(1, st["channel_depth"] + 1) if st.get("access_model") == "channel" else (None,)
+                            for depth in depths:
+                                coordinate = f"{base}-D{depth:02d}" if depth is not None else base
+                                generated_coordinates.add(coordinate)
+                                register(st_id, coordinate)
             elif "layout_variants" in st:
                 grid = st.get("layout_grid", {})
                 for variant in st["layout_variants"]:
@@ -1100,9 +1103,14 @@ def check_section_membership(path: Path, storage_data: dict | None) -> list[str]
             for aisle in range(1, generator.get("aisles", 1) + 1):
                 for stack in range(1, generator.get("stacks", 1) + 1):
                     for level in range(1, generator.get("levels", 1) + 1):
-                        coordinates.add(generator["coordinate_pattern"].format(
+                        base = generator["coordinate_pattern"].format(
                             aisle=aisle, stack=stack, level=level
-                        ))
+                        )
+                        depths = range(1, st["channel_depth"] + 1) if st.get("access_model") == "channel" else (None,)
+                        coordinates.update(
+                            f"{base}-D{depth:02d}" if depth is not None else base
+                            for depth in depths
+                        )
         elif variants:
             grid = st.get("layout_grid", {})
             for variant in variants:
@@ -1135,16 +1143,20 @@ def check_section_membership(path: Path, storage_data: dict | None) -> list[str]
                 continue
 
             if generator:
-                unsupported = set(selector).intersection({"bays", "slots"})
+                unsupported_axes = {"bays", "slots"}
+                if st.get("access_model") != "channel":
+                    unsupported_axes.add("depths")
+                unsupported = set(selector).intersection(unsupported_axes)
                 maxima = {
                     "aisles": generator.get("aisles", 1),
                     "stacks": generator.get("stacks", 1),
                     "levels": generator.get("levels", 1),
+                    "depths": st.get("channel_depth", 1),
                 }
-                axes = ("aisles", "stacks", "levels")
+                axes = ("aisles", "stacks", "levels", "depths")
                 patterns = [(None, generator["coordinate_pattern"])]
             elif variants:
-                unsupported = set(selector).intersection({"stacks", "levels"})
+                unsupported = set(selector).intersection({"stacks", "levels", "depths"})
                 grid = st.get("layout_grid", {})
                 maxima = {"aisles": grid.get("aisles", 1), "bays": grid.get("bays", 1)}
                 axes = ("aisles", "bays", "slots")
@@ -1169,10 +1181,13 @@ def check_section_membership(path: Path, storage_data: dict | None) -> list[str]
                 for aisle in _axis_values(selector.get("aisles"), maxima["aisles"]):
                     for stack in _axis_values(selector.get("stacks"), maxima["stacks"]):
                         for level in _axis_values(selector.get("levels"), maxima["levels"]):
-                            if 1 <= aisle <= maxima["aisles"] and 1 <= stack <= maxima["stacks"] and 1 <= level <= maxima["levels"]:
-                                selected.add(generator["coordinate_pattern"].format(
+                            depths = _axis_values(selector.get("depths"), maxima["depths"]) if st.get("access_model") == "channel" else (None,)
+                            for depth in depths:
+                                if 1 <= aisle <= maxima["aisles"] and 1 <= stack <= maxima["stacks"] and 1 <= level <= maxima["levels"] and (depth is None or 1 <= depth <= maxima["depths"]):
+                                    base = generator["coordinate_pattern"].format(
                                     aisle=aisle, stack=stack, level=level
-                                ))
+                                    )
+                                    selected.add(f"{base}-D{depth:02d}" if depth is not None else base)
             elif variants:
                 for positions, pattern in patterns:
                     for aisle in _axis_values(selector.get("aisles"), maxima["aisles"]):
@@ -1236,10 +1251,13 @@ def _compiled_storage_point_ids(storage_data: dict | None, wcs_data: dict | None
                 for aisle in range(1, generator.get("aisles", 1) + 1):
                     for stack in range(1, generator.get("stacks", 1) + 1):
                         for level in range(1, generator.get("levels", 1) + 1):
-                            coordinate = generator["coordinate_pattern"].format(
+                            base = generator["coordinate_pattern"].format(
                                 aisle=aisle, stack=stack, level=level
                             )
-                            ids.add(f"{st_id}.{coordinate}")
+                            depths = range(1, st["channel_depth"] + 1) if st.get("access_model") == "channel" else (None,)
+                            for depth in depths:
+                                coordinate = f"{base}-D{depth:02d}" if depth is not None else base
+                                ids.add(f"{st_id}.{coordinate}")
             elif "layout_variants" in st:
                 grid = st.get("layout_grid", {})
                 for variant in st["layout_variants"]:

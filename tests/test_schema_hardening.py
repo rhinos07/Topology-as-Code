@@ -93,6 +93,27 @@ class StorageTypeSchemaTests(unittest.TestCase):
         errors = check_storage_compatibility(Path("storage.yaml"), {"storage_types": [value]})
         self.assertTrue(any("must equal 15" in error for error in errors))
 
+    def test_channel_depth_compiles_to_individual_places(self):
+        value = rack()
+        value.pop("access_order")
+        value.update({
+            "id": "CHANNEL_A",
+            "access_model": "channel",
+            "channel_depth": 3,
+            "entry_side": "front",
+            "exit_side": "back",
+            "default_attributes": {"capacity_per_point": 1},
+        })
+        self.assertFalse(list(STORAGE_VALIDATOR.iter_errors(value)))
+        points, warnings = compile_storage_types({"storage_types": [value]})
+        self.assertEqual(warnings, [])
+        self.assertEqual([point["coordinate"] for point in points], [
+            "1-1-1-D01", "1-1-1-D02", "1-1-1-D03",
+        ])
+        self.assertEqual([point["channel_position"] for point in points], [1, 2, 3])
+        self.assertTrue(all(point["channel"] == "CHANNEL_A.1-1-1" for point in points))
+        self.assertTrue(all(point["capacity_per_point"] == 1 for point in points))
+
     def test_exactly_one_point_definition_is_required(self):
         value = rack()
         value["storage_points"] = [{"coordinate": "A"}]
