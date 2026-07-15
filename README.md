@@ -143,6 +143,14 @@ Conditional rules also enforce access-model, automation-policy, blocking and
 movement-rule invariants. `tools/validate.py` supplements JSON Schema with
 ID and coordinate uniqueness checks across the imported files.
 
+Section membership is also explicit. Generated areas assign ranges with a
+`section.selector`, while an explicit point or generator exception may set a
+local `section` directly. Direct assignment overrides selectors. Membership is
+exclusive, selector overlap and empty sections are rejected, and
+`section_membership.require_full_coverage` can require every point to belong to
+exactly one section. Compiled points carry canonical IDs such as
+`HBR.SEC_FAST`.
+
 ## WMS-specific Extension Sidecars
 
 Vendor-specific roundtrip data lives in optional namespaced sidecars instead

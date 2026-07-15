@@ -939,6 +939,161 @@ def check_storage_coordinate_integrity(
     return errors
 
 
+def _axis_values(selector: dict | None, maximum: int) -> list[int]:
+    if not selector:
+        return list(range(1, maximum + 1))
+    if not isinstance(selector, dict):
+        return []
+    if "values" in selector:
+        return selector["values"] if isinstance(selector["values"], list) else []
+    if "from" in selector and "to" in selector:
+        return list(range(selector["from"], selector["to"] + 1))
+    return []
+
+
+def check_section_membership(path: Path, storage_data: dict | None) -> list[str]:
+    errors: list[str] = []
+    for st in (storage_data or {}).get("storage_types", []):
+        sections = st.get("sections", [])
+        if not sections:
+            continue
+        st_id = st.get("id", "?")
+        section_ids = {section.get("id") for section in sections if section.get("id")}
+        coordinates: set[str] = set()
+        selector_matches: dict[str, set[str]] = {section_id: set() for section_id in section_ids}
+
+        generator = st.get("storage_point_generator")
+        variants = st.get("layout_variants")
+        if generator:
+            for aisle in range(1, generator.get("aisles", 1) + 1):
+                for stack in range(1, generator.get("stacks", 1) + 1):
+                    for level in range(1, generator.get("levels", 1) + 1):
+                        coordinates.add(generator["coordinate_pattern"].format(
+                            aisle=aisle, stack=stack, level=level
+                        ))
+        elif variants:
+            grid = st.get("layout_grid", {})
+            for variant in variants:
+                for aisle in range(1, grid.get("aisles", 1) + 1):
+                    for bay in range(1, grid.get("bays", 1) + 1):
+                        for slot in range(1, variant["positions_per_bay"] + 1):
+                            coordinates.add(variant["coordinate_pattern"].format(
+                                aisle=aisle, bay=bay, slot=slot
+                            ))
+        else:
+            coordinates = {
+                point.get("coordinate") for point in st.get("storage_points", [])
+                if point.get("coordinate")
+            }
+
+        for section in sections:
+            section_id = section["id"]
+            selector = section.get("selector")
+            if not selector:
+                continue
+            if "coordinates" in selector:
+                selected = set(selector["coordinates"])
+                unknown = selected - coordinates
+                for coordinate in sorted(unknown):
+                    errors.append(
+                        f"{path}: storage_type '{st_id}' section '{section_id}': "
+                        f"selector coordinate '{coordinate}' does not exist"
+                    )
+                selector_matches[section_id] = selected & coordinates
+                continue
+
+            if generator:
+                unsupported = set(selector).intersection({"bays", "slots"})
+                maxima = {
+                    "aisles": generator.get("aisles", 1),
+                    "stacks": generator.get("stacks", 1),
+                    "levels": generator.get("levels", 1),
+                }
+                axes = ("aisles", "stacks", "levels")
+                patterns = [(None, generator["coordinate_pattern"])]
+            elif variants:
+                unsupported = set(selector).intersection({"stacks", "levels"})
+                grid = st.get("layout_grid", {})
+                maxima = {"aisles": grid.get("aisles", 1), "bays": grid.get("bays", 1)}
+                axes = ("aisles", "bays", "slots")
+                patterns = [(variant["positions_per_bay"], variant["coordinate_pattern"]) for variant in variants]
+            else:
+                unsupported = set(selector)
+                maxima, axes, patterns = {}, (), []
+            if unsupported:
+                errors.append(
+                    f"{path}: storage_type '{st_id}' section '{section_id}': selector axes "
+                    f"{sorted(unsupported)} are not available for this point definition"
+                )
+                continue
+            for axis, axis_selector in selector.items():
+                if isinstance(axis_selector, dict) and "from" in axis_selector and "to" in axis_selector and axis_selector["from"] > axis_selector["to"]:
+                    errors.append(
+                        f"{path}: storage_type '{st_id}' section '{section_id}': "
+                        f"selector {axis}.from must not exceed to"
+                    )
+            selected: set[str] = set()
+            if generator:
+                for aisle in _axis_values(selector.get("aisles"), maxima["aisles"]):
+                    for stack in _axis_values(selector.get("stacks"), maxima["stacks"]):
+                        for level in _axis_values(selector.get("levels"), maxima["levels"]):
+                            if 1 <= aisle <= maxima["aisles"] and 1 <= stack <= maxima["stacks"] and 1 <= level <= maxima["levels"]:
+                                selected.add(generator["coordinate_pattern"].format(
+                                    aisle=aisle, stack=stack, level=level
+                                ))
+            elif variants:
+                for positions, pattern in patterns:
+                    for aisle in _axis_values(selector.get("aisles"), maxima["aisles"]):
+                        for bay in _axis_values(selector.get("bays"), maxima["bays"]):
+                            for slot in _axis_values(selector.get("slots"), positions):
+                                if 1 <= aisle <= maxima["aisles"] and 1 <= bay <= maxima["bays"] and 1 <= slot <= positions:
+                                    selected.add(pattern.format(aisle=aisle, bay=bay, slot=slot))
+            selector_matches[section_id] = selected
+
+        direct: dict[str, str] = {}
+        default_section = (st.get("default_attributes") or {}).get("section")
+        if default_section:
+            direct.update({coordinate: default_section for coordinate in coordinates})
+        for entry in [*st.get("storage_points", []), *st.get("exceptions", [])]:
+            if entry.get("section"):
+                direct[entry["coordinate"]] = entry["section"]
+
+        final_members: dict[str, set[str]] = {section_id: set() for section_id in section_ids}
+        for coordinate in coordinates:
+            if coordinate in direct:
+                membership = {direct[coordinate]}
+            else:
+                membership = {
+                    section_id for section_id, selected in selector_matches.items()
+                    if coordinate in selected
+                }
+            unknown = membership - section_ids
+            for section_id in sorted(unknown):
+                errors.append(
+                    f"{path}: storage_type '{st_id}' coordinate '{coordinate}': "
+                    f"section '{section_id}' is not declared"
+                )
+            membership &= section_ids
+            if len(membership) > 1:
+                errors.append(
+                    f"{path}: storage_type '{st_id}' coordinate '{coordinate}' matches "
+                    f"multiple sections {sorted(membership)}"
+                )
+            for section_id in membership:
+                final_members[section_id].add(coordinate)
+            if st.get("section_membership", {}).get("require_full_coverage") and not membership:
+                errors.append(
+                    f"{path}: storage_type '{st_id}' coordinate '{coordinate}' has no section"
+                )
+
+        for section_id, members in final_members.items():
+            if not members:
+                errors.append(
+                    f"{path}: storage_type '{st_id}' section '{section_id}' has no members"
+                )
+    return errors
+
+
 def _compiled_storage_point_ids(storage_data: dict | None, wcs_data: dict | None) -> set[str]:
     ids: set[str] = set()
     for st in (storage_data or {}).get("storage_types", []):
@@ -1265,6 +1420,7 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
         all_errors += check_storage_coordinate_integrity(
             imports["storage.yaml"], storage_data, wcs_data
         )
+        all_errors += check_section_membership(imports["storage.yaml"], storage_data)
 
     if "wcs.yaml" in imports:
         all_errors += check_wcs_refs(imports["wcs.yaml"], element_ids)

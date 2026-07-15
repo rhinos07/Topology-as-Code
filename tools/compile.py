@@ -126,6 +126,70 @@ def expand_layout_variants(storage_type: dict) -> tuple[list[dict], list[str]]:
     return points, []
 
 
+def _axis_matches(selector: dict | None, value: int) -> bool:
+    if not selector:
+        return True
+    if "values" in selector:
+        return value in selector["values"]
+    return selector["from"] <= value <= selector["to"]
+
+
+def section_selector_coordinates(storage_type: dict, selector: dict) -> set[str]:
+    if "coordinates" in selector:
+        return set(selector["coordinates"])
+    coordinates: set[str] = set()
+    if "storage_point_generator" in storage_type:
+        if set(selector).intersection({"bays", "slots"}):
+            return set()
+        generator = storage_type["storage_point_generator"]
+        for aisle in range(1, generator.get("aisles", 1) + 1):
+            for stack in range(1, generator.get("stacks", 1) + 1):
+                for level in range(1, generator.get("levels", 1) + 1):
+                    if not (
+                        _axis_matches(selector.get("aisles"), aisle)
+                        and _axis_matches(selector.get("stacks"), stack)
+                        and _axis_matches(selector.get("levels"), level)
+                    ):
+                        continue
+                    coordinates.add(generator["coordinate_pattern"].format(
+                        aisle=aisle, stack=stack, level=level
+                    ))
+    elif "layout_variants" in storage_type:
+        if set(selector).intersection({"stacks", "levels"}):
+            return set()
+        grid = storage_type.get("layout_grid", {})
+        for variant in storage_type["layout_variants"]:
+            for aisle in range(1, grid.get("aisles", 1) + 1):
+                for bay in range(1, grid.get("bays", 1) + 1):
+                    for slot in range(1, variant["positions_per_bay"] + 1):
+                        if not (
+                            _axis_matches(selector.get("aisles"), aisle)
+                            and _axis_matches(selector.get("bays"), bay)
+                            and _axis_matches(selector.get("slots"), slot)
+                        ):
+                            continue
+                        coordinates.add(variant["coordinate_pattern"].format(
+                            aisle=aisle, bay=bay, slot=slot
+                        ))
+    return coordinates
+
+
+def assign_point_sections(storage_type: dict, points: list[dict]) -> None:
+    selector_membership: dict[str, list[str]] = {}
+    for section in storage_type.get("sections", []):
+        if "selector" not in section:
+            continue
+        for coordinate in section_selector_coordinates(storage_type, section["selector"]):
+            selector_membership.setdefault(coordinate, []).append(section["id"])
+
+    st_id = storage_type["id"]
+    for point in points:
+        direct = point.get("section")
+        selected = [direct] if direct else selector_membership.get(point["coordinate"], [])
+        if selected:
+            point["section"] = f"{st_id}.{selected[0]}"
+
+
 def compile_storage_types(storage_data: dict) -> tuple[list[dict], list[str]]:
     all_points: list[dict] = []
     warnings: list[str] = []
@@ -144,6 +208,8 @@ def compile_storage_types(storage_data: dict) -> tuple[list[dict], list[str]]:
                 f"- skipped (assumed to be manually enumerated elsewhere)."
             )
             continue
+
+        assign_point_sections(storage_type, points)
 
         all_points += points
         warnings += w
@@ -225,6 +291,7 @@ def normalize_extensions(extensions: list[dict] | None) -> list[dict]:
 STORAGE_TYPE_SOURCE_FIELDS = {
     "storage_point_generator", "layout_variants", "layout_grid",
     "storage_points", "default_attributes", "exceptions", "sections",
+    "section_membership",
 }
 
 
@@ -251,8 +318,11 @@ def compile_entity_collections(
             if key not in STORAGE_TYPE_SOURCE_FIELDS
         })
         for section in source.get("sections", []):
+            section_entity = {
+                key: value for key, value in section.items() if key != "selector"
+            }
             sections.append({
-                **section,
+                **section_entity,
                 "id": f"{source['id']}.{section['id']}",
                 "storage_type": source["id"],
                 "local_id": section["id"],

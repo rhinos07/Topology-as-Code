@@ -9,7 +9,8 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
-from validate import make_validator, validate_storage_types  # noqa: E402
+from compile import compile_storage_types  # noqa: E402
+from validate import check_section_membership, make_validator, validate_storage_types  # noqa: E402
 
 
 STORAGE_VALIDATOR = make_validator("storage-type.schema.json")
@@ -82,6 +83,45 @@ class StorageTypeSchemaTests(unittest.TestCase):
             }],
         }
         self.assertTrue(list(STORAGE_FILE_VALIDATOR.iter_errors(data)))
+
+    def test_selector_membership_and_direct_override_are_compiled(self):
+        value = rack()
+        value["storage_point_generator"]["aisles"] = 3
+        value["sections"] = [
+            {"id": "A", "selector": {"aisles": {"from": 1, "to": 2}}},
+            {"id": "B", "selector": {"aisles": {"values": [3]}}},
+        ]
+        value["exceptions"] = [{"coordinate": "2-1-1", "section": "B"}]
+        value["section_membership"] = {"require_full_coverage": True}
+        self.assertEqual(check_section_membership(Path("storage.yaml"), {"storage_types": [value]}), [])
+        points, warnings = compile_storage_types({"storage_types": [value]})
+        self.assertEqual(warnings, [])
+        sections = {point["coordinate"]: point["section"] for point in points}
+        self.assertEqual(sections, {
+            "1-1-1": "RACK_A.A",
+            "2-1-1": "RACK_A.B",
+            "3-1-1": "RACK_A.B",
+        })
+
+    def test_overlapping_section_selectors_are_rejected(self):
+        value = rack()
+        value["storage_point_generator"]["aisles"] = 3
+        value["sections"] = [
+            {"id": "A", "selector": {"aisles": {"from": 1, "to": 2}}},
+            {"id": "B", "selector": {"aisles": {"from": 2, "to": 3}}},
+        ]
+        errors = check_section_membership(Path("storage.yaml"), {"storage_types": [value]})
+        self.assertTrue(any("matches multiple sections" in error for error in errors))
+
+    def test_required_section_coverage_is_checked(self):
+        value = rack()
+        value["storage_point_generator"]["aisles"] = 2
+        value["sections"] = [
+            {"id": "A", "selector": {"aisles": {"values": [1]}}},
+        ]
+        value["section_membership"] = {"require_full_coverage": True}
+        errors = check_section_membership(Path("storage.yaml"), {"storage_types": [value]})
+        self.assertTrue(any("has no section" in error for error in errors))
 
 
 class MovementRuleSchemaTests(unittest.TestCase):

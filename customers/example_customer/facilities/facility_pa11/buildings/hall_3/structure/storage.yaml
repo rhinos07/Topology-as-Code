@@ -37,8 +37,15 @@ storage_types:
     sections:
       - id: "SEC_FAST"
         criteria: { access_frequency: "high" }
+        selector:
+          aisles: { from: 1, to: 4 }
       - id: "SEC_SLOW"
         criteria: { access_frequency: "low" }
+        selector:
+          aisles: { from: 5, to: 12 }
+
+    section_membership:
+      require_full_coverage: true
 
   # --- Rack location area, flexible bay width (2/3 storage) ---
   # Each bay can be occupied by EITHER 2 industrial pallets OR 3 euro pallets,
@@ -116,6 +123,11 @@ storage_types:
     sections:
       - id: "SEC_PICKFACE"
         criteria: { access_frequency: "very_high" }
+        selector:
+          aisles: { from: 1, to: 6 }
+
+    section_membership:
+      require_full_coverage: true
 
   # --- Cold zone, manual ---
   - id: "COLD_ZONE_B"
@@ -233,6 +245,16 @@ storage_types:
       capacity_per_point: 1
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial", "mesh_box", "carton"]
 
+    exceptions:
+      - coordinate: "STG-01"
+        section: "SEC_STAGING_IN"
+      - coordinate: "STG-02"
+        section: "SEC_STAGING_IN"
+      - coordinate: "STG-03"
+        section: "SEC_STAGING_OUT"
+      - coordinate: "STG-04"
+        section: "SEC_STAGING_RETURNS"
+
     sections:
       - id: "SEC_STAGING_IN"
         criteria: { flow_direction: "inbound" }
@@ -240,6 +262,9 @@ storage_types:
         criteria: { flow_direction: "outbound" }
       - id: "SEC_STAGING_RETURNS"
         criteria: { flow_direction: "returns" }
+
+    section_membership:
+      require_full_coverage: true
 
 # Functional cross-cutting grouping - orthogonal to the physical hierarchy.
 # A storage_point can be in multiple activity_areas at the same time.
