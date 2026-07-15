@@ -5,6 +5,10 @@
   "description": "Defines whether a goods movement between two areas is functionally permitted. Independent of physical reachability (see lanes.yaml).",
   "type": "object",
   "required": ["id", "allowed"],
+  "anyOf": [
+    { "required": ["from"] },
+    { "required": ["to"] }
+  ],
   "properties": {
     "id": { "type": "string" },
     "applies_to_policy": {
@@ -24,6 +28,8 @@
     "allowed_load_unit_types": {
       "type": "array",
       "items": { "type": "string" },
+      "minItems": 1,
+      "uniqueItems": true,
       "description": "References ids in elements/load_unit_types.yaml."
     },
     "conversion_of_load_unit_required": {
@@ -43,9 +49,21 @@
     "reason": { "type": "string" }
   },
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "allowed": { "const": false } }, "required": ["allowed"] },
+      "then": { "required": ["reason"] },
+      "else": { "not": { "required": ["exclude_to"] } }
+    },
+    {
+      "if": { "properties": { "conversion_of_load_unit_required": { "const": true } }, "required": ["conversion_of_load_unit_required"] },
+      "then": { "required": ["allowed_load_unit_types"] }
+    }
+  ],
   "definitions": {
     "endpoint": {
       "type": "object",
+      "minProperties": 1,
       "properties": {
         "type": { "type": "string" },
         "id": { "type": "string" },
@@ -55,13 +73,16 @@
         "work_center": { "$ref": "#/definitions/idOrIds" },
         "reporting_point": { "$ref": "#/definitions/idOrIds" }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "dependencies": {
+        "section": ["storage_type"]
+      }
     },
     "idOrIds": {
       "description": "A single id, or a list of ids that all play the identical role in this rule (e.g. several ports fed by the same movement). Use a list purely to avoid repeating an otherwise-identical rule per id - if the ids ever need different allowed_load_unit_types, trigger, execution, etc., split them back into separate rules instead.",
       "oneOf": [
         { "type": "string" },
-        { "type": "array", "items": { "type": "string" }, "minItems": 2 }
+        { "type": "array", "items": { "type": "string" }, "minItems": 2, "uniqueItems": true }
       ]
     }
   }

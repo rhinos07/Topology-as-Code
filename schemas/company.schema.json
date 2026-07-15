@@ -17,7 +17,9 @@
           "items": { "type": "string" },
           "description": "Relative paths to facility.yaml files."
         }
-      }
+      },
+      "additionalProperties": false
     }
-  }
+  },
+  "additionalProperties": false
 }

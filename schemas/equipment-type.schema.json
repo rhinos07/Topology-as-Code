@@ -19,5 +19,5 @@
     "max_payload": { "type": "string" },
     "max_speed": { "type": "string" }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

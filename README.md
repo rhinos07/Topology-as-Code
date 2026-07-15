@@ -129,6 +129,15 @@ destructive deactivation plus a create and requires review. Inventory, open
 task and reference checks must be performed by the target-specific WMS adapter
 before applying a deactivation.
 
+## Strict Schema Validation
+
+Domain objects are closed with `additionalProperties: false`; customer-specific
+fields must not be added ad hoc. Storage types must choose exactly one of
+`storage_point_generator`, `layout_variants`, or explicit `storage_points`.
+Conditional rules also enforce access-model, automation-policy, blocking and
+movement-rule invariants. `tools/validate.py` supplements JSON Schema with
+ID and coordinate uniqueness checks across the imported files.
+
 ## Examples
 
 - `customers/example_customer/` - one building mixing several technologies

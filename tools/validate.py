@@ -101,14 +101,37 @@ def validate_file(path: Path, schema_name: str) -> list[str]:
     return errors
 
 
+def duplicate_id_errors(items: list[dict], context: str, path: Path) -> list[str]:
+    """Reports duplicate non-empty IDs in an entity collection."""
+    seen: set[str] = set()
+    errors: list[str] = []
+    for item in items:
+        item_id = item.get("id")
+        if not item_id:
+            continue
+        if item_id in seen:
+            errors.append(f"{path}: duplicate {context} id '{item_id}'")
+        seen.add(item_id)
+    return errors
+
+
 def validate_storage_types(path: Path) -> list[str]:
-    errors = []
+    errors = validate_file(path, "storage.schema.json")
     data = load_yaml(path)
-    schema = load_schema("storage-type.schema.json")
-    validator = Draft7Validator(schema)
-    for st in data.get("storage_types", []):
-        for err in validator.iter_errors(st):
-            errors.append(f"{path}: storage_type '{st.get('id', '?')}': {err.message}")
+    storage_types = data.get("storage_types", [])
+    errors += duplicate_id_errors(storage_types, "storage_type", path)
+    for st in storage_types:
+        errors += duplicate_id_errors(st.get("sections", []), f"section in storage_type '{st.get('id', '?')}'", path)
+        errors += duplicate_id_errors(st.get("layout_variants", []), f"layout_variant in storage_type '{st.get('id', '?')}'", path)
+        for field in ("storage_points", "exceptions"):
+            coordinates = [entry.get("coordinate") for entry in st.get(field, []) if entry.get("coordinate")]
+            duplicates = sorted({value for value in coordinates if coordinates.count(value) > 1})
+            for coordinate in duplicates:
+                errors.append(
+                    f"{path}: storage_type '{st.get('id', '?')}': duplicate {field} coordinate '{coordinate}'"
+                )
+    errors += duplicate_id_errors(data.get("activity_areas", []), "activity_area", path)
+    errors += duplicate_id_errors(data.get("work_centers", []), "work_center", path)
     return errors
 
 
@@ -117,7 +140,9 @@ def validate_doors(path: Path) -> list[str]:
     data = load_yaml(path)
     schema = load_schema("door.schema.json")
     validator = Draft7Validator(schema)
-    for door in data.get("doors", []):
+    doors = data.get("doors", [])
+    errors += duplicate_id_errors(doors, "door", path)
+    for door in doors:
         for err in validator.iter_errors(door):
             errors.append(f"{path}: door '{door.get('id', '?')}': {err.message}")
     return errors
@@ -128,7 +153,9 @@ def validate_movement_rules(path: Path) -> list[str]:
     data = load_yaml(path)
     schema = load_schema("movement-rule.schema.json")
     validator = Draft7Validator(schema)
-    for rule in data.get("movement_rules", []):
+    rules = data.get("movement_rules", [])
+    errors += duplicate_id_errors(rules, "movement_rule", path)
+    for rule in rules:
         for err in validator.iter_errors(rule):
             errors.append(f"{path}: movement_rule '{rule.get('id', '?')}': {err.message}")
     return errors
@@ -218,7 +245,9 @@ def validate_element_catalog(path: Path, schema_name: str, list_key: str) -> lis
         return [f"{path}: File is empty or invalid."]
     schema = load_schema(schema_name)
     validator = Draft7Validator(schema)
-    for item in data.get(list_key, []):
+    items = data.get(list_key, [])
+    errors += duplicate_id_errors(items, list_key.rstrip("s"), path)
+    for item in items:
         for err in validator.iter_errors(item):
             errors.append(f"{path}: {list_key} '{item.get('id', '?')}': {err.message}")
     return errors
@@ -229,9 +258,37 @@ def validate_replenishment(path: Path) -> list[str]:
     data = load_yaml(path)
     schema = load_schema("replenishment-strategy.schema.json")
     validator = Draft7Validator(schema)
-    for strat in data.get("replenishment_strategies", []):
+    strategies = data.get("replenishment_strategies", [])
+    errors += duplicate_id_errors(strategies, "replenishment_strategy", path)
+    for strat in strategies:
         for err in validator.iter_errors(strat):
             errors.append(f"{path}: replenishment_strategy '{strat.get('id', '?')}': {err.message}")
+    return errors
+
+
+def validate_wcs(path: Path) -> list[str]:
+    errors = validate_file(path, "wcs.schema.json")
+    data = load_yaml(path) or {}
+    for key, context in (
+        ("controller_definitions", "controller_definition"),
+        ("reporting_points", "reporting_point"),
+        ("equipment", "equipment"),
+    ):
+        errors += duplicate_id_errors(data.get(key, []), context, path)
+    for controller in data.get("controller_definitions", []):
+        errors += duplicate_id_errors(
+            controller.get("channels", []),
+            f"channel in controller '{controller.get('id', '?')}'",
+            path,
+        )
+    return errors
+
+
+def validate_lanes(path: Path) -> list[str]:
+    errors = validate_file(path, "lanes.schema.json")
+    data = load_yaml(path) or {}
+    errors += duplicate_id_errors(data.get("lanes", []), "lane", path)
+    errors += duplicate_id_errors(data.get("conveyor_segments", []), "conveyor_segment", path)
     return errors
 
 
@@ -665,9 +722,9 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
         elif name == "replenishment.yaml":
             all_errors += validate_replenishment(imported)
         elif name == "lanes.yaml":
-            all_errors += validate_file(imported, "lanes.schema.json")
+            all_errors += validate_lanes(imported)
         elif name == "wcs.yaml":
-            all_errors += validate_file(imported, "wcs.schema.json")
+            all_errors += validate_wcs(imported)
         else:
             data = load_yaml(imported)
             if data is None:

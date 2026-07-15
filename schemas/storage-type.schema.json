@@ -76,7 +76,8 @@
           "type": "string",
           "description": "e.g. '{aisle:02d}-{stack:02d}-{level:02d}'"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "layout_variants": {
       "type": "array",
@@ -104,7 +105,7 @@
             "description": "e.g. '{aisle:02d}-{bay:02d}-EUR-{slot:1d}'. Must encode the variant so coordinates across variants don't collide as strings, even though they occupy the same physical space."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false
       }
     },
     "layout_grid": {
@@ -143,7 +144,14 @@
             "description": "References ids in elements/load_unit_types.yaml. Overrides the storage_type default for this point."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": { "properties": { "blocked": { "const": true } }, "required": ["blocked"] },
+            "then": { "required": ["blocked_reason"] },
+            "else": { "not": { "required": ["blocked_reason"] } }
+          }
+        ]
       }
     },
     "default_attributes": {
@@ -158,6 +166,8 @@
         "allowed_load_unit_types": {
           "type": "array",
           "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true,
           "description": "References ids in elements/load_unit_types.yaml. Restricts which load unit types may be stored at this storage_type."
         },
         "capacity_volume": {
@@ -167,10 +177,12 @@
         "hazmat_classes": {
           "type": "array",
           "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true,
           "description": "References ids in elements/hazmat_classes.yaml. If set, this storage_type is certified/restricted for these hazard classes; goods requiring a class not listed here must not be stored."
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "exceptions": {
       "type": "array",
@@ -191,10 +203,19 @@
           "allowed_load_unit_types": {
             "type": "array",
             "items": { "type": "string" },
+            "minItems": 1,
+            "uniqueItems": true,
             "description": "References ids in elements/load_unit_types.yaml. Overrides the storage_type default for this coordinate."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": { "properties": { "blocked": { "const": true } }, "required": ["blocked"] },
+            "then": { "required": ["blocked_reason"] },
+            "else": { "not": { "required": ["blocked_reason"] } }
+          }
+        ]
       }
     },
     "sections": {
@@ -206,26 +227,94 @@
         "properties": {
           "id": { "type": "string" },
           "criteria": { "type": "object", "additionalProperties": true }
-        }
+        },
+        "additionalProperties": false
       }
     }
   },
-  "additionalProperties": true,
+  "additionalProperties": false,
   "allOf": [
     {
-      "if": {
-        "properties": { "access_model": { "const": "channel" } }
-      },
+      "if": { "properties": { "access_model": { "const": "rack" } }, "required": ["access_model"] },
       "then": {
-        "required": ["channel_depth", "entry_side", "exit_side"]
+        "properties": { "access_order": { "const": "direct" } },
+        "not": {
+          "anyOf": [
+            { "required": ["depth"] }, { "required": ["stack_height"] },
+            { "required": ["channel_depth"] }, { "required": ["entry_side"] },
+            { "required": ["exit_side"] }
+          ]
+        }
+      }
+    },
+    {
+      "if": { "properties": { "access_model": { "const": "block" } }, "required": ["access_model"] },
+      "then": {
+        "not": {
+          "anyOf": [
+            { "required": ["channel_depth"] }, { "required": ["entry_side"] },
+            { "required": ["exit_side"] }
+          ]
+        }
       }
     },
     {
       "if": {
-        "required": ["layout_variants"]
+        "allOf": [
+          { "properties": { "access_model": { "const": "block" } }, "required": ["access_model"] },
+          { "required": ["storage_point_generator"] }
+        ]
       },
       "then": {
-        "required": ["layout_grid"]
+        "required": ["depth", "stack_height", "access_order"],
+        "properties": { "access_order": { "const": "lifo" } }
+      }
+    },
+    {
+      "if": { "properties": { "access_model": { "const": "channel" } }, "required": ["access_model"] },
+      "then": {
+        "required": ["channel_depth", "entry_side", "exit_side"],
+        "not": {
+          "anyOf": [
+            { "required": ["depth"] }, { "required": ["stack_height"] },
+            { "required": ["access_order"] }
+          ]
+        }
+      }
+    },
+    {
+      "if": { "properties": { "automation_level": { "const": "manual" } }, "required": ["automation_level"] },
+      "then": { "properties": { "movement_policy": { "const": "default_allow" } } }
+    },
+    {
+      "if": { "properties": { "automation_level": { "const": "conveyor_automated" } }, "required": ["automation_level"] },
+      "then": { "required": ["movement_policy"], "properties": { "movement_policy": { "const": "explicit_only" } } }
+    },
+    {
+      "oneOf": [
+        {
+          "required": ["storage_point_generator"],
+          "not": { "anyOf": [{ "required": ["layout_variants"] }, { "required": ["storage_points"] }] }
+        },
+        {
+          "required": ["layout_variants", "layout_grid"],
+          "not": { "anyOf": [{ "required": ["storage_point_generator"] }, { "required": ["storage_points"] }] }
+        },
+        {
+          "required": ["storage_points"],
+          "not": { "anyOf": [{ "required": ["storage_point_generator"] }, { "required": ["layout_variants"] }, { "required": ["layout_grid"] }] }
+        }
+      ]
+    },
+    {
+      "if": { "required": ["exceptions"] },
+      "then": { "required": ["storage_point_generator"] }
+    },
+    {
+      "if": { "required": ["controller"] },
+      "then": {
+        "required": ["automation_level"],
+        "properties": { "automation_level": { "enum": ["conveyor_automated", "mixed"] } }
       }
     }
   ],

@@ -24,14 +24,16 @@
             "city": { "type": "string" },
             "country": { "type": "string" }
           },
-          "additionalProperties": true
+          "additionalProperties": false
         },
         "buildings": {
           "type": "array",
           "items": { "type": "string" },
           "description": "Relative paths to building-level warehouse.yaml files."
         }
-      }
+      },
+      "additionalProperties": false
     }
-  }
+  },
+  "additionalProperties": false
 }

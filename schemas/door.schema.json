@@ -26,5 +26,5 @@
       "description": "Load unit type group used for door/gate determination, e.g. 'pallets'."
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

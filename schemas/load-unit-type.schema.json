@@ -19,7 +19,9 @@
         "width": { "type": "string" },
         "depth": { "type": "string" },
         "height": { "type": "string" }
-      }
+      },
+      "required": ["width", "depth", "height"],
+      "additionalProperties": false
     },
     "max_weight": { "type": "string" },
     "stackable": { "type": "boolean" },
@@ -28,5 +30,5 @@
       "description": "Nominal loaded volume of this load unit type (carrier + typical goods on it), e.g. '0.55m3' - not width*depth*height of 'dimensions', since that only covers the empty carrier's own footprint/height. Used together with storage_type.default_attributes.capacity_volume for simple cube-sum capacity checks."
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

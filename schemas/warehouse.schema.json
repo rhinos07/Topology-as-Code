@@ -35,9 +35,11 @@
             "version": { "type": "string" },
             "mqtt_broker": { "type": "string" },
             "node_mapping": { "type": "string" }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

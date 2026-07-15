@@ -20,28 +20,36 @@
         "check_interval": { "type": "string" },
         "forecast_horizon": { "type": "string" },
         "based_on": { "type": "string" }
-      }
+      },
+      "additionalProperties": false
     },
     "source": {
       "type": "object",
       "properties": {
         "storage_type": { "type": "string" },
         "section": { "type": "string" }
-      }
+      },
+      "minProperties": 1,
+      "additionalProperties": false,
+      "dependencies": { "section": ["storage_type"] }
     },
     "destination": {
       "type": "object",
       "properties": {
         "storage_type": { "type": "string" },
         "activity_area": { "type": "string" }
-      }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
     },
     "unit_conversion": {
       "type": "object",
       "properties": {
         "from_uom": { "type": "string" },
         "to_uom": { "type": "string" }
-      }
+      },
+      "required": ["from_uom", "to_uom"],
+      "additionalProperties": false
     },
     "priority": {
       "type": "string",
