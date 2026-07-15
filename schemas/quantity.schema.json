@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://warehouse-as-code.internal/schemas/quantity.schema.json",
+  "title": "Physical Quantities",
+  "definitions": {
+    "mass": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "type": "string", "enum": ["kg", "g", "t"] }
+      },
+      "additionalProperties": false
+    },
+    "length": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "type": "string", "enum": ["m", "cm", "mm"] }
+      },
+      "additionalProperties": false
+    },
+    "volume": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "type": "string", "enum": ["m3", "l"] }
+      },
+      "additionalProperties": false
+    },
+    "speed": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "type": "string", "enum": ["m/s", "km/h"] }
+      },
+      "additionalProperties": false
+    },
+    "temperatureZone": {
+      "oneOf": [
+        { "type": "string", "enum": ["ambient"] },
+        {
+          "type": "object",
+          "required": ["min", "max", "unit"],
+          "properties": {
+            "min": { "type": "number" },
+            "max": { "type": "number" },
+            "unit": { "const": "C" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

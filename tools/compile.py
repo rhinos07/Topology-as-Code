@@ -18,6 +18,7 @@ Usage:
 """
 
 import argparse
+import copy
 import hashlib
 import json
 import sys
@@ -294,6 +295,28 @@ STORAGE_TYPE_SOURCE_FIELDS = {
     "section_membership",
 }
 
+UNIT_NORMALIZATION = {
+    "kg": (1.0, "kg"), "g": (0.001, "kg"), "t": (1000.0, "kg"),
+    "m": (1.0, "m"), "cm": (0.01, "m"), "mm": (0.001, "m"),
+    "m3": (1.0, "m3"), "l": (0.001, "m3"),
+    "m/s": (1.0, "m/s"), "km/h": (1.0 / 3.6, "m/s"),
+}
+
+
+def normalize_quantities(value):
+    """Deep-copy an entity and normalize recognized physical quantities."""
+    if isinstance(value, list):
+        return [normalize_quantities(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    if set(value) == {"value", "unit"} and value.get("unit") in UNIT_NORMALIZATION:
+        factor, unit = UNIT_NORMALIZATION[value["unit"]]
+        normalized = round(float(value["value"]) * factor, 12)
+        if normalized.is_integer():
+            normalized = int(normalized)
+        return {"value": normalized, "unit": unit}
+    return {key: normalize_quantities(item) for key, item in value.items()}
+
 
 def compile_entity_collections(
     warehouse_data: dict,
@@ -372,7 +395,10 @@ def build_import_artifact(
         "storage_point": sorted(points, key=lambda point: point["id"])
     }
     normalized_entities = {
-        entity_type: sorted(items, key=lambda item: item["id"])
+        entity_type: sorted(
+            [normalize_quantities(copy.deepcopy(item)) for item in items],
+            key=lambda item: item["id"],
+        )
         for entity_type, items in sorted(normalized_entities.items())
     }
     normalized_extensions = normalize_extensions(extensions)

@@ -127,9 +127,25 @@ def duplicate_id_errors(items: list[dict], context: str, path: Path) -> list[str
     return errors
 
 
+def check_temperature_ranges(value, path: Path, location: str = "root") -> list[str]:
+    errors: list[str] = []
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            errors += check_temperature_ranges(item, path, f"{location}[{index}]")
+    elif isinstance(value, dict):
+        if set(value) == {"min", "max", "unit"} and value.get("unit") == "C":
+            if isinstance(value.get("min"), (int, float)) and isinstance(value.get("max"), (int, float)) and value["min"] > value["max"]:
+                errors.append(f"{path}: {location}: temperature min must not exceed max")
+        else:
+            for key, item in value.items():
+                errors += check_temperature_ranges(item, path, f"{location}.{key}")
+    return errors
+
+
 def validate_storage_types(path: Path) -> list[str]:
     errors = validate_file(path, "storage.schema.json")
     data = load_yaml(path)
+    errors += check_temperature_ranges(data, path)
     storage_types = data.get("storage_types", [])
     errors += duplicate_id_errors(storage_types, "storage_type", path)
     for st in storage_types:
@@ -255,8 +271,7 @@ def validate_element_catalog(path: Path, schema_name: str, list_key: str) -> lis
     data = load_yaml(path)
     if data is None:
         return [f"{path}: File is empty or invalid."]
-    schema = load_schema(schema_name)
-    validator = Draft7Validator(schema)
+    validator = make_validator(schema_name)
     items = data.get(list_key, [])
     errors += duplicate_id_errors(items, list_key.rstrip("s"), path)
     for item in items:
@@ -331,7 +346,8 @@ def collect_element_ids() -> dict[str, set[str]]:
 
 def validate_template_catalogs(path: Path) -> list[str]:
     data = load_yaml(path) or {}
-    errors: list[str] = []
+    errors: list[str] = validate_file(path, "rack-templates.schema.json")
+    errors += check_temperature_ranges(data, path)
     unknown = set(data) - set(TEMPLATE_CATALOGS)
     for key in sorted(unknown):
         errors.append(f"{path}: unknown template catalog '{key}'")

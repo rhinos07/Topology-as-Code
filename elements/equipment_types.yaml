@@ -5,23 +5,23 @@ equipment_types:
   - id: "shuttle_4way"
     description: "4-way shuttle for automated rack storage"
     automation_level: "conveyor_automated"
-    max_payload: "50kg"
-    max_speed: "3m/s"
+    max_payload: { value: 50, unit: "kg" }
+    max_speed: { value: 3, unit: "m/s" }
 
   - id: "forklift_counterbalance"
     description: "Manual counterbalance forklift"
     automation_level: "manual"
-    max_payload: "1500kg"
-    max_speed: "2m/s"
+    max_payload: { value: 1500, unit: "kg" }
+    max_speed: { value: 2, unit: "m/s" }
 
   - id: "agv_pallet"
     description: "Automated guided vehicle for pallet transport"
     automation_level: "conveyor_automated"
-    max_payload: "1000kg"
-    max_speed: "1.5m/s"
+    max_payload: { value: 1000, unit: "kg" }
+    max_speed: { value: 1.5, unit: "m/s" }
 
   - id: "autostore_robot"
     description: "AutoStore grid robot - retrieves/stacks bins within the grid and delivers them to ports"
     automation_level: "conveyor_automated"
-    max_payload: "30kg"
-    max_speed: "3.0m/s"
+    max_payload: { value: 30, unit: "kg" }
+    max_speed: { value: 3.0, unit: "m/s" }

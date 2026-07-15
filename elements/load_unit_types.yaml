@@ -4,42 +4,60 @@
 load_unit_types:
   - id: "pallet_euro"
     description: "EUR-pallet (EPAL), 800x1200mm"
-    dimensions: { width: "0.8m", depth: "1.2m", height: "0.144m" }
-    max_weight: "1000kg"
+    dimensions:
+      width: { value: 0.8, unit: "m" }
+      depth: { value: 1.2, unit: "m" }
+      height: { value: 0.144, unit: "m" }
+    max_weight: { value: 1000, unit: "kg" }
     stackable: true
-    volume: "0.138m3"
+    volume: { value: 0.138, unit: "m3" }
 
   - id: "pallet_industrial"
     description: "Industrial pallet, 1000x1200mm"
-    dimensions: { width: "1.0m", depth: "1.2m", height: "0.144m" }
-    max_weight: "1500kg"
+    dimensions:
+      width: { value: 1.0, unit: "m" }
+      depth: { value: 1.2, unit: "m" }
+      height: { value: 0.144, unit: "m" }
+    max_weight: { value: 1500, unit: "kg" }
     stackable: true
-    volume: "0.173m3"
+    volume: { value: 0.173, unit: "m3" }
 
   - id: "mesh_box"
     description: "Wire mesh box container, 800x1200mm"
-    dimensions: { width: "0.8m", depth: "1.2m", height: "0.97m" }
-    max_weight: "700kg"
+    dimensions:
+      width: { value: 0.8, unit: "m" }
+      depth: { value: 1.2, unit: "m" }
+      height: { value: 0.97, unit: "m" }
+    max_weight: { value: 700, unit: "kg" }
     stackable: true
-    volume: "0.931m3"
+    volume: { value: 0.931, unit: "m3" }
 
   - id: "carton"
     description: "Standard shipping carton"
-    dimensions: { width: "0.4m", depth: "0.3m", height: "0.3m" }
-    max_weight: "20kg"
+    dimensions:
+      width: { value: 0.4, unit: "m" }
+      depth: { value: 0.3, unit: "m" }
+      height: { value: 0.3, unit: "m" }
+    max_weight: { value: 20, unit: "kg" }
     stackable: false
-    volume: "0.036m3"
+    volume: { value: 0.036, unit: "m3" }
 
   - id: "autostore_bin"
     description: "AutoStore standard grid bin, 649x449mm footprint"
-    dimensions: { width: "0.649m", depth: "0.449m", height: "0.31m" }
-    max_weight: "30kg"
+    dimensions:
+      width: { value: 0.649, unit: "m" }
+      depth: { value: 0.449, unit: "m" }
+      height: { value: 0.31, unit: "m" }
+    max_weight: { value: 30, unit: "kg" }
     stackable: true
-    volume: "0.09m3"
+    volume: { value: 0.09, unit: "m3" }
 
   - id: "order_tote"
     description: "Order container that picked goods are placed into at a goods-to-person port (holds WIP for one or more orders)"
-    dimensions: { width: "0.6m", depth: "0.4m", height: "0.32m" }
-    max_weight: "25kg"
+    dimensions:
+      width: { value: 0.6, unit: "m" }
+      depth: { value: 0.4, unit: "m" }
+      height: { value: 0.32, unit: "m" }
+    max_weight: { value: 25, unit: "kg" }
     stackable: true
-    volume: "0.077m3"
+    volume: { value: 0.077, unit: "m3" }

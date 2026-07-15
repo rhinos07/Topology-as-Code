@@ -4,22 +4,28 @@
 rack_templates:
   - id: "rack_4way_standard"
     description: "Standard rack slot for 4-way shuttle"
-    dimensions: { width: "1.2m", depth: "0.8m", height: "0.4m" }
-    max_weight: "500kg"
+    dimensions:
+      width: { value: 1.2, unit: "m" }
+      depth: { value: 0.8, unit: "m" }
+      height: { value: 0.4, unit: "m" }
+    max_weight: { value: 500, unit: "kg" }
     temperature_zone: "ambient"
 
   - id: "rack_coldstorage_standard"
     description: "Rack slot for cold zone"
-    dimensions: { width: "1.2m", depth: "0.8m", height: "0.4m" }
-    max_weight: "400kg"
-    temperature_zone: "2-8C"
+    dimensions:
+      width: { value: 1.2, unit: "m" }
+      depth: { value: 0.8, unit: "m" }
+      height: { value: 0.4, unit: "m" }
+    max_weight: { value: 400, unit: "kg" }
+    temperature_zone: { min: 2, max: 8, unit: "C" }
 
 lane_templates:
   - id: "lane_shuttle_standard"
-    width: "2.5m"
+    width: { value: 2.5, unit: "m" }
     direction: "bidirectional"
     shuttle_compatible: true
-    max_speed: "1.5m/s"
+    max_speed: { value: 1.5, unit: "m/s" }
 
 workstation_templates:
   - id: "ws_pick_to_light"

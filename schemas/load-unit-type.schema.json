@@ -16,18 +16,18 @@
       "type": "object",
       "description": "Footprint/height of the empty carrier itself (e.g. an empty pallet's own height), used for geometric fit checks against storage_type.default_attributes.size.",
       "properties": {
-        "width": { "type": "string" },
-        "depth": { "type": "string" },
-        "height": { "type": "string" }
+        "width": { "$ref": "quantity.schema.json#/definitions/length" },
+        "depth": { "$ref": "quantity.schema.json#/definitions/length" },
+        "height": { "$ref": "quantity.schema.json#/definitions/length" }
       },
       "required": ["width", "depth", "height"],
       "additionalProperties": false
     },
-    "max_weight": { "type": "string" },
+    "max_weight": { "$ref": "quantity.schema.json#/definitions/mass" },
     "stackable": { "type": "boolean" },
     "volume": {
-      "type": "string",
-      "description": "Nominal loaded volume of this load unit type (carrier + typical goods on it), e.g. '0.55m3' - not width*depth*height of 'dimensions', since that only covers the empty carrier's own footprint/height. Used together with storage_type.default_attributes.capacity_volume for simple cube-sum capacity checks."
+      "$ref": "quantity.schema.json#/definitions/volume",
+      "description": "Nominal loaded volume of this load unit type. This can differ from width*depth*height of the empty carrier dimensions."
     }
   },
   "additionalProperties": false

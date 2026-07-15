@@ -23,13 +23,20 @@ def warehouse_data(revision="1", removal_policy="deactivate"):
 
 class ArtifactTests(unittest.TestCase):
     def test_hash_is_order_independent_and_ignores_revision(self):
-        points = [{"id": "B", "max_weight": "2kg"}, {"id": "A", "max_weight": "1kg"}]
+        points = [
+            {"id": "B", "max_weight": {"value": 2, "unit": "kg"}},
+            {"id": "A", "max_weight": {"value": 1000, "unit": "g"}},
+        ]
         first = build_import_artifact(warehouse_data("1"), points)
         second = build_import_artifact(warehouse_data("2"), list(reversed(points)))
         self.assertEqual(first["artifact"]["content_hash"], second["artifact"]["content_hash"])
         self.assertEqual(
             [point["id"] for point in first["entities"]["storage_point"]],
             ["A", "B"],
+        )
+        self.assertEqual(
+            first["entities"]["storage_point"][0]["max_weight"],
+            {"value": 1, "unit": "kg"},
         )
 
     def test_non_storage_entity_changes_artifact_hash(self):
@@ -53,8 +60,8 @@ class ArtifactTests(unittest.TestCase):
 
 class PlanTests(unittest.TestCase):
     def test_plan_classifies_create_update_and_deactivation(self):
-        current = build_import_artifact(warehouse_data(), [{"id": "A", "max_weight": "1kg"}, {"id": "REMOVED"}])
-        desired = build_import_artifact(warehouse_data("2"), [{"id": "A", "max_weight": "2kg"}, {"id": "NEW"}])
+        current = build_import_artifact(warehouse_data(), [{"id": "A", "max_weight": {"value": 1, "unit": "kg"}}, {"id": "REMOVED"}])
+        desired = build_import_artifact(warehouse_data("2"), [{"id": "A", "max_weight": {"value": 2, "unit": "kg"}}, {"id": "NEW"}])
         plan = build_plan(current, desired, Path("current.yaml"), Path("desired.yaml"))
         self.assertEqual(plan["summary"], {
             "create": 1, "update": 1, "deactivate": 1, "conflict": 0,
@@ -84,7 +91,7 @@ class PlanTests(unittest.TestCase):
         import yaml
 
         artifact = build_import_artifact(warehouse_data(), [{"id": "A"}])
-        artifact["entities"]["storage_point"][0]["max_weight"] = "999kg"
+        artifact["entities"]["storage_point"][0]["max_weight"] = {"value": 999, "unit": "kg"}
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "tampered.yaml"
             path.write_text(yaml.safe_dump(artifact), encoding="utf-8")

@@ -18,17 +18,20 @@ storage_types:
       coordinate_pattern: "{aisle:02d}-{stack:02d}-{level:02d}"
 
     default_attributes:
-      max_weight: "500kg"
+      max_weight: { value: 500, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
-      size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+      size:
+        width: { value: 1.2, unit: "m" }
+        depth: { value: 0.8, unit: "m" }
+        height: { value: 0.4, unit: "m" }
       position: "ZONE_HBR"     # logical position; use x/y/z per-coordinate override where exact placement matters
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial"]
-      capacity_volume: "0.25m3"
+      capacity_volume: { value: 0.25, unit: "m3" }
 
     exceptions:
       - coordinate: "01-01-06"
-        max_weight: "800kg"      # top level, reinforced rack
+        max_weight: { value: 800, unit: "kg" }      # top level, reinforced rack
         position: { x: 4.8, y: 12.0, z: 3.6 }    # metric override, measured from building reference point
       - coordinate: "03-04-01"
         blocked: true
@@ -71,7 +74,7 @@ storage_types:
       bays: 3
 
     default_attributes:
-      max_weight: "1000kg"
+      max_weight: { value: 1000, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
 
@@ -92,10 +95,13 @@ storage_types:
       coordinate_pattern: "BLK-{aisle:02d}"
 
     default_attributes:
-      max_weight: "1000kg"       # per load unit
+      max_weight: { value: 1000, unit: "kg" }       # per load unit
       temperature_zone: "ambient"
       capacity_per_point: 15     # 5 deep x 3 high
-      size: { width: "2.4m", depth: "4.0m", height: "3.0m" }
+      size:
+        width: { value: 2.4, unit: "m" }
+        depth: { value: 4.0, unit: "m" }
+        height: { value: 3.0, unit: "m" }
       position: "ZONE_BLK"
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial", "mesh_box"]
 
@@ -113,10 +119,13 @@ storage_types:
       coordinate_pattern: "FIX-{aisle:02d}-{stack:02d}"
 
     default_attributes:
-      max_weight: "50kg"
+      max_weight: { value: 50, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
-      size: { width: "0.4m", depth: "0.3m", height: "0.3m" }
+      size:
+        width: { value: 0.4, unit: "m" }
+        depth: { value: 0.3, unit: "m" }
+        height: { value: 0.3, unit: "m" }
       position: "ZONE_FIX"
       allowed_load_unit_types: ["carton"]
 
@@ -143,10 +152,13 @@ storage_types:
       coordinate_pattern: "KB-{aisle:02d}-{stack:02d}-{level:02d}"
 
     default_attributes:
-      max_weight: "400kg"
-      temperature_zone: "2-8C"
+      max_weight: { value: 400, unit: "kg" }
+      temperature_zone: { min: 2, max: 8, unit: "C" }
       capacity_per_point: 1
-      size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+      size:
+        width: { value: 1.2, unit: "m" }
+        depth: { value: 0.8, unit: "m" }
+        height: { value: 0.4, unit: "m" }
       position: "ZONE_COLD_B"
       allowed_load_unit_types: ["pallet_euro"]
 
@@ -167,10 +179,13 @@ storage_types:
       coordinate_pattern: "CH-{aisle:02d}-{stack:02d}-{level:02d}"
 
     default_attributes:
-      max_weight: "600kg"
+      max_weight: { value: 600, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
-      size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+      size:
+        width: { value: 1.2, unit: "m" }
+        depth: { value: 0.8, unit: "m" }
+        height: { value: 0.4, unit: "m" }
       position: "ZONE_CHANNEL_A"
       allowed_load_unit_types: ["pallet_euro"]
 
@@ -194,10 +209,13 @@ storage_types:
       coordinate_pattern: "AS-{aisle:02d}-{stack:02d}"
 
     default_attributes:
-      max_weight: "30kg"       # per bin
+      max_weight: { value: 30, unit: "kg" }       # per bin
       temperature_zone: "ambient"
       capacity_per_point: 16   # 16 bins stacked per column
-      size: { width: "0.649m", depth: "0.449m", height: "0.31m" }
+      size:
+        width: { value: 0.649, unit: "m" }
+        depth: { value: 0.449, unit: "m" }
+        height: { value: 0.31, unit: "m" }
       position: "ZONE_AUTOSTORE_A"
       allowed_load_unit_types: ["autostore_bin"]
 
@@ -215,13 +233,16 @@ storage_types:
       coordinate_pattern: "HZ-{aisle:02d}-{stack:02d}-{level:02d}"
 
     default_attributes:
-      max_weight: "500kg"
+      max_weight: { value: 500, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
-      size: { width: "1.2m", depth: "0.8m", height: "0.4m" }
+      size:
+        width: { value: 1.2, unit: "m" }
+        depth: { value: 0.8, unit: "m" }
+        height: { value: 0.4, unit: "m" }
       position: "ZONE_HAZMAT_A"
       allowed_load_unit_types: ["pallet_euro", "mesh_box"]
-      capacity_volume: "0.25m3"
+      capacity_volume: { value: 0.25, unit: "m3" }
       hazmat_classes: ["GHS02_FLAMMABLE", "GHS05_CORROSIVE"]
 
   # --- Staging area at the doors, manual ---
@@ -240,7 +261,7 @@ storage_types:
       coordinate_pattern: "STG-{aisle:02d}"
 
     default_attributes:
-      max_weight: "1000kg"
+      max_weight: { value: 1000, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial", "mesh_box", "carton"]

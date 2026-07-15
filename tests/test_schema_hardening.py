@@ -42,6 +42,11 @@ class StorageTypeSchemaTests(unittest.TestCase):
         value["max_weigth"] = "500kg"
         self.assert_invalid(value)
 
+    def test_legacy_string_quantity_is_rejected(self):
+        value = rack()
+        value["default_attributes"] = {"max_weight": "500kg"}
+        self.assert_invalid(value)
+
     def test_exactly_one_point_definition_is_required(self):
         value = rack()
         value["storage_points"] = [{"coordinate": "A"}]

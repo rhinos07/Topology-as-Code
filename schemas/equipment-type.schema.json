@@ -16,8 +16,8 @@
       "type": "string",
       "enum": ["manual", "conveyor_automated", "mixed"]
     },
-    "max_payload": { "type": "string" },
-    "max_speed": { "type": "string" }
+    "max_payload": { "$ref": "quantity.schema.json#/definitions/mass" },
+    "max_speed": { "$ref": "quantity.schema.json#/definitions/speed" }
   },
   "additionalProperties": false
 }

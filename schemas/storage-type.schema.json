@@ -129,7 +129,7 @@
             "type": "string",
             "description": "Unique coordinate within this storage_type; the compiled storage_point id becomes '<storage_type_id>.<coordinate>'."
           },
-          "max_weight": { "type": "string" },
+          "max_weight": { "$ref": "quantity.schema.json#/definitions/mass" },
           "capacity_per_point": { "type": "integer", "minimum": 1 },
           "blocked": { "type": "boolean" },
           "blocked_reason": {
@@ -162,8 +162,8 @@
       "type": "object",
       "description": "Attributes that apply to all generated storage_points, unless an exception overrides them.",
       "properties": {
-        "max_weight": { "type": "string" },
-        "temperature_zone": { "type": "string" },
+        "max_weight": { "$ref": "quantity.schema.json#/definitions/mass" },
+        "temperature_zone": { "$ref": "quantity.schema.json#/definitions/temperatureZone" },
         "capacity_per_point": { "type": "integer", "minimum": 1 },
         "size": { "$ref": "#/definitions/size" },
         "position": { "$ref": "#/definitions/position" },
@@ -179,8 +179,8 @@
           "description": "References ids in elements/load_unit_types.yaml. Restricts which load unit types may be stored at this storage_type."
         },
         "capacity_volume": {
-          "type": "string",
-          "description": "Usable volumetric capacity per storage_point, e.g. '1.5m3'. Not the same as size.width*depth*height: the usable cube is typically smaller than the outer envelope (rack beams, clearance, structural loss). 'size' describes the physical footprint/dimensions of the storage_point for fit checks; 'capacity_volume' is the nominal usable capacity for simple cube-sum checks (sum of load_unit_type.volume across stored goods <= capacity_volume), not a 3D bin-packing/geometric-fit calculation."
+          "$ref": "quantity.schema.json#/definitions/volume",
+          "description": "Usable volumetric capacity per storage_point. It may be smaller than size.width*depth*height because of clearance and structural loss."
         },
         "hazmat_classes": {
           "type": "array",
@@ -200,7 +200,7 @@
         "required": ["coordinate"],
         "properties": {
           "coordinate": { "type": "string" },
-          "max_weight": { "type": "string" },
+          "max_weight": { "$ref": "quantity.schema.json#/definitions/mass" },
           "blocked": { "type": "boolean" },
           "blocked_reason": {
             "type": "string",
@@ -393,9 +393,9 @@
       "type": "object",
       "description": "Outer physical dimensions (envelope) of the storage_point, used for geometric fit checks. Note: usable volume can be smaller than width*depth*height - see default_attributes.capacity_volume.",
       "properties": {
-        "width": { "type": "string" },
-        "depth": { "type": "string" },
-        "height": { "type": "string" }
+        "width": { "$ref": "quantity.schema.json#/definitions/length" },
+        "depth": { "$ref": "quantity.schema.json#/definitions/length" },
+        "height": { "$ref": "quantity.schema.json#/definitions/length" }
       },
       "additionalProperties": false
     },

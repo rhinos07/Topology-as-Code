@@ -20,7 +20,7 @@ storage_types:
       - coordinate: "AS_GRID"    # the whole grid, as one opaque block place
 
     default_attributes:
-      max_weight: "30kg"        # per bin
+      max_weight: { value: 30, unit: "kg" }        # per bin
       temperature_zone: "ambient"
       capacity_per_point: 4800  # nominal total bin slots the controller reports for this grid
       allowed_load_unit_types: ["autostore_bin"]
