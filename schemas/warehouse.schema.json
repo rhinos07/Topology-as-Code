@@ -26,6 +26,8 @@
         "imports": {
           "type": "array",
           "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true,
           "description": "Relative paths to further YAML files (structure/, strategies/)."
         },
         "fleet_interface": {

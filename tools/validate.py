@@ -40,6 +40,12 @@ ELEMENT_CATALOGS = {
     "hazmat_classes.yaml": ("hazmat-class.schema.json", "hazmat_classes"),
 }
 
+TEMPLATE_CATALOGS = {
+    "rack_templates": "rack_templates",
+    "lane_templates": "lane_templates",
+    "workstation_templates": "workstation_templates",
+}
+
 
 def load_yaml(path: Path) -> dict:
     with open(path, "r", encoding="utf-8") as f:
@@ -306,7 +312,25 @@ def collect_element_ids() -> dict[str, set[str]]:
                     for item in data.get(list_key, [])
                     if item.get("id")
                 }
+    template_file = ELEMENTS_DIR / "rack_templates.yaml"
+    if template_file.exists():
+        data = load_yaml(template_file) or {}
+        for list_key in TEMPLATE_CATALOGS:
+            ids[list_key] = {
+                item.get("id") for item in data.get(list_key, []) if item.get("id")
+            }
     return ids
+
+
+def validate_template_catalogs(path: Path) -> list[str]:
+    data = load_yaml(path) or {}
+    errors: list[str] = []
+    unknown = set(data) - set(TEMPLATE_CATALOGS)
+    for key in sorted(unknown):
+        errors.append(f"{path}: unknown template catalog '{key}'")
+    for list_key, context in TEMPLATE_CATALOGS.items():
+        errors += duplicate_id_errors(data.get(list_key, []), context.rstrip("s"), path)
+    return errors
 
 
 def check_storage_refs(
@@ -317,7 +341,8 @@ def check_storage_refs(
     """Checks referential integrity in storage.yaml:
     - storage_type.controller -> controller_definitions.id (wcs.yaml)
     - storage_type.default_attributes.allowed_load_unit_types -> load_unit_types.id
-    - storage_type.exceptions[].blocked_reason -> blocking_reasons.id
+    - storage points/exceptions/layout variants -> load unit and blocking catalogs
+    - work_center.workstation_template -> workstation_templates.id
     """
     errors: list[str] = []
     data = load_yaml(path)
@@ -326,30 +351,65 @@ def check_storage_refs(
 
     lut_ids = element_ids.get("load_unit_types", set())
     br_ids = element_ids.get("blocking_reasons", set())
+    hazmat_ids = element_ids.get("hazmat_classes", set())
+    workstation_ids = element_ids.get("workstation_templates", set())
 
     for st in data.get("storage_types", []):
         st_id = st.get("id", "?")
 
         ctrl = st.get("controller")
-        if ctrl and ctrl_ids and ctrl not in ctrl_ids:
+        if ctrl and ctrl not in ctrl_ids:
             errors.append(
                 f"{path}: storage_type '{st_id}': controller '{ctrl}' not found in wcs.yaml controller_definitions"
             )
 
         for lut in (st.get("default_attributes") or {}).get("allowed_load_unit_types", []):
-            if lut_ids and lut not in lut_ids:
+            if lut not in lut_ids:
                 errors.append(
                     f"{path}: storage_type '{st_id}': default_attributes.allowed_load_unit_types '{lut}'"
                     f" not found in elements/load_unit_types.yaml"
                 )
 
-        for exc in st.get("exceptions", []):
+        for hazmat in (st.get("default_attributes") or {}).get("hazmat_classes", []):
+            if hazmat not in hazmat_ids:
+                errors.append(
+                    f"{path}: storage_type '{st_id}': default_attributes.hazmat_classes "
+                    f"'{hazmat}' not found in elements/hazmat_classes.yaml"
+                )
+
+        for variant in st.get("layout_variants", []):
+            lut = variant.get("load_unit_type")
+            if lut and lut not in lut_ids:
+                errors.append(
+                    f"{path}: storage_type '{st_id}': layout_variant '{variant.get('id', '?')}' "
+                    f"load_unit_type '{lut}' not found in elements/load_unit_types.yaml"
+                )
+
+        for field in ("storage_points", "exceptions"):
+            for entry in st.get(field, []):
+                for lut in entry.get("allowed_load_unit_types", []):
+                    if lut not in lut_ids:
+                        errors.append(
+                            f"{path}: storage_type '{st_id}': {field} at "
+                            f"'{entry.get('coordinate', '?')}': allowed_load_unit_types "
+                            f"'{lut}' not found in elements/load_unit_types.yaml"
+                        )
+
+        for exc in [*st.get("storage_points", []), *st.get("exceptions", [])]:
             reason = exc.get("blocked_reason")
-            if reason and br_ids and reason not in br_ids:
+            if reason and reason not in br_ids:
                 errors.append(
                     f"{path}: storage_type '{st_id}': exception at '{exc.get('coordinate', '?')}':"
                     f" blocked_reason '{reason}' not found in elements/blocking_reasons.yaml"
                 )
+
+    for wc in data.get("work_centers", []):
+        template = wc.get("workstation_template")
+        if template and template not in workstation_ids:
+            errors.append(
+                f"{path}: work_center '{wc.get('id', '?')}': workstation_template "
+                f"'{template}' not found in elements/rack_templates.yaml workstation_templates"
+            )
 
     return errors
 
@@ -396,7 +456,8 @@ def check_door_staging_refs(path: Path) -> list[str]:
 def check_wcs_refs(path: Path, element_ids: dict[str, set[str]]) -> list[str]:
     """Checks referential integrity within wcs.yaml:
     - reporting_point.controller -> controller_definitions.id
-    - equipment.type -> equipment_types.id
+    - equipment.type/controller/served_points -> referenced entities
+    - telegram action points -> reporting_points.id
     """
     errors: list[str] = []
     data = load_yaml(path)
@@ -417,10 +478,35 @@ def check_wcs_refs(path: Path, element_ids: dict[str, set[str]]) -> list[str]:
     for eq in data.get("equipment", []):
         eq_id = eq.get("id", "?")
         eq_type = eq.get("type")
-        if eq_type and et_ids and eq_type not in et_ids:
+        if eq_type and eq_type not in et_ids:
             errors.append(
                 f"{path}: equipment '{eq_id}': type '{eq_type}' not found in elements/equipment_types.yaml"
             )
+        ctrl = eq.get("controller")
+        if ctrl and ctrl not in ctrl_ids:
+            errors.append(
+                f"{path}: equipment '{eq_id}': controller '{ctrl}' not found in controller_definitions"
+            )
+
+    reporting_point_ids = {
+        rp.get("id") for rp in data.get("reporting_points", []) if rp.get("id")
+    }
+    for eq in data.get("equipment", []):
+        for point in eq.get("served_points", []):
+            if point not in reporting_point_ids:
+                errors.append(
+                    f"{path}: equipment '{eq.get('id', '?')}': served_point '{point}' "
+                    "not found in reporting_points"
+                )
+
+    for index, action in enumerate(data.get("telegram_actions", []), start=1):
+        for field in ("from_point", "to_point", "next_target"):
+            point = action.get(field)
+            if point and point not in reporting_point_ids:
+                errors.append(
+                    f"{path}: telegram_action #{index}: {field} '{point}' "
+                    "not found in reporting_points"
+                )
 
     return errors
 
@@ -482,7 +568,7 @@ def _validate_endpoint_refs(
     for st in _as_id_list(endpoint.get("storage_type")):
         if st == "*":
             continue
-        if storage_type_ids and st not in storage_type_ids:
+        if st not in storage_type_ids:
             errors.append(f"{path}: {context}: storage_type '{st}' not found in storage.yaml")
         else:
             for sec in _as_id_list(endpoint.get("section")):
@@ -492,15 +578,15 @@ def _validate_endpoint_refs(
                     )
 
     for aa in _as_id_list(endpoint.get("activity_area")):
-        if activity_area_ids and aa not in activity_area_ids:
+        if aa not in activity_area_ids:
             errors.append(f"{path}: {context}: activity_area '{aa}' not found in storage.yaml")
 
     for wc in _as_id_list(endpoint.get("work_center")):
-        if work_center_ids and wc not in work_center_ids:
+        if wc not in work_center_ids:
             errors.append(f"{path}: {context}: work_center '{wc}' not found in storage.yaml")
 
     for rp in _as_id_list(endpoint.get("reporting_point")):
-        if reporting_point_ids and rp not in reporting_point_ids:
+        if rp not in reporting_point_ids:
             errors.append(f"{path}: {context}: reporting_point '{rp}' not found in wcs.yaml")
 
     return errors
@@ -510,6 +596,7 @@ def check_movement_rule_refs(
     movement_path: Path,
     storage_data: dict | None,
     wcs_data: dict | None,
+    lanes_data: dict | None,
     element_ids: dict[str, set[str]],
 ) -> list[str]:
     """Checks referential integrity in movement_rules.yaml:
@@ -517,6 +604,8 @@ def check_movement_rule_refs(
       work_center, reporting_point ids (from storage.yaml / wcs.yaml)
     - allowed_load_unit_types -> load_unit_types.id (elements/)
     - trigger -> process_types.id (elements/)
+    - via_segment -> conveyor_segments.id (lanes.yaml)
+    - applies_to_policy -> referenced storage_type movement policies
     """
     errors: list[str] = []
     data = load_yaml(movement_path)
@@ -546,6 +635,16 @@ def check_movement_rule_refs(
 
     lut_ids = element_ids.get("load_unit_types", set())
     pt_ids = element_ids.get("process_types", set())
+    segment_ids = {
+        segment.get("id")
+        for segment in (lanes_data or {}).get("conveyor_segments", [])
+        if segment.get("id")
+    }
+    storage_policies = {
+        st.get("id"): st.get("movement_policy")
+        for st in (storage_data or {}).get("storage_types", [])
+        if st.get("id")
+    }
 
     for rule in data.get("movement_rules", []):
         rule_id = rule.get("id", "?")
@@ -562,18 +661,44 @@ def check_movement_rule_refs(
             )
 
         for lut in rule.get("allowed_load_unit_types", []):
-            if lut_ids and lut not in lut_ids:
+            if lut not in lut_ids:
                 errors.append(
                     f"{movement_path}: movement_rule '{rule_id}':"
                     f" allowed_load_unit_types '{lut}' not found in elements/load_unit_types.yaml"
                 )
 
         trigger = rule.get("trigger")
-        if trigger and pt_ids and trigger not in pt_ids:
+        if trigger and trigger not in pt_ids:
             errors.append(
                 f"{movement_path}: movement_rule '{rule_id}':"
                 f" trigger '{trigger}' not found in elements/process_types.yaml"
             )
+
+        via_segment = rule.get("via_segment")
+        if via_segment and via_segment not in segment_ids:
+            errors.append(
+                f"{movement_path}: movement_rule '{rule_id}': via_segment "
+                f"'{via_segment}' not found in lanes.yaml conveyor_segments"
+            )
+
+        declared_policy = rule.get("applies_to_policy")
+        if declared_policy:
+            referenced_storage_types: set[str] = set()
+            for role in ("from", "to"):
+                referenced_storage_types.update(
+                    st for st in _as_id_list((rule.get(role) or {}).get("storage_type"))
+                    if st != "*"
+                )
+            actual_policies = {
+                storage_policies.get(st_id) for st_id in referenced_storage_types
+                if storage_policies.get(st_id)
+            }
+            if len(actual_policies) == 1 and declared_policy not in actual_policies:
+                errors.append(
+                    f"{movement_path}: movement_rule '{rule_id}': applies_to_policy "
+                    f"'{declared_policy}' contradicts referenced storage_type policy "
+                    f"'{next(iter(actual_policies))}'"
+                )
 
     return errors
 
@@ -613,7 +738,7 @@ def check_replenishment_refs(
                 continue
 
             st = endpoint.get("storage_type")
-            if st and storage_type_ids and st not in storage_type_ids:
+            if st and st not in storage_type_ids:
                 errors.append(
                     f"{path}: replenishment_strategy '{strat_id}':"
                     f" {role}.storage_type '{st}' not found in storage.yaml"
@@ -627,7 +752,7 @@ def check_replenishment_refs(
                 )
 
             aa = endpoint.get("activity_area")
-            if aa and activity_area_ids and aa not in activity_area_ids:
+            if aa and aa not in activity_area_ids:
                 errors.append(
                     f"{path}: replenishment_strategy '{strat_id}':"
                     f" {role}.activity_area '{aa}' not found in storage.yaml"
@@ -640,6 +765,7 @@ def check_lane_refs(
     lanes_path: Path,
     storage_data: dict | None,
     wcs_data: dict | None,
+    element_ids: dict[str, set[str]],
 ) -> list[str]:
     """Checks referential integrity in lanes.yaml:
     - lane.connects -> storage_type / door / work_center ids
@@ -670,6 +796,12 @@ def check_lane_refs(
 
     for lane in data.get("lanes", []):
         lane_id = lane.get("id", "?")
+        template = lane.get("template")
+        if template and template not in element_ids.get("lane_templates", set()):
+            errors.append(
+                f"{lanes_path}: lane '{lane_id}': template '{template}' not found "
+                "in elements/rack_templates.yaml lane_templates"
+            )
         for conn in lane.get("connects", []):
             if conn not in known_ids:
                 errors.append(
@@ -699,6 +831,234 @@ def check_lane_refs(
     return errors
 
 
+def check_topology_id_uniqueness(
+    storage_path: Path,
+    storage_data: dict | None,
+    wcs_data: dict | None,
+) -> list[str]:
+    """Checks the shared, untyped topology endpoint namespace."""
+    owners: dict[str, str] = {}
+    errors: list[str] = []
+    collections = (
+        ("storage_type", (storage_data or {}).get("storage_types", [])),
+        ("door", (storage_data or {}).get("doors", [])),
+        ("work_center", (storage_data or {}).get("work_centers", [])),
+        ("reporting_point", (wcs_data or {}).get("reporting_points", [])),
+    )
+    for kind, items in collections:
+        for item in items:
+            item_id = item.get("id")
+            if not item_id:
+                continue
+            previous = owners.get(item_id)
+            if previous and previous != kind:
+                errors.append(
+                    f"{storage_path}: topology id '{item_id}' is used by both "
+                    f"{previous} and {kind}; lane and conveyor references would be ambiguous"
+                )
+            owners[item_id] = kind
+    return errors
+
+
+def check_storage_coordinate_integrity(
+    storage_path: Path,
+    storage_data: dict | None,
+    wcs_data: dict | None,
+) -> list[str]:
+    """Expands coordinate identities in memory and checks uniqueness/references."""
+    errors: list[str] = []
+    compiled_ids: set[str] = set()
+
+    def register(st_id: str, coordinate: str) -> None:
+        point_id = f"{st_id}.{coordinate}"
+        if point_id in compiled_ids:
+            errors.append(f"{storage_path}: duplicate compiled storage_point id '{point_id}'")
+        compiled_ids.add(point_id)
+
+    for st in (storage_data or {}).get("storage_types", []):
+        st_id = st.get("id", "?")
+        generated_coordinates: set[str] = set()
+        try:
+            if "storage_point_generator" in st:
+                generator = st["storage_point_generator"]
+                for aisle in range(1, generator.get("aisles", 1) + 1):
+                    for stack in range(1, generator.get("stacks", 1) + 1):
+                        for level in range(1, generator.get("levels", 1) + 1):
+                            coordinate = generator["coordinate_pattern"].format(
+                                aisle=aisle, stack=stack, level=level
+                            )
+                            generated_coordinates.add(coordinate)
+                            register(st_id, coordinate)
+            elif "layout_variants" in st:
+                grid = st.get("layout_grid", {})
+                for variant in st["layout_variants"]:
+                    for aisle in range(1, grid.get("aisles", 1) + 1):
+                        for bay in range(1, grid.get("bays", 1) + 1):
+                            for slot in range(1, variant["positions_per_bay"] + 1):
+                                coordinate = variant["coordinate_pattern"].format(
+                                    aisle=aisle, bay=bay, slot=slot
+                                )
+                                register(st_id, coordinate)
+            else:
+                for point in st.get("storage_points", []):
+                    register(st_id, point["coordinate"])
+        except (KeyError, ValueError, IndexError) as exc:
+            errors.append(
+                f"{storage_path}: storage_type '{st_id}': invalid coordinate_pattern: {exc}"
+            )
+
+        for exception in st.get("exceptions", []):
+            coordinate = exception.get("coordinate")
+            if coordinate and coordinate not in generated_coordinates:
+                errors.append(
+                    f"{storage_path}: storage_type '{st_id}': exception coordinate "
+                    f"'{coordinate}' does not match a generated storage point"
+                )
+
+    for kind, items in (
+        ("work_center", (storage_data or {}).get("work_centers", [])),
+        ("reporting_point", (wcs_data or {}).get("reporting_points", [])),
+    ):
+        for item in items:
+            if not item.get("storage_point_ref"):
+                continue
+            item_id = item.get("id")
+            if item_id in compiled_ids:
+                errors.append(
+                    f"{storage_path}: {kind} storage_point_ref id '{item_id}' collides "
+                    "with a compiled storage_point id"
+                )
+            compiled_ids.add(item_id)
+    return errors
+
+
+def _activity_area_nodes(storage_data: dict | None) -> dict[str, set[str]]:
+    result: dict[str, set[str]] = {}
+    for area in (storage_data or {}).get("activity_areas", []):
+        result[area.get("id")] = {
+            str(ref).split(".", 1)[0] for ref in area.get("bins_from", [])
+        }
+    return result
+
+
+def _movement_endpoint_nodes(endpoint: dict | None, activity_nodes: dict[str, set[str]]) -> set[str]:
+    if not isinstance(endpoint, dict):
+        return set()
+    nodes: set[str] = set()
+    nodes.update(st for st in _as_id_list(endpoint.get("storage_type")) if st != "*")
+    nodes.update(_as_id_list(endpoint.get("work_center")))
+    nodes.update(_as_id_list(endpoint.get("reporting_point")))
+    for area in _as_id_list(endpoint.get("activity_area")):
+        nodes.update(activity_nodes.get(area, set()))
+    return nodes
+
+
+def _has_path(adjacency: dict[str, set[str]], source: str, target: str) -> bool:
+    if source == target:
+        return True
+    pending = [source]
+    seen = {source}
+    while pending:
+        node = pending.pop()
+        for neighbor in adjacency.get(node, set()):
+            if neighbor == target:
+                return True
+            if neighbor not in seen:
+                seen.add(neighbor)
+                pending.append(neighbor)
+    return False
+
+
+def check_graph_reachability(
+    movement_path: Path,
+    movement_data: dict | None,
+    storage_data: dict | None,
+    wcs_data: dict | None,
+    lanes_data: dict | None,
+) -> list[str]:
+    """Checks executable automated/segment-bound rules against the topology graph.
+
+    Lanes and conveyor_main are bidirectional, conveyor_segments are directed.
+    Storage types and reporting points owned by the same controller are mutually
+    reachable inside that controller boundary (e.g. an opaque AutoStore grid).
+    Manual rules remain implicit because forklift/walking paths are intentionally
+    not exhaustively modeled.
+    """
+    errors: list[str] = []
+    adjacency: dict[str, set[str]] = {}
+
+    def add_edge(source: str, target: str, bidirectional: bool = False) -> None:
+        adjacency.setdefault(source, set()).add(target)
+        adjacency.setdefault(target, set())
+        if bidirectional:
+            adjacency[target].add(source)
+
+    for lane in (lanes_data or {}).get("lanes", []):
+        points = lane.get("connects", [])
+        for source in points:
+            for target in points:
+                if source != target:
+                    add_edge(source, target, bidirectional=True)
+    main = (lanes_data or {}).get("conveyor_main") or {}
+    for source in main.get("connects", []):
+        for target in main.get("connects", []):
+            if source != target:
+                add_edge(source, target, bidirectional=True)
+    segments = {
+        segment.get("id"): segment
+        for segment in (lanes_data or {}).get("conveyor_segments", [])
+        if segment.get("id")
+    }
+    for segment in segments.values():
+        add_edge(segment["from"], segment["to"])
+
+    controller_nodes: dict[str, set[str]] = {}
+    for st in (storage_data or {}).get("storage_types", []):
+        if st.get("controller"):
+            controller_nodes.setdefault(st["controller"], set()).add(st["id"])
+    for rp in (wcs_data or {}).get("reporting_points", []):
+        if rp.get("controller"):
+            controller_nodes.setdefault(rp["controller"], set()).add(rp["id"])
+    for nodes in controller_nodes.values():
+        for source in nodes:
+            for target in nodes:
+                if source != target:
+                    add_edge(source, target)
+
+    activity_nodes = _activity_area_nodes(storage_data)
+    for rule in (movement_data or {}).get("movement_rules", []):
+        if not rule.get("allowed"):
+            continue
+        via_segment = rule.get("via_segment")
+        requires_path = rule.get("execution") == "automated" or bool(via_segment)
+        if not requires_path:
+            continue
+        sources = _movement_endpoint_nodes(rule.get("from"), activity_nodes)
+        targets = _movement_endpoint_nodes(rule.get("to"), activity_nodes)
+        if not sources or not targets:
+            errors.append(
+                f"{movement_path}: movement_rule '{rule.get('id', '?')}': automated or "
+                "segment-bound rule requires resolvable from and to endpoints"
+            )
+            continue
+        if via_segment in segments:
+            segment = segments[via_segment]
+            if segment["from"] not in sources or segment["to"] not in targets:
+                errors.append(
+                    f"{movement_path}: movement_rule '{rule.get('id', '?')}': via_segment "
+                    f"'{via_segment}' connects {segment['from']} -> {segment['to']}, which "
+                    "does not match the rule endpoints"
+                )
+        for source in sorted(sources):
+            for target in sorted(targets):
+                if not _has_path(adjacency, source, target):
+                    errors.append(
+                        f"{movement_path}: movement_rule '{rule.get('id', '?')}': no directed "
+                        f"topology path from '{source}' to '{target}'"
+                    )
+    return errors
+
+
 def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str]] = {}) -> list[str]:
     """Validates a single building-level warehouse.yaml and everything it imports."""
     if not warehouse_file.exists():
@@ -706,8 +1066,17 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
 
     all_errors = validate_file(warehouse_file, "warehouse.schema.json")
 
+    imported_paths = collect_imports(warehouse_file)
+    if len(imported_paths) != len(set(imported_paths)):
+        all_errors.append(f"{warehouse_file}: duplicate warehouse import path")
+    import_names = [path.name for path in imported_paths]
+    duplicate_names = sorted({name for name in import_names if import_names.count(name) > 1})
+    for name in duplicate_names:
+        all_errors.append(
+            f"{warehouse_file}: multiple imports named '{name}' are ambiguous"
+        )
     imports: dict[str, Path] = {}
-    for imported in collect_imports(warehouse_file):
+    for imported in imported_paths:
         if not imported.exists():
             all_errors.append(f"{warehouse_file}: imported file missing: {imported}")
             continue
@@ -733,6 +1102,8 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
     # Load shared data once for all cross-file checks below.
     storage_data = load_yaml(imports["storage.yaml"]) if "storage.yaml" in imports else {}
     wcs_data = load_yaml(imports["wcs.yaml"]) if "wcs.yaml" in imports else {}
+    lanes_data = load_yaml(imports["lanes.yaml"]) if "lanes.yaml" in imports else {}
+    movement_data = load_yaml(imports["movement_rules.yaml"]) if "movement_rules.yaml" in imports else {}
 
     # Cross-file checks: run regardless of element_ids availability so that
     # within-file references (e.g. door -> staging section) are always verified.
@@ -746,6 +1117,12 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
         all_errors += check_storage_refs(imports["storage.yaml"], ctrl_ids, element_ids)
         all_errors += check_door_staging_refs(imports["storage.yaml"])
         all_errors += check_activity_area_refs(imports["storage.yaml"])
+        all_errors += check_topology_id_uniqueness(
+            imports["storage.yaml"], storage_data, wcs_data
+        )
+        all_errors += check_storage_coordinate_integrity(
+            imports["storage.yaml"], storage_data, wcs_data
+        )
 
     if "wcs.yaml" in imports:
         all_errors += check_wcs_refs(imports["wcs.yaml"], element_ids)
@@ -755,14 +1132,20 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
             imports["movement_rules.yaml"], storage_data, wcs_data
         )
         all_errors += check_movement_rule_refs(
-            imports["movement_rules.yaml"], storage_data, wcs_data, element_ids
+            imports["movement_rules.yaml"], storage_data, wcs_data, lanes_data, element_ids
+        )
+        all_errors += check_graph_reachability(
+            imports["movement_rules.yaml"], movement_data,
+            storage_data, wcs_data, lanes_data,
         )
 
     if "replenishment.yaml" in imports:
         all_errors += check_replenishment_refs(imports["replenishment.yaml"], storage_data)
 
     if "lanes.yaml" in imports:
-        all_errors += check_lane_refs(imports["lanes.yaml"], storage_data, wcs_data)
+        all_errors += check_lane_refs(
+            imports["lanes.yaml"], storage_data, wcs_data, element_ids
+        )
 
     return all_errors
 
@@ -774,8 +1157,37 @@ def validate_facility_file(facility_file: Path, element_ids: dict[str, set[str]]
 
     all_errors = validate_file(facility_file, "facility.schema.json")
 
-    for building_file in collect_relative_refs(facility_file, "facility", "buildings"):
+    facility_data = load_yaml(facility_file) or {}
+    facility = facility_data.get("facility", {})
+    expected_facility = facility.get("reference_number") or facility.get("id")
+    building_files = collect_relative_refs(facility_file, "facility", "buildings")
+    building_ids: set[str] = set()
+    dataset_ids: set[str] = set()
+    for building_file in building_files:
         all_errors += validate_warehouse_file(building_file, element_ids)
+        if not building_file.exists():
+            continue
+        warehouse_data = load_yaml(building_file) or {}
+        building_id = (warehouse_data.get("target") or {}).get("building")
+        dataset_id = (warehouse_data.get("metadata") or {}).get("dataset_id")
+        target_facility = (warehouse_data.get("target") or {}).get("facility")
+        if building_id in building_ids:
+            all_errors.append(
+                f"{facility_file}: duplicate target.building '{building_id}' in facility"
+            )
+        if building_id:
+            building_ids.add(building_id)
+        if dataset_id in dataset_ids:
+            all_errors.append(
+                f"{facility_file}: duplicate warehouse metadata.dataset_id '{dataset_id}'"
+            )
+        if dataset_id:
+            dataset_ids.add(dataset_id)
+        if expected_facility and target_facility != expected_facility:
+            all_errors.append(
+                f"{building_file}: target.facility '{target_facility}' does not match "
+                f"parent facility '{expected_facility}'"
+            )
 
     return all_errors
 
@@ -784,8 +1196,31 @@ def validate_company_file(company_file: Path, element_ids: dict[str, set[str]] =
     """Validates a company.yaml and cascades into every facility it lists."""
     all_errors = validate_file(company_file, "company.schema.json")
 
+    company_data = load_yaml(company_file) or {}
+    company_id = (company_data.get("company") or {}).get("id")
+    facility_ids: set[str] = set()
     for facility_file in collect_relative_refs(company_file, "company", "facilities"):
         all_errors += validate_facility_file(facility_file, element_ids)
+        if not facility_file.exists():
+            continue
+        facility_data = load_yaml(facility_file) or {}
+        facility_id = (facility_data.get("facility") or {}).get("id")
+        if facility_id in facility_ids:
+            all_errors.append(
+                f"{company_file}: duplicate facility id '{facility_id}'"
+            )
+        if facility_id:
+            facility_ids.add(facility_id)
+        for building_file in collect_relative_refs(facility_file, "facility", "buildings"):
+            if not building_file.exists():
+                continue
+            warehouse_data = load_yaml(building_file) or {}
+            target_tenant = (warehouse_data.get("target") or {}).get("tenant")
+            if company_id and target_tenant != company_id:
+                all_errors.append(
+                    f"{building_file}: target.tenant '{target_tenant}' does not match "
+                    f"parent company '{company_id}'"
+                )
 
     return all_errors
 
@@ -809,6 +1244,10 @@ def main(argv: list[str]) -> int:
         catalog_file = ELEMENTS_DIR / filename
         if catalog_file.exists():
             all_errors += validate_element_catalog(catalog_file, schema_name, list_key)
+
+    template_file = ELEMENTS_DIR / "rack_templates.yaml"
+    if template_file.exists():
+        all_errors += validate_template_catalogs(template_file)
 
     element_ids = collect_element_ids()
 

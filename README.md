@@ -178,42 +178,26 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
       Linq2db model) - currently it only produces an intermediate YAML,
       not a WMS-specific import format
 
-### Open Validation Gaps
+### Validation Coverage and Remaining Gaps
 
-`tools/validate.py` validates each file against its own JSON Schema and
-runs one cross-file consistency check so far: a `movement_rule.execution`
-(`manual`/`automated`) is verified against the controllers its endpoints
-sit under (`storage_type.controller`/`reporting_point.controller`) and a
-contradiction is reported. Broader cross-reference checking is still
-missing. Known gaps:
+`tools/validate.py` checks all modeled cross-file references, duplicate IDs
+and generated coordinates, parent Company/Facility/Building identity, movement
+execution/controller consistency, and directed graph reachability for automated
+or explicitly segment-bound routes. Lanes and `conveyor_main` are treated as
+bidirectional; conveyor segments are directed. Nodes below the same controller
+form an implicit controller-internal graph, which supports opaque automation
+cells such as AutoStore without inventing internal conveyor segments.
 
-1. **No cross-file referential integrity.** A typo in a referenced ID is
-   not caught. Affected references:
-   - `movement_rule.from/to.storage_type` (`movement_rules.yaml`) → `storage_type.id` (`storage.yaml`)
-   - `movement_rule.allowed_load_unit_types` (`movement_rules.yaml`) → `load_unit_types.id` (`elements/`)
-   - `movement_rule.trigger` (`movement_rules.yaml`) → `process_types.id` (`elements/`)
-   - `storage_type.default_attributes.allowed_load_unit_types` (`storage.yaml`) → `load_unit_types.id` (`elements/`)
-   - `storage_type.exceptions[].blocked_reason` (`storage.yaml`) → `blocking_reasons.id` (`elements/`)
-   - `door.staging_section` → `storage_type.sections[].id` (both in `storage.yaml`)
-   - `reporting_point.controller` → `controller_definitions.id` (both in `wcs.yaml`)
-   - `storage_type.controller` (`storage.yaml`) → `controller_definitions.id` (`wcs.yaml`)
-   - `equipment.type` (`wcs.yaml`) → `equipment_types.id` (`elements/`)
-   - `activity_area.bins_from` → `storage_type`/`section` ids (`storage.yaml`)
-   - `replenishment_strategy.source/destination` (`replenishment.yaml`) → `storage_type`/`activity_area` (`storage.yaml`)
-   - `lane.connects` / `conveyor_segment.from/to` (`lanes.yaml`) → `storage_type`/`door`/`reporting_point`/`work_center` ids (multiple files)
-2. **`explicit_only` completeness is not checked.** For a `storage_type`
-   with `movement_policy: "explicit_only"`, every `lane`/`conveyor_segment`
-   should have a matching `movement_rule` — not verified.
-3. **`layout_variants` exclusivity is undeclared to tooling.** That two
-   variants (e.g. "2 industrial pallets" vs. "3 euro pallets" per bay)
-   physically overlap is documented but not machine-checked.
-4. ~~`storage_point_generator`/`layout_variants` are not compiled.~~
-   **Resolved** by `tools/compile.py` — see "Next Steps" above. Note this
-   only expands templates into concrete points; it does not validate them
-   against the JSON schemas (run `validate.py` first).
-5. **No physical compatibility check** between a `storage_type`'s
-   `size`/`max_weight` and its referenced `allowed_load_unit_types` (e.g.
-   whether a euro pallet actually fits a 0.4m-wide bay).
+Manual routes are not required to have graph edges because forklift and walking
+paths are deliberately not exhaustively modeled. Remaining validation gaps are:
+
+1. **`explicit_only` route completeness:** the validator proves that declared
+   automated routes are reachable, but does not infer which additional business
+   routes ought to exist for every physical segment.
+2. **Runtime layout exclusivity:** alternative layouts compile with a shared
+   `physical_bay`; enforcing one active variant per bay remains a WMS concern.
+3. **Physical compatibility:** dimensions, weights and load-unit envelopes are
+   not yet normalized and compared.
 
 ### Structural Gaps (Not Yet Modeled)
 

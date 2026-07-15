@@ -65,8 +65,6 @@
       "type": "object",
       "minProperties": 1,
       "properties": {
-        "type": { "type": "string" },
-        "id": { "type": "string" },
         "storage_type": { "$ref": "#/definitions/idOrIds" },
         "section": { "$ref": "#/definitions/idOrIds" },
         "activity_area": { "$ref": "#/definitions/idOrIds" },
