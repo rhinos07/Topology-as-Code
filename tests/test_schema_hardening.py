@@ -10,7 +10,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 from compile import compile_storage_types  # noqa: E402
-from validate import check_section_membership, make_validator, validate_storage_types  # noqa: E402
+from validate import (  # noqa: E402
+    check_section_membership, check_storage_compatibility, make_validator,
+    validate_storage_types,
+)
 
 
 STORAGE_VALIDATOR = make_validator("storage-type.schema.json")
@@ -46,6 +49,31 @@ class StorageTypeSchemaTests(unittest.TestCase):
         value = rack()
         value["default_attributes"] = {"max_weight": "500kg"}
         self.assert_invalid(value)
+
+    def test_static_load_unit_compatibility_is_checked(self):
+        value = rack()
+        value["default_attributes"] = {
+            "allowed_load_unit_types": ["pallet_euro"],
+            "max_weight": {"value": 500, "unit": "kg"},
+            "capacity_per_point": 1,
+            "size": {
+                "width": {"value": 0.7, "unit": "m"},
+                "depth": {"value": 1.2, "unit": "m"},
+                "height": {"value": 0.2, "unit": "m"},
+            },
+            "capacity_volume": {"value": 0.1, "unit": "m3"},
+        }
+        errors = check_storage_compatibility(Path("storage.yaml"), {"storage_types": [value]})
+        self.assertTrue(any("design weight" in error for error in errors))
+        self.assertTrue(any("do not fit" in error for error in errors))
+        self.assertTrue(any("requires" in error for error in errors))
+
+    def test_block_capacity_must_match_depth_and_stack_height(self):
+        value = rack()
+        value.update({"access_model": "block", "access_order": "lifo", "depth": 5, "stack_height": 3})
+        value["default_attributes"] = {"capacity_per_point": 14}
+        errors = check_storage_compatibility(Path("storage.yaml"), {"storage_types": [value]})
+        self.assertTrue(any("must equal 15" in error for error in errors))
 
     def test_exactly_one_point_definition_is_required(self):
         value = rack()

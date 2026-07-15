@@ -76,7 +76,7 @@ all customers, referenced by ID from structure and strategy files.
 
 | Term | Meaning |
 |---|---|
-| `load_unit_type` | Physical definition of a load unit (pallet, mesh box, carton). Referenced by `movement_rule.allowed_load_unit_types` (which unit types a *route* accepts) and by `storage_type.default_attributes.allowed_load_unit_types` (which unit types a *storage place* accepts). SAP EWM equivalent: Ladeeinheitentyp (LE-Typ). |
+| `load_unit_type` | Physical definition of a load unit (pallet, mesh box, carton). Referenced by `movement_rule.allowed_load_unit_types` (which unit types a *route* accepts) and by `storage_type.default_attributes.allowed_load_unit_types` (which unit types a *storage place* accepts). The topology validator compares its design weight, dimensions and nominal volume with every effective storage-point envelope; horizontal rotation is allowed. SAP EWM equivalent: Ladeeinheitentyp (LE-Typ). |
 | `equipment_type` | Catalog of equipment classes with their capabilities (payload, speed). Referenced by `equipment.type` in `structure/wcs.yaml`. SAP EWM equivalent: Ressourcentyp. Manhattan WMS equivalent: Equipment Type. |
 | `process_type` | Category of warehouse process (inbound/outbound/internal movement). Referenced by `movement_rule.trigger`. SAP EWM equivalent: Prozesstyp/Lagerprozess. |
 | `blocking_reason` | Catalog of reasons a `storage_point` can be blocked. Referenced by `storage_type.exceptions[].blocked_reason`. SAP EWM equivalent: Sperrgrund. |

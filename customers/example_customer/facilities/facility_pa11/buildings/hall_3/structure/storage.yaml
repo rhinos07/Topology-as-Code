@@ -18,12 +18,12 @@ storage_types:
       coordinate_pattern: "{aisle:02d}-{stack:02d}-{level:02d}"
 
     default_attributes:
-      max_weight: { value: 500, unit: "kg" }
+      max_weight: { value: 1500, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
       size:
         width: { value: 1.2, unit: "m" }
-        depth: { value: 0.8, unit: "m" }
+        depth: { value: 1.0, unit: "m" }
         height: { value: 0.4, unit: "m" }
       position: "ZONE_HBR"     # logical position; use x/y/z per-coordinate override where exact placement matters
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial"]
@@ -31,7 +31,7 @@ storage_types:
 
     exceptions:
       - coordinate: "01-01-06"
-        max_weight: { value: 800, unit: "kg" }      # top level, reinforced rack
+        max_weight: { value: 1800, unit: "kg" }     # top level, reinforced rack
         position:
           x: { value: 4.8, unit: "m" }
           y: { value: 12.0, unit: "m" }
@@ -77,7 +77,7 @@ storage_types:
       bays: 3
 
     default_attributes:
-      max_weight: { value: 1000, unit: "kg" }
+      max_weight: { value: 1500, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
 
@@ -98,12 +98,12 @@ storage_types:
       coordinate_pattern: "BLK-{aisle:02d}"
 
     default_attributes:
-      max_weight: { value: 1000, unit: "kg" }       # per load unit
+      max_weight: { value: 1500, unit: "kg" }       # per load unit
       temperature_zone: "ambient"
       capacity_per_point: 15     # 5 deep x 3 high
       size:
         width: { value: 2.4, unit: "m" }
-        depth: { value: 4.0, unit: "m" }
+        depth: { value: 5.0, unit: "m" }
         height: { value: 3.0, unit: "m" }
       position: "ZONE_BLK"
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial", "mesh_box"]
@@ -155,7 +155,7 @@ storage_types:
       coordinate_pattern: "KB-{aisle:02d}-{stack:02d}-{level:02d}"
 
     default_attributes:
-      max_weight: { value: 400, unit: "kg" }
+      max_weight: { value: 1000, unit: "kg" }
       temperature_zone: { min: 2, max: 8, unit: "C" }
       capacity_per_point: 1
       size:
@@ -182,12 +182,12 @@ storage_types:
       coordinate_pattern: "CH-{aisle:02d}-{stack:02d}-{level:02d}"
 
     default_attributes:
-      max_weight: { value: 600, unit: "kg" }
+      max_weight: { value: 1000, unit: "kg" }
       temperature_zone: "ambient"
-      capacity_per_point: 1
+      capacity_per_point: 6
       size:
         width: { value: 1.2, unit: "m" }
-        depth: { value: 0.8, unit: "m" }
+        depth: { value: 4.8, unit: "m" }
         height: { value: 0.4, unit: "m" }
       position: "ZONE_CHANNEL_A"
       allowed_load_unit_types: ["pallet_euro"]
@@ -218,7 +218,7 @@ storage_types:
       size:
         width: { value: 0.649, unit: "m" }
         depth: { value: 0.449, unit: "m" }
-        height: { value: 0.31, unit: "m" }
+        height: { value: 4.96, unit: "m" }
       position: "ZONE_AUTOSTORE_A"
       allowed_load_unit_types: ["autostore_bin"]
 
@@ -236,16 +236,16 @@ storage_types:
       coordinate_pattern: "HZ-{aisle:02d}-{stack:02d}-{level:02d}"
 
     default_attributes:
-      max_weight: { value: 500, unit: "kg" }
+      max_weight: { value: 1000, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
       size:
         width: { value: 1.2, unit: "m" }
         depth: { value: 0.8, unit: "m" }
-        height: { value: 0.4, unit: "m" }
+        height: { value: 0.97, unit: "m" }
       position: "ZONE_HAZMAT_A"
       allowed_load_unit_types: ["pallet_euro", "mesh_box"]
-      capacity_volume: { value: 0.25, unit: "m3" }
+      capacity_volume: { value: 0.931, unit: "m3" }
       hazmat_classes: ["GHS02_FLAMMABLE", "GHS05_CORROSIVE"]
 
   # --- Staging area at the doors, manual ---
@@ -264,7 +264,7 @@ storage_types:
       coordinate_pattern: "STG-{aisle:02d}"
 
     default_attributes:
-      max_weight: { value: 1000, unit: "kg" }
+      max_weight: { value: 1500, unit: "kg" }
       temperature_zone: "ambient"
       capacity_per_point: 1
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial", "mesh_box", "carton"]

@@ -434,6 +434,125 @@ def check_storage_refs(
     return errors
 
 
+def _quantity_value(quantity: dict | None, factors: dict[str, float]) -> float | None:
+    if not isinstance(quantity, dict):
+        return None
+    value, unit = quantity.get("value"), quantity.get("unit")
+    if not isinstance(value, (int, float)) or unit not in factors:
+        return None
+    return float(value) * factors[unit]
+
+
+def check_storage_compatibility(path: Path, storage_data: dict | None) -> list[str]:
+    """Checks static compatibility between storage envelopes and allowed LU types.
+
+    Load-unit max_weight is treated as the topology design load. For block and
+    channel storage, size describes the complete storage point; its depth and
+    height are divided into the configured physical positions. A 90 degree
+    rotation in the horizontal plane is allowed.
+    """
+    errors: list[str] = []
+    catalog = load_yaml(ELEMENTS_DIR / "load_unit_types.yaml") or {}
+    load_units = {item["id"]: item for item in catalog.get("load_unit_types", []) if item.get("id")}
+    mass = {"kg": 1.0, "g": 0.001, "t": 1000.0}
+    length = {"m": 1.0, "cm": 0.01, "mm": 0.001}
+    volume = {"m3": 1.0, "l": 0.001}
+    tolerance = 1e-9
+
+    for st in (storage_data or {}).get("storage_types", []):
+        st_id = st.get("id", "?")
+        model = st.get("access_model")
+        depth_positions = st.get("depth", 1) if model == "block" else st.get("channel_depth", 1) if model == "channel" else 1
+        height_positions = st.get("stack_height", 1) if model == "block" else 1
+        expected_capacity = depth_positions * height_positions
+
+        configurations: list[tuple[str, dict]] = []
+        defaults = st.get("default_attributes") or {}
+        if st.get("layout_variants"):
+            for variant in st["layout_variants"]:
+                attrs = dict(defaults)
+                attrs["allowed_load_unit_types"] = [variant["load_unit_type"]]
+                configurations.append((f"layout_variant '{variant.get('id', '?')}'", attrs))
+        else:
+            configurations.append(("default_attributes", defaults))
+        for field in ("storage_points", "exceptions"):
+            for entry in st.get(field, []):
+                attrs = dict(defaults)
+                attrs.update(entry)
+                configurations.append((f"{field} '{entry.get('coordinate', '?')}'", attrs))
+
+        seen: set[tuple] = set()
+        for location, attrs in configurations:
+            allowed = attrs.get("allowed_load_unit_types", [])
+            size = attrs.get("size")
+            capacity = attrs.get("capacity_per_point")
+            capacity_volume = _quantity_value(attrs.get("capacity_volume"), volume)
+            signature = (tuple(allowed), str(size), capacity, capacity_volume, _quantity_value(attrs.get("max_weight"), mass))
+            if signature in seen:
+                continue
+            seen.add(signature)
+
+            capacity_is_derivable = (
+                model == "channel" or
+                (model == "block" and "depth" in st and "stack_height" in st)
+            )
+            if capacity_is_derivable and capacity is not None and capacity != expected_capacity:
+                errors.append(
+                    f"{path}: storage_type '{st_id}' {location}: capacity_per_point {capacity} "
+                    f"must equal {expected_capacity} from "
+                    f"{'depth * stack_height' if model == 'block' else 'channel_depth'}"
+                )
+
+            envelope = None
+            if isinstance(size, dict):
+                envelope = tuple(_quantity_value(size.get(axis), length) for axis in ("width", "depth", "height"))
+                if all(value is not None for value in envelope):
+                    envelope_volume = envelope[0] * envelope[1] * envelope[2]
+                    if capacity_volume is not None and capacity_volume > envelope_volume + tolerance:
+                        errors.append(
+                            f"{path}: storage_type '{st_id}' {location}: capacity_volume "
+                            f"{capacity_volume:g} m3 exceeds geometric envelope {envelope_volume:g} m3"
+                        )
+
+            for lut_id in allowed:
+                lut = load_units.get(lut_id)
+                if not lut:
+                    continue  # reported by referential-integrity checks
+                design_weight = _quantity_value(lut.get("max_weight"), mass)
+                max_weight = _quantity_value(attrs.get("max_weight"), mass)
+                if design_weight is not None and max_weight is not None and design_weight > max_weight + tolerance:
+                    errors.append(
+                        f"{path}: storage_type '{st_id}' {location}: load_unit_type '{lut_id}' "
+                        f"design weight {design_weight:g} kg exceeds max_weight {max_weight:g} kg"
+                    )
+
+                dimensions = lut.get("dimensions") or {}
+                lu_dims = tuple(_quantity_value(dimensions.get(axis), length) for axis in ("width", "depth", "height"))
+                if envelope and all(value is not None for value in envelope) and all(value is not None for value in lu_dims):
+                    available = (envelope[0], envelope[1] / depth_positions, envelope[2] / height_positions)
+                    fits = (
+                        lu_dims[2] <= available[2] + tolerance
+                        and ((lu_dims[0] <= available[0] + tolerance and lu_dims[1] <= available[1] + tolerance)
+                             or (lu_dims[1] <= available[0] + tolerance and lu_dims[0] <= available[1] + tolerance))
+                    )
+                    if not fits:
+                        errors.append(
+                            f"{path}: storage_type '{st_id}' {location}: load_unit_type '{lut_id}' "
+                            f"dimensions {lu_dims[0]:g}x{lu_dims[1]:g}x{lu_dims[2]:g} m do not fit "
+                            f"per-position envelope {available[0]:g}x{available[1]:g}x{available[2]:g} m"
+                        )
+
+                lu_volume = _quantity_value(lut.get("volume"), volume)
+                if lu_volume is not None and capacity_volume is not None and capacity is not None:
+                    required = lu_volume * capacity
+                    if required > capacity_volume + tolerance:
+                        errors.append(
+                            f"{path}: storage_type '{st_id}' {location}: {capacity} x load_unit_type "
+                            f"'{lut_id}' requires {required:g} m3, exceeding capacity_volume {capacity_volume:g} m3"
+                        )
+    return errors
+
+
 def check_door_staging_refs(path: Path) -> list[str]:
     """Checks that door.staging_section references a valid storage_type section
     (format 'STORAGE_TYPE_ID.SECTION_ID'), both defined in the same storage.yaml."""
@@ -1425,6 +1544,7 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
             if cd.get("id")
         }
         all_errors += check_storage_refs(imports["storage.yaml"], ctrl_ids, element_ids)
+        all_errors += check_storage_compatibility(imports["storage.yaml"], storage_data)
         all_errors += check_door_staging_refs(imports["storage.yaml"])
         all_errors += check_activity_area_refs(imports["storage.yaml"])
         all_errors += check_topology_id_uniqueness(

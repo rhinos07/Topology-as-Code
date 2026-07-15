@@ -167,6 +167,16 @@ planning, so equivalent quantities do not create false updates. Temperature
 zones are either `ambient` or an explicit Celsius range such as
 `{min: 2, max: 8, unit: "C"}`.
 
+Validation also compares every `allowed_load_unit_types` entry with its
+effective storage-point attributes. It checks design weight, geometric fit
+(including a 90-degree horizontal rotation), usable volume and the structural
+capacity. For block storage, `capacity_per_point` must equal
+`depth * stack_height`; for channel storage it must equal `channel_depth`.
+The `size` of such a point is the complete block/channel envelope and is
+divided into its configured depth and height positions for the fit check.
+Opaque controller-managed storage without modeled depth/stack geometry is not
+subject to that derivable-capacity rule.
+
 ## WMS-specific Extension Sidecars
 
 Vendor-specific roundtrip data lives in optional namespaced sidecars instead
@@ -259,8 +269,9 @@ paths are deliberately not exhaustively modeled. Remaining validation gaps are:
    routes ought to exist for every physical segment.
 2. **Runtime layout exclusivity:** alternative layouts compile with a shared
    `physical_bay`; enforcing one active variant per bay remains a WMS concern.
-3. **Physical compatibility:** dimensions and weights are normalized, but
-   load-unit envelopes are not yet compared with storage-point limits.
+3. **Temperature requirements:** storage-zone ranges are validated and
+   comparable, but goods-specific temperature requirements intentionally do
+   not belong to this topology specification.
 
 ### Structural Gaps (Not Yet Modeled)
 
