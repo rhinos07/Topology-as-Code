@@ -17,8 +17,8 @@
         },
         "min_qty": { "type": "number" },
         "max_qty": { "type": "number" },
-        "check_interval": { "type": "string" },
-        "forecast_horizon": { "type": "string" },
+        "check_interval": { "$ref": "quantity.schema.json#/definitions/duration" },
+        "forecast_horizon": { "$ref": "quantity.schema.json#/definitions/duration" },
         "based_on": { "type": "string" }
       },
       "additionalProperties": false

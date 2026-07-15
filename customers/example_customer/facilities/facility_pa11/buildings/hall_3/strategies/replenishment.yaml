@@ -8,7 +8,7 @@ replenishment_strategies:
       type: "min_max"
       min_qty: 10
       max_qty: 50
-      check_interval: "5min"
+      check_interval: { value: 5, unit: "min" }
     source:
       storage_type: "HBR"
       section: "SEC_SLOW"
@@ -34,7 +34,7 @@ replenishment_strategies:
   - id: "REPL_PREDICTIVE_A"
     trigger:
       type: "predictive"
-      forecast_horizon: "2h"
+      forecast_horizon: { value: 2, unit: "h" }
       based_on: "outbound_order_forecast"
     source:
       storage_type: "HBR"

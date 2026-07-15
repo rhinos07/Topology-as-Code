@@ -406,9 +406,9 @@
         {
           "type": "object",
           "properties": {
-            "x": { "type": "number" },
-            "y": { "type": "number" },
-            "z": { "type": "number" }
+            "x": { "$ref": "quantity.schema.json#/definitions/length" },
+            "y": { "$ref": "quantity.schema.json#/definitions/length" },
+            "z": { "$ref": "quantity.schema.json#/definitions/length" }
           },
           "required": ["x", "y"],
           "additionalProperties": false

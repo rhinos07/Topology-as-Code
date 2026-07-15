@@ -151,6 +151,22 @@ exclusive, selector overlap and empty sections are rejected, and
 exactly one section. Compiled points carry canonical IDs such as
 `HBR.SEC_FAST`.
 
+Physical quantities use structured values from `schemas/quantity.schema.json`
+instead of unit-bearing strings:
+
+```yaml
+max_weight: {value: 500, unit: "kg"}
+width: {value: 1200, unit: "mm"}
+max_speed: {value: 10.8, unit: "km/h"}
+check_interval: {value: 5, unit: "min"}
+```
+
+Allowed input units are dimension-specific. The compiler normalizes mass,
+length, volume, speed and duration to kg, m, m3, m/s and s before hashing and
+planning, so equivalent quantities do not create false updates. Temperature
+zones are either `ambient` or an explicit Celsius range such as
+`{min: 2, max: 8, unit: "C"}`.
+
 ## WMS-specific Extension Sidecars
 
 Vendor-specific roundtrip data lives in optional namespaced sidecars instead
@@ -243,8 +259,8 @@ paths are deliberately not exhaustively modeled. Remaining validation gaps are:
    routes ought to exist for every physical segment.
 2. **Runtime layout exclusivity:** alternative layouts compile with a shared
    `physical_bay`; enforcing one active variant per bay remains a WMS concern.
-3. **Physical compatibility:** dimensions, weights and load-unit envelopes are
-   not yet normalized and compared.
+3. **Physical compatibility:** dimensions and weights are normalized, but
+   load-unit envelopes are not yet compared with storage-point limits.
 
 ### Structural Gaps (Not Yet Modeled)
 

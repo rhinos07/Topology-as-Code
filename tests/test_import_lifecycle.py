@@ -57,6 +57,20 @@ class ArtifactTests(unittest.TestCase):
         self.assertEqual(plan["summary"]["update"], 1)
         self.assertEqual(plan["updates"][0]["entity"], "movement_rule")
 
+    def test_equivalent_units_produce_the_same_hash(self):
+        grams = build_import_artifact(
+            warehouse_data(),
+            [{"id": "A", "max_weight": {"value": 1000, "unit": "g"}}],
+        )
+        kilograms = build_import_artifact(
+            warehouse_data(),
+            [{"id": "A", "max_weight": {"value": 1, "unit": "kg"}}],
+        )
+        self.assertEqual(
+            grams["artifact"]["content_hash"],
+            kilograms["artifact"]["content_hash"],
+        )
+
 
 class PlanTests(unittest.TestCase):
     def test_plan_classifies_create_update_and_deactivation(self):

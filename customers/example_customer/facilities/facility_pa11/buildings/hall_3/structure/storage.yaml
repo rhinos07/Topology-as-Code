@@ -32,7 +32,10 @@ storage_types:
     exceptions:
       - coordinate: "01-01-06"
         max_weight: { value: 800, unit: "kg" }      # top level, reinforced rack
-        position: { x: 4.8, y: 12.0, z: 3.6 }    # metric override, measured from building reference point
+        position:
+          x: { value: 4.8, unit: "m" }
+          y: { value: 12.0, unit: "m" }
+          z: { value: 3.6, unit: "m" }
       - coordinate: "03-04-01"
         blocked: true
         blocked_reason: "OBSTRUCTION"    # column in the way

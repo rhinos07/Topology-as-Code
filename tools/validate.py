@@ -166,8 +166,7 @@ def validate_storage_types(path: Path) -> list[str]:
 def validate_doors(path: Path) -> list[str]:
     errors = []
     data = load_yaml(path)
-    schema = load_schema("door.schema.json")
-    validator = Draft7Validator(schema)
+    validator = make_validator("door.schema.json")
     doors = data.get("doors", [])
     errors += duplicate_id_errors(doors, "door", path)
     for door in doors:
@@ -179,8 +178,7 @@ def validate_doors(path: Path) -> list[str]:
 def validate_movement_rules(path: Path) -> list[str]:
     errors = []
     data = load_yaml(path)
-    schema = load_schema("movement-rule.schema.json")
-    validator = Draft7Validator(schema)
+    validator = make_validator("movement-rule.schema.json")
     rules = data.get("movement_rules", [])
     errors += duplicate_id_errors(rules, "movement_rule", path)
     for rule in rules:
@@ -283,8 +281,7 @@ def validate_element_catalog(path: Path, schema_name: str, list_key: str) -> lis
 def validate_replenishment(path: Path) -> list[str]:
     errors = []
     data = load_yaml(path)
-    schema = load_schema("replenishment-strategy.schema.json")
-    validator = Draft7Validator(schema)
+    validator = make_validator("replenishment-strategy.schema.json")
     strategies = data.get("replenishment_strategies", [])
     errors += duplicate_id_errors(strategies, "replenishment_strategy", path)
     for strat in strategies:

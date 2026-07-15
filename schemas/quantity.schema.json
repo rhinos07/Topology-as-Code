@@ -39,6 +39,15 @@
       },
       "additionalProperties": false
     },
+    "duration": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "type": "string", "enum": ["s", "min", "h", "d"] }
+      },
+      "additionalProperties": false
+    },
     "temperatureZone": {
       "oneOf": [
         { "type": "string", "enum": ["ambient"] },
