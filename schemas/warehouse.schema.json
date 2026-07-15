@@ -30,6 +30,13 @@
           "uniqueItems": true,
           "description": "Relative paths to further YAML files (structure/, strategies/)."
         },
+        "extension_imports": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Optional relative paths to namespaced WMS extension sidecars."
+        },
         "fleet_interface": {
           "type": "object",
           "properties": {

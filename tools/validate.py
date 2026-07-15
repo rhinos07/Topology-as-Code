@@ -87,6 +87,12 @@ def collect_imports(warehouse_file: Path) -> list[Path]:
     return [base_dir / rel for rel in imports]
 
 
+def collect_extension_imports(warehouse_file: Path) -> list[Path]:
+    data = load_yaml(warehouse_file)
+    imports = data.get("warehouse", {}).get("extension_imports", [])
+    return [warehouse_file.parent / rel for rel in imports]
+
+
 def collect_relative_refs(path: Path, root_key: str, list_key: str) -> list[Path]:
     data = load_yaml(path)
     refs = data.get(root_key, {}).get(list_key, [])
@@ -932,6 +938,136 @@ def check_storage_coordinate_integrity(
     return errors
 
 
+def _compiled_storage_point_ids(storage_data: dict | None, wcs_data: dict | None) -> set[str]:
+    ids: set[str] = set()
+    for st in (storage_data or {}).get("storage_types", []):
+        st_id = st.get("id")
+        try:
+            if "storage_point_generator" in st:
+                generator = st["storage_point_generator"]
+                for aisle in range(1, generator.get("aisles", 1) + 1):
+                    for stack in range(1, generator.get("stacks", 1) + 1):
+                        for level in range(1, generator.get("levels", 1) + 1):
+                            coordinate = generator["coordinate_pattern"].format(
+                                aisle=aisle, stack=stack, level=level
+                            )
+                            ids.add(f"{st_id}.{coordinate}")
+            elif "layout_variants" in st:
+                grid = st.get("layout_grid", {})
+                for variant in st["layout_variants"]:
+                    for aisle in range(1, grid.get("aisles", 1) + 1):
+                        for bay in range(1, grid.get("bays", 1) + 1):
+                            for slot in range(1, variant["positions_per_bay"] + 1):
+                                coordinate = variant["coordinate_pattern"].format(
+                                    aisle=aisle, bay=bay, slot=slot
+                                )
+                                ids.add(f"{st_id}.{coordinate}")
+            else:
+                ids.update(
+                    f"{st_id}.{point['coordinate']}" for point in st.get("storage_points", [])
+                )
+        except (KeyError, ValueError, IndexError):
+            pass
+    ids.update(
+        item["id"] for item in (storage_data or {}).get("work_centers", [])
+        if item.get("storage_point_ref") and item.get("id")
+    )
+    ids.update(
+        item["id"] for item in (wcs_data or {}).get("reporting_points", [])
+        if item.get("storage_point_ref") and item.get("id")
+    )
+    return ids
+
+
+def build_extension_entity_index(
+    storage_data: dict | None,
+    wcs_data: dict | None,
+    lanes_data: dict | None,
+    movement_data: dict | None,
+    replenishment_data: dict | None,
+) -> dict[str, set[str]]:
+    storage_types = (storage_data or {}).get("storage_types", [])
+    return {
+        "storage_point": _compiled_storage_point_ids(storage_data, wcs_data),
+        "storage_type": {item["id"] for item in storage_types if item.get("id")},
+        "section": {
+            f"{st['id']}.{section['id']}" for st in storage_types if st.get("id")
+            for section in st.get("sections", []) if section.get("id")
+        },
+        "activity_area": {
+            item["id"] for item in (storage_data or {}).get("activity_areas", []) if item.get("id")
+        },
+        "work_center": {
+            item["id"] for item in (storage_data or {}).get("work_centers", []) if item.get("id")
+        },
+        "door": {item["id"] for item in (storage_data or {}).get("doors", []) if item.get("id")},
+        "reporting_point": {
+            item["id"] for item in (wcs_data or {}).get("reporting_points", []) if item.get("id")
+        },
+        "controller": {
+            item["id"] for item in (wcs_data or {}).get("controller_definitions", []) if item.get("id")
+        },
+        "equipment": {item["id"] for item in (wcs_data or {}).get("equipment", []) if item.get("id")},
+        "lane": {item["id"] for item in (lanes_data or {}).get("lanes", []) if item.get("id")},
+        "conveyor_segment": {
+            item["id"] for item in (lanes_data or {}).get("conveyor_segments", []) if item.get("id")
+        },
+        "movement_rule": {
+            item["id"] for item in (movement_data or {}).get("movement_rules", []) if item.get("id")
+        },
+        "replenishment_strategy": {
+            item["id"] for item in (replenishment_data or {}).get("replenishment_strategies", [])
+            if item.get("id")
+        },
+    }
+
+
+def validate_extensions(
+    warehouse_file: Path,
+    extension_files: list[Path],
+    entity_index: dict[str, set[str]],
+) -> list[str]:
+    errors: list[str] = []
+    warehouse_data = load_yaml(warehouse_file) or {}
+    dataset_id = (warehouse_data.get("metadata") or {}).get("dataset_id")
+    namespaces: set[str] = set()
+    for path in extension_files:
+        if not path.exists():
+            errors.append(f"{warehouse_file}: extension import missing: {path}")
+            continue
+        errors += validate_file(path, "extension.schema.json")
+        data = load_yaml(path) or {}
+        extension = data.get("extension") or {}
+        namespace = extension.get("namespace")
+        if namespace in namespaces:
+            errors.append(
+                f"{warehouse_file}: duplicate extension namespace '{namespace}'"
+            )
+        if namespace:
+            namespaces.add(namespace)
+        if extension.get("dataset_id") != dataset_id:
+            errors.append(
+                f"{path}: extension.dataset_id '{extension.get('dataset_id')}' does not "
+                f"match warehouse dataset_id '{dataset_id}'"
+            )
+        record_keys: set[tuple[str, str]] = set()
+        for record in extension.get("records", []):
+            entity_type = record.get("entity_type")
+            entity_id = record.get("entity_id")
+            key = (entity_type, entity_id)
+            if key in record_keys:
+                errors.append(
+                    f"{path}: duplicate extension record {entity_type}/{entity_id}"
+                )
+            record_keys.add(key)
+            if entity_type in entity_index and entity_id not in entity_index[entity_type]:
+                errors.append(
+                    f"{path}: extension record {entity_type}/{entity_id} references "
+                    "an unknown entity"
+                )
+    return errors
+
+
 def _activity_area_nodes(storage_data: dict | None) -> dict[str, set[str]]:
     result: dict[str, set[str]] = {}
     for area in (storage_data or {}).get("activity_areas", []):
@@ -1104,6 +1240,7 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
     wcs_data = load_yaml(imports["wcs.yaml"]) if "wcs.yaml" in imports else {}
     lanes_data = load_yaml(imports["lanes.yaml"]) if "lanes.yaml" in imports else {}
     movement_data = load_yaml(imports["movement_rules.yaml"]) if "movement_rules.yaml" in imports else {}
+    replenishment_data = load_yaml(imports["replenishment.yaml"]) if "replenishment.yaml" in imports else {}
 
     # Cross-file checks: run regardless of element_ids availability so that
     # within-file references (e.g. door -> staging section) are always verified.
@@ -1146,6 +1283,14 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
         all_errors += check_lane_refs(
             imports["lanes.yaml"], storage_data, wcs_data, element_ids
         )
+
+    extension_files = collect_extension_imports(warehouse_file)
+    if len(extension_files) != len(set(extension_files)):
+        all_errors.append(f"{warehouse_file}: duplicate extension import path")
+    entity_index = build_extension_entity_index(
+        storage_data, wcs_data, lanes_data, movement_data, replenishment_data
+    )
+    all_errors += validate_extensions(warehouse_file, extension_files, entity_index)
 
     return all_errors
 

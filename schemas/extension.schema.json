@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://warehouse-as-code.internal/schemas/extension.schema.json",
+  "title": "WMS-specific Warehouse Extension",
+  "description": "Namespaced sidecar for lossless WMS export/import roundtrips. Only record payloads are intentionally open.",
+  "type": "object",
+  "required": ["api_version", "extension"],
+  "properties": {
+    "api_version": { "const": "warehouse-as-code/extension-v1" },
+    "extension": {
+      "type": "object",
+      "required": ["namespace", "version", "dataset_id", "records"],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$",
+          "description": "Stable reverse-domain namespace owned by the WMS/vendor."
+        },
+        "version": { "type": "string", "minLength": 1 },
+        "dataset_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["entity_type", "entity_id", "payload"],
+            "properties": {
+              "entity_type": {
+                "type": "string",
+                "enum": [
+                  "storage_point", "storage_type", "section", "activity_area",
+                  "work_center", "door", "reporting_point", "controller",
+                  "equipment", "lane", "conveyor_segment", "movement_rule",
+                  "replenishment_strategy"
+                ]
+              },
+              "entity_id": { "type": "string", "minLength": 1 },
+              "payload": {
+                "type": "object",
+                "description": "Opaque vendor-owned data preserved losslessly by generic tooling.",
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

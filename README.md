@@ -138,6 +138,40 @@ Conditional rules also enforce access-model, automation-policy, blocking and
 movement-rule invariants. `tools/validate.py` supplements JSON Schema with
 ID and coordinate uniqueness checks across the imported files.
 
+## WMS-specific Extension Sidecars
+
+Vendor-specific roundtrip data lives in optional namespaced sidecars instead
+of weakening the closed domain schemas. A building declares them separately:
+
+```yaml
+warehouse:
+  extension_imports:
+    - "extensions/example-wms.yaml"
+```
+
+The sidecar envelope is validated by `schemas/extension.schema.json`. Its
+namespace, version and dataset must be valid, every record must reference an
+existing entity, and duplicate namespace/entity records are rejected. Only
+`records[].payload` is intentionally open and remains opaque to generic tools.
+
+```yaml
+api_version: "warehouse-as-code/extension-v1"
+extension:
+  namespace: "com.example.wms"
+  version: "1.0"
+  dataset_id: "example_customer/pa11/hall_3"
+  records:
+    - entity_type: "storage_point"
+      entity_id: "HBR.01-01-06"
+      payload:
+        internal_location_key: 47110815
+```
+
+The compiler preserves sidecars in deterministic namespace/record order and
+includes them in the artifact hash. The planner reports extension creates,
+updates and removals separately; generic tooling never interprets or silently
+drops an unknown payload.
+
 ## Examples
 
 - `customers/example_customer/` - one building mixing several technologies

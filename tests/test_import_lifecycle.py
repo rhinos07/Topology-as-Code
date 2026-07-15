@@ -35,7 +35,11 @@ class PlanTests(unittest.TestCase):
         current = build_import_artifact(warehouse_data(), [{"id": "A", "max_weight": "1kg"}, {"id": "REMOVED"}])
         desired = build_import_artifact(warehouse_data("2"), [{"id": "A", "max_weight": "2kg"}, {"id": "NEW"}])
         plan = build_plan(current, desired, Path("current.yaml"), Path("desired.yaml"))
-        self.assertEqual(plan["summary"], {"create": 1, "update": 1, "deactivate": 1, "conflict": 0, "unchanged": 0})
+        self.assertEqual(plan["summary"], {
+            "create": 1, "update": 1, "deactivate": 1, "conflict": 0,
+            "extension_create": 0, "extension_update": 0,
+            "extension_remove": 0, "unchanged": 0,
+        })
         self.assertEqual(plan["updates"][0]["classification"], "operational")
         self.assertEqual(plan["deactivations"][0]["classification"], "destructive")
 

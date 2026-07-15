@@ -27,7 +27,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate import collect_imports, load_yaml  # noqa: E402
+from validate import collect_extension_imports, collect_imports, load_yaml  # noqa: E402
 
 
 def merge_attributes(default_attributes: dict, exception: dict | None) -> dict:
@@ -208,14 +208,35 @@ def find_duplicate_ids(points: list[dict]) -> list[str]:
     return errors
 
 
-def build_import_artifact(warehouse_data: dict, points: list[dict]) -> dict:
+def normalize_extensions(extensions: list[dict] | None) -> list[dict]:
+    normalized = []
+    for data in extensions or []:
+        extension = dict(data["extension"])
+        extension["records"] = sorted(
+            extension.get("records", []),
+            key=lambda record: (record["entity_type"], record["entity_id"]),
+        )
+        normalized.append({
+            "api_version": data["api_version"],
+            "extension": extension,
+        })
+    return sorted(normalized, key=lambda data: data["extension"]["namespace"])
+
+
+def build_import_artifact(
+    warehouse_data: dict,
+    points: list[dict],
+    extensions: list[dict] | None = None,
+) -> dict:
     """Build a deterministic, WMS-neutral reconciliation artifact."""
     sorted_points = sorted(points, key=lambda point: point["id"])
+    normalized_extensions = normalize_extensions(extensions)
     desired_state = {
         "api_version": warehouse_data["api_version"],
         "dataset_id": warehouse_data["metadata"]["dataset_id"],
         "target": warehouse_data["target"],
         "storage_points": sorted_points,
+        "extensions": normalized_extensions,
     }
     canonical = json.dumps(
         desired_state, ensure_ascii=False, sort_keys=True, separators=(",", ":")
@@ -229,8 +250,13 @@ def build_import_artifact(warehouse_data: dict, points: list[dict]) -> dict:
         "artifact": {
             "content_hash": content_hash,
             "entity_count": len(sorted_points),
+            "extension_record_count": sum(
+                len(data["extension"].get("records", []))
+                for data in normalized_extensions
+            ),
         },
         "storage_points": sorted_points,
+        "extensions": normalized_extensions,
     }
 
 
@@ -264,6 +290,10 @@ def main(argv: list[str]) -> int:
 
     warehouse_data = load_yaml(warehouse_file)
     storage_data = load_yaml(storage_file)
+    extension_data = [
+        load_yaml(path) for path in collect_extension_imports(warehouse_file)
+        if path.exists()
+    ]
     points, warnings = compile_storage_types(storage_data)
     points += expand_storage_point_refs(storage_data, wcs_data)
     errors = find_duplicate_ids(points)
@@ -290,7 +320,7 @@ def main(argv: list[str]) -> int:
         return 1
 
     if args.output:
-        artifact = build_import_artifact(warehouse_data, points)
+        artifact = build_import_artifact(warehouse_data, points, extension_data)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with open(args.output, "w", encoding="utf-8") as f:
             yaml.safe_dump(artifact, f, sort_keys=False, allow_unicode=True)

@@ -1,0 +1,20 @@
+# Optional vendor-specific data exported by a WMS and needed for re-import.
+# Generic tooling validates the envelope and entity references, but preserves
+# payload fields opaquely and losslessly.
+api_version: "warehouse-as-code/extension-v1"
+
+extension:
+  namespace: "com.example.wms"
+  version: "1.0"
+  dataset_id: "example_customer/pa11/hall_3"
+  records:
+    - entity_type: "storage_point"
+      entity_id: "HBR.01-01-06"
+      payload:
+        internal_location_key: 47110815
+        putaway_sequence: 120
+
+    - entity_type: "storage_type"
+      entity_id: "HBR"
+      payload:
+        proprietary_area_class: "ASRS_HIGH_BAY"

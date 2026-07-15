@@ -31,6 +31,9 @@ warehouse:
     - "strategies/replenishment.yaml"
     - "strategies/movement_rules.yaml"
 
+  extension_imports:
+    - "extensions/example-wms.yaml"
+
   # Connection to fleet control (VDA 5050)
   fleet_interface:
     protocol: "vda5050"
