@@ -24,7 +24,7 @@ storage_types:
       temperature_zone: "ambient"
       capacity_per_point: 4800  # nominal total bin slots the controller reports for this grid
       allowed_load_unit_types: ["autostore_bin"]
-      position: "ZONE_GRID_1"
+      zone: "ZONE_GRID_1"
 
 # Functional cross-cutting grouping - orthogonal to the physical hierarchy.
 activity_areas:

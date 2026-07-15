@@ -177,6 +177,11 @@ divided into its configured depth and height positions for the fit check.
 Opaque controller-managed storage without modeled depth/stack geometry is not
 subject to that derivable-capacity rule.
 
+Logical and physical placement are deliberately separate: `zone` is a logical
+warehouse grouping such as `ZONE_COLD_B`; `position` only accepts structured
+physical coordinates (`x`, `y`, and optional `z`). A section remains an
+independent operational subdivision within a storage type.
+
 ## WMS-specific Extension Sidecars
 
 Vendor-specific roundtrip data lives in optional namespaced sidecars instead

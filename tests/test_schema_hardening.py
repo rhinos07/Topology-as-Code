@@ -50,6 +50,24 @@ class StorageTypeSchemaTests(unittest.TestCase):
         value["default_attributes"] = {"max_weight": "500kg"}
         self.assert_invalid(value)
 
+    def test_zone_and_physical_position_are_separate(self):
+        value = rack()
+        value["default_attributes"] = {
+            "zone": "ZONE_A",
+            "position": {
+                "x": {"value": 1, "unit": "m"},
+                "y": {"value": 2, "unit": "m"},
+            },
+        }
+        self.assertFalse(list(STORAGE_VALIDATOR.iter_errors(value)))
+        points, warnings = compile_storage_types({"storage_types": [value]})
+        self.assertEqual(warnings, [])
+        self.assertEqual(points[0]["zone"], "ZONE_A")
+        self.assertEqual(points[0]["position"]["x"]["value"], 1)
+
+        value["default_attributes"]["position"] = "ZONE_A"
+        self.assert_invalid(value)
+
     def test_static_load_unit_compatibility_is_checked(self):
         value = rack()
         value["default_attributes"] = {

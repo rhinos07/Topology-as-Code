@@ -25,7 +25,7 @@ storage_types:
         width: { value: 1.2, unit: "m" }
         depth: { value: 1.0, unit: "m" }
         height: { value: 0.4, unit: "m" }
-      position: "ZONE_HBR"     # logical position; use x/y/z per-coordinate override where exact placement matters
+      zone: "ZONE_HBR"         # logical grouping; position is reserved for physical x/y/z coordinates
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial"]
       capacity_volume: { value: 0.25, unit: "m3" }
 
@@ -105,7 +105,7 @@ storage_types:
         width: { value: 2.4, unit: "m" }
         depth: { value: 5.0, unit: "m" }
         height: { value: 3.0, unit: "m" }
-      position: "ZONE_BLK"
+      zone: "ZONE_BLK"
       allowed_load_unit_types: ["pallet_euro", "pallet_industrial", "mesh_box"]
 
   # --- Fixed-location picking area, manual ---
@@ -129,7 +129,7 @@ storage_types:
         width: { value: 0.4, unit: "m" }
         depth: { value: 0.3, unit: "m" }
         height: { value: 0.3, unit: "m" }
-      position: "ZONE_FIX"
+      zone: "ZONE_FIX"
       allowed_load_unit_types: ["carton"]
 
     sections:
@@ -162,7 +162,7 @@ storage_types:
         width: { value: 1.2, unit: "m" }
         depth: { value: 0.8, unit: "m" }
         height: { value: 0.4, unit: "m" }
-      position: "ZONE_COLD_B"
+      zone: "ZONE_COLD_B"
       allowed_load_unit_types: ["pallet_euro"]
 
   # --- Channel/flow storage, satellite-operated (FIFO) ---
@@ -189,7 +189,7 @@ storage_types:
         width: { value: 1.2, unit: "m" }
         depth: { value: 4.8, unit: "m" }
         height: { value: 0.4, unit: "m" }
-      position: "ZONE_CHANNEL_A"
+      zone: "ZONE_CHANNEL_A"
       allowed_load_unit_types: ["pallet_euro"]
 
   # --- AutoStore-style cube storage, automated (robots on a grid) ---
@@ -219,7 +219,7 @@ storage_types:
         width: { value: 0.649, unit: "m" }
         depth: { value: 0.449, unit: "m" }
         height: { value: 4.96, unit: "m" }
-      position: "ZONE_AUTOSTORE_A"
+      zone: "ZONE_AUTOSTORE_A"
       allowed_load_unit_types: ["autostore_bin"]
 
   # --- Hazardous materials storage, manual, compliance-restricted ---
@@ -243,7 +243,7 @@ storage_types:
         width: { value: 1.2, unit: "m" }
         depth: { value: 0.8, unit: "m" }
         height: { value: 0.97, unit: "m" }
-      position: "ZONE_HAZMAT_A"
+      zone: "ZONE_HAZMAT_A"
       allowed_load_unit_types: ["pallet_euro", "mesh_box"]
       capacity_volume: { value: 0.931, unit: "m3" }
       hazmat_classes: ["GHS02_FLAMMABLE", "GHS05_CORROSIVE"]

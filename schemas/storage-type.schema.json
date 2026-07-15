@@ -138,6 +138,7 @@
           },
           "size": { "$ref": "#/definitions/size" },
           "position": { "$ref": "#/definitions/position" },
+          "zone": { "$ref": "#/definitions/zone" },
           "section": {
             "type": "string",
             "description": "Direct local section id. Overrides selector-based membership for this point."
@@ -167,6 +168,7 @@
         "capacity_per_point": { "type": "integer", "minimum": 1 },
         "size": { "$ref": "#/definitions/size" },
         "position": { "$ref": "#/definitions/position" },
+        "zone": { "$ref": "#/definitions/zone" },
         "section": {
           "type": "string",
           "description": "Default local section id for all points; selectors or point exceptions may override it."
@@ -208,6 +210,7 @@
           },
           "size": { "$ref": "#/definitions/size" },
           "position": { "$ref": "#/definitions/position" },
+          "zone": { "$ref": "#/definitions/zone" },
           "section": {
             "type": "string",
             "description": "Direct local section id overriding selector-based membership."
@@ -400,20 +403,20 @@
       "additionalProperties": false
     },
     "position": {
-      "description": "Position of the storage_point in the warehouse - either a logical reference (e.g. matching the coordinate_pattern) or physical coordinates in meters, measured from a fixed reference point of the building.",
-      "oneOf": [
-        { "type": "string" },
-        {
-          "type": "object",
-          "properties": {
-            "x": { "$ref": "quantity.schema.json#/definitions/length" },
-            "y": { "$ref": "quantity.schema.json#/definitions/length" },
-            "z": { "$ref": "quantity.schema.json#/definitions/length" }
-          },
-          "required": ["x", "y"],
-          "additionalProperties": false
-        }
-      ]
+      "type": "object",
+      "description": "Physical coordinates of the storage_point, measured from a fixed building reference point. Logical grouping belongs in zone.",
+      "properties": {
+        "x": { "$ref": "quantity.schema.json#/definitions/length" },
+        "y": { "$ref": "quantity.schema.json#/definitions/length" },
+        "z": { "$ref": "quantity.schema.json#/definitions/length" }
+      },
+      "required": ["x", "y"],
+      "additionalProperties": false
+    },
+    "zone": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Logical warehouse zone containing the storage_point. It is independent of physical x/y/z coordinates and of section membership."
     }
   }
 }

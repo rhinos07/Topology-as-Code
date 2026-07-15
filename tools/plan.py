@@ -18,7 +18,7 @@ import yaml
 OPERATIONAL_FIELDS = {
     "allowed_load_unit_types", "blocked", "blocked_reason",
     "capacity_per_point", "capacity_volume", "controller", "layout_variant",
-    "max_weight", "physical_bay", "position", "size", "storage_type",
+    "max_weight", "physical_bay", "position", "size", "storage_type", "zone",
 }
 
 OPERATIONAL_ENTITY_TYPES = {
