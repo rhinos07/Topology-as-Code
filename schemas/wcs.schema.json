@@ -56,8 +56,7 @@
             "type": "string",
             "enum": ["identification_point", "aisle_decision_point", "clarification_point"]
           },
-          "capacity": { "type": "integer", "minimum": 1 },
-          "availability": { "type": "string", "enum": ["available", "unavailable"] }
+          "capacity": { "type": "integer", "minimum": 1 }
         },
         "additionalProperties": false
       }

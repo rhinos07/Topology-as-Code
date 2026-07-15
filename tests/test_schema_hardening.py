@@ -109,6 +109,15 @@ class MovementRuleSchemaTests(unittest.TestCase):
 
 
 class WcsSchemaTests(unittest.TestCase):
+    def test_runtime_availability_is_rejected(self):
+        data = {
+            "controller_definitions": [{"id": "CTRL"}],
+            "reporting_points": [{
+                "id": "RP", "controller": "CTRL", "availability": "available",
+            }],
+        }
+        self.assertTrue(list(WCS_VALIDATOR.iter_errors(data)))
+
     def test_unknown_controller_field_is_rejected(self):
         data = {"controller_definitions": [{"id": "CTRL", "adress": "typo"}]}
         self.assertTrue(list(WCS_VALIDATOR.iter_errors(data)))

@@ -28,21 +28,18 @@ reporting_points:
     controller: "CTRL_HBR_01"
     type: "identification_point"     # or "aisle_decision_point", "clarification_point"
     capacity: 1
-    availability: "available"
 
   - id: "RP_C02"
     storage_point_ref: true
     controller: "CTRL_HBR_01"
     type: "aisle_decision_point"
     capacity: 1
-    availability: "available"
 
   - id: "RP_C03"
     storage_point_ref: true
     controller: "CTRL_HBR_01"
     type: "clarification_point"      # manual clarification on identification error
     capacity: 2
-    availability: "available"
 
 telegram_actions:
   - telegram_type: "XX"

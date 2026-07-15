@@ -20,28 +20,24 @@ reporting_points:
     controller: "CTRL_ASC_01"
     type: "identification_point"     # bin is identified/scanned as it surfaces at the port
     capacity: 1
-    availability: "available"
 
   - id: "RP_PORT_02"
     storage_point_ref: true
     controller: "CTRL_ASC_01"
     type: "identification_point"
     capacity: 1
-    availability: "available"
 
   - id: "RP_PORT_03"
     storage_point_ref: true
     controller: "CTRL_ASC_01"
     type: "identification_point"
     capacity: 1
-    availability: "available"
 
   - id: "RP_PORT_04"
     storage_point_ref: true
     controller: "CTRL_ASC_01"
     type: "identification_point"
     capacity: 1
-    availability: "available"
 
 equipment:
   # The AutoStore Controller owns fleet optimization (bin retrieval order,
