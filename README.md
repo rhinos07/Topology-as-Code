@@ -1,6 +1,6 @@
-# Warehouse-as-Code
+# Topology-as-Code
 
-Warehouse-as-Code: declarative, version-controlled description of warehouse
+Topology-as-Code: declarative, version-controlled description of warehouse
 structures, material-flow communication, and process strategies
 (replenishment, movement rules) as YAML, validated via CI, compiled into
 runtime entities.
@@ -13,7 +13,7 @@ pattern (JSON Schema validation, `structure/` vs. `strategies/`,
 
 | Repo | Covers |
 |---|---|
-| **Warehouse-as-Code** (this repo) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
+| **Topology-as-Code** (this repo) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
 | [`OrderOrchestration-as-Code`](https://github.com/rhinos07/OrderOrchestration-as-Code) | How incoming orders are split, and which downstream workflow each split triggers |
 | [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
 
