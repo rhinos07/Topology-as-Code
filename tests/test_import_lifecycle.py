@@ -13,7 +13,7 @@ from plan import build_plan, load_artifact  # noqa: E402
 
 def warehouse_data(revision="1", removal_policy="deactivate"):
     return {
-        "api_version": "warehouse-as-code/v1",
+        "api_version": "topology-as-code/v1",
         "metadata": {"dataset_id": "tenant/site/building", "revision": revision},
         "target": {"wms_type": "generic", "tenant": "tenant", "facility": "site", "building": "building"},
         "import_policy": {

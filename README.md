@@ -57,7 +57,7 @@ status.
 warehouse-definitions/
 ├── schemas/              # JSON Schema for validating all YAML files
 ├── elements/             # Reusable templates and catalogs
-│   ├── rack_templates.yaml       # Rack/lane/workstation templates
+│   ├── rack_templates.yaml       # Lane/workstation templates (filename predates a removed rack_templates catalog)
 │   ├── load_unit_types.yaml      # Pallet/container/carton definitions
 │   ├── equipment_types.yaml      # Equipment classes and capabilities
 │   ├── process_types.yaml        # Inbound/outbound/internal movement/cross-dock categories
@@ -202,7 +202,7 @@ existing entity, and duplicate namespace/entity records are rejected. Only
 `records[].payload` is intentionally open and remains opaque to generic tools.
 
 ```yaml
-api_version: "warehouse-as-code/extension-v1"
+api_version: "topology-as-code/extension-v1"
 extension:
   namespace: "com.example.wms"
   version: "1.0"
@@ -258,6 +258,19 @@ Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 - [ ] Map the deterministic compile/plan output to actual WMS/runtime entities (e.g. a
       Linq2db model) - currently it only produces an intermediate YAML,
       not a WMS-specific import format
+- [x] ~~`customers/autostore_customer`'s explicit_only building had no
+      movement_rule reaching `activity_area: PUTAWAY_ZONE_GRID` as a
+      target endpoint~~ - fixed: `STOW_BIN_TO_GRID` in
+      `strategies/movement_rules.yaml` now also qualifies its `to` with
+      `activity_area: "PUTAWAY_ZONE_GRID"`, mirroring `example_customer`/
+      `hall_3`'s `MOVE_STORAGE_TO_PICKFACE` pattern. Found by WMS-POC
+      trying to actually route `OrderOrchestration-as-Code`'s
+      `inbound_advice` putaway sub-orders there - under `explicit_only`,
+      an endpoint nobody's `to` ever names isn't reachable, even if the
+      id itself exists. `tools/validate.py`'s graph-reachability check
+      only verifies routes declared *within* this repo, so it couldn't
+      have caught this on its own - the gap only showed up once an
+      external order target tried to use that id.
 
 ### Validation Coverage and Remaining Gaps
 

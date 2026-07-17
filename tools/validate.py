@@ -41,7 +41,6 @@ ELEMENT_CATALOGS = {
 }
 
 TEMPLATE_CATALOGS = {
-    "rack_templates": "rack_templates",
     "lane_templates": "lane_templates",
     "workstation_templates": "workstation_templates",
 }

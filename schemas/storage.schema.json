@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/storage.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/storage.schema.json",
   "title": "Warehouse Storage Structure",
   "type": "object",
   "required": ["storage_types"],

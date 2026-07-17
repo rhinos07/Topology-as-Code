@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/quantity.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/quantity.schema.json",
   "title": "Physical Quantities",
   "definitions": {
     "mass": {

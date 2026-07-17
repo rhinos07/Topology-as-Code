@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/facility.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/facility.schema.json",
   "title": "Facility (Site / Distribution Center)",
   "description": "A physical site belonging to a company (e.g. one plant/DC). Groups one or more buildings.",
   "type": "object",

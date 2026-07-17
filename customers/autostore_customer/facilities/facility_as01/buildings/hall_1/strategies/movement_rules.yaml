@@ -82,7 +82,15 @@ movement_rules:
     applies_to_policy: "explicit_only"
     execution: "automated"
     from: { reporting_point: ["RP_PORT_01", "RP_PORT_02"] }
-    to: { storage_type: "AUTOSTORE_GRID" }
+    # activity_area qualifier mirrors example_customer/hall_3's
+    # MOVE_STORAGE_TO_PICKFACE pattern (to: {storage_type, activity_area})
+    # - PUTAWAY_ZONE_GRID's bins_from is exactly AUTOSTORE_GRID (see
+    # structure/storage.yaml), and this is the only leg that actually
+    # stows goods into the grid, so it's the rule that authorizes
+    # PUTAWAY_ZONE_GRID as an order target for OrderOrchestration-as-Code's
+    # inbound_advice - explicit_only means it wasn't reachable as a
+    # target before this qualifier was added (found via WMS-POC).
+    to: { storage_type: "AUTOSTORE_GRID", activity_area: "PUTAWAY_ZONE_GRID" }
     allowed: true
     allowed_load_unit_types: ["autostore_bin"]
     access_constraint: "lifo"

@@ -2,7 +2,7 @@
 # Part of a facility (see ../../facility.yaml). This file validates
 # against schemas/warehouse.schema.json
 
-api_version: "warehouse-as-code/v1"
+api_version: "topology-as-code/v1"
 
 metadata:
   dataset_id: "example_customer/pa11/hall_3"

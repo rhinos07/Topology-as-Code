@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/company.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/company.schema.json",
   "title": "Company (Top-Level)",
   "description": "Top-level tenant/organization. Groups one or more facilities.",
   "type": "object",

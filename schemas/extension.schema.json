@@ -1,12 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/extension.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/extension.schema.json",
   "title": "WMS-specific Warehouse Extension",
   "description": "Namespaced sidecar for lossless WMS export/import roundtrips. Only record payloads are intentionally open.",
   "type": "object",
   "required": ["api_version", "extension"],
   "properties": {
-    "api_version": { "const": "warehouse-as-code/extension-v1" },
+    "api_version": { "const": "topology-as-code/extension-v1" },
     "extension": {
       "type": "object",
       "required": ["namespace", "version", "dataset_id", "records"],

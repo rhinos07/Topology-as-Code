@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/storage-type.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/storage-type.schema.json",
   "title": "Storage Type",
   "description": "A storage area (e.g. high-bay rack, block storage) that groups storage_points.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/wcs.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/wcs.schema.json",
   "title": "Warehouse Control System (WCS)",
   "description": "Controller definitions, reporting points, telegram actions and equipment - the communication layer between WMS and downstream control systems (PLC, MFC, AS controller, etc.).",
   "type": "object",

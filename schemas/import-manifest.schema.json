@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/import-manifest.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/import-manifest.schema.json",
   "title": "Warehouse Import Manifest",
   "description": "Ownership, versioning and reconciliation policy for a building-level warehouse dataset.",
   "type": "object",
   "required": ["api_version", "metadata", "target", "import_policy"],
   "properties": {
     "api_version": {
-      "const": "warehouse-as-code/v1"
+      "const": "topology-as-code/v1"
     },
     "metadata": {
       "type": "object",

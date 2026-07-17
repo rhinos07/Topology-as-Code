@@ -1,7 +1,7 @@
 # Optional vendor-specific data exported by a WMS and needed for re-import.
 # Generic tooling validates the envelope and entity references, but preserves
 # payload fields opaquely and losslessly.
-api_version: "warehouse-as-code/extension-v1"
+api_version: "topology-as-code/extension-v1"
 
 extension:
   namespace: "com.example.wms"

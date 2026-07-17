@@ -19,7 +19,7 @@ EXTENSION_VALIDATOR = make_validator("extension.schema.json")
 
 def extension(payload=None, entity_id="A.01", dataset_id="tenant/site/building"):
     return {
-        "api_version": "warehouse-as-code/extension-v1",
+        "api_version": "topology-as-code/extension-v1",
         "extension": {
             "namespace": "com.example.wms",
             "version": "1.0",

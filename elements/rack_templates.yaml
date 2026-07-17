@@ -1,24 +1,13 @@
 # Reusable, rarely changed building blocks.
-# Referenced by structure/storage.yaml.
-
-rack_templates:
-  - id: "rack_4way_standard"
-    description: "Standard rack slot for 4-way shuttle"
-    dimensions:
-      width: { value: 1.2, unit: "m" }
-      depth: { value: 0.8, unit: "m" }
-      height: { value: 0.4, unit: "m" }
-    max_weight: { value: 500, unit: "kg" }
-    temperature_zone: "ambient"
-
-  - id: "rack_coldstorage_standard"
-    description: "Rack slot for cold zone"
-    dimensions:
-      width: { value: 1.2, unit: "m" }
-      depth: { value: 0.8, unit: "m" }
-      height: { value: 0.4, unit: "m" }
-    max_weight: { value: 400, unit: "kg" }
-    temperature_zone: { min: 2, max: 8, unit: "C" }
+# Referenced by structure/lanes.yaml (lane_templates) and
+# structure/storage.yaml (workstation_templates).
+#
+# A rack_templates catalog used to live here too, but was removed: no
+# schema field anywhere ever let a storage_type/storage_point reference a
+# rack template id (physical rack attributes are carried by
+# storage_type.default_attributes/exceptions instead) - found dead by
+# WMS-POC's Topology-as-Code review, unreferenced by any customer data or
+# test.
 
 lane_templates:
   - id: "lane_shuttle_standard"

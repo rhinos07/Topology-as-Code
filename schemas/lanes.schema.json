@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/lanes.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/lanes.schema.json",
   "title": "Lanes",
   "description": "Physical connectivity between storage_types, doors and work_centers ('can') - see strategies/movement_rules.yaml for functional permission ('may').",
   "type": "object",

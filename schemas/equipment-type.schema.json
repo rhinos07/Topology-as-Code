@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/equipment-type.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/equipment-type.schema.json",
   "title": "Equipment Type",
   "description": "Catalog entry describing a class of equipment (forklift, shuttle, AGV) and its capabilities.",
   "type": "object",

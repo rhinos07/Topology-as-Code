@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://warehouse-as-code.internal/schemas/hazmat-class.schema.json",
+  "$id": "https://topology-as-code.internal/schemas/hazmat-class.schema.json",
   "title": "Hazmat Class",
   "description": "Catalog entry describing a hazardous material / compliance classification that a storage_type can be certified or restricted for.",
   "type": "object",
