@@ -16,6 +16,7 @@ pattern (JSON Schema validation, `structure/` vs. `strategies/`,
 | **Topology-as-Code** (this repo) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
 | [`OrderOrchestration-as-Code`](https://github.com/rhinos07/OrderOrchestration-as-Code) | How incoming orders are split, and which downstream workflow each split triggers |
 | [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
+| [`Allocation-as-Code`](https://github.com/rhinos07/Allocation-as-Code) | Stock-search configuration: search-zone sequence, selection strategy, constraints |
 
 Two of this repo's own `elements/` catalogs are shared-vocabulary
 candidates for the siblings above, not yet acted on:
@@ -29,6 +30,11 @@ candidates for the siblings above, not yet acted on:
 
 Both catalogs currently stay put and duplicated where needed - don't
 extract/move them until real drift or duplication pain shows up.
+
+`Allocation-as-Code`'s `search_rule.steps[].zone` references this repo's
+`storage_type`/`activity_area` ids by string, the same loosely-coupled
+convention `OrderOrchestration-as-Code`'s `target` uses - not yet
+cross-checked by either repo's `tools/validate.py`.
 
 ## Core Principle
 
