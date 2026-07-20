@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://topology-as-code.internal/schemas/compiled-topology-artifact.schema.json",
+  "title": "Compiled Topology Artifact",
+  "description": "Normative, deterministic desired-state contract consumed by a WMS importer.",
+  "type": "object",
+  "required": ["api_version", "artifact_api_version", "metadata", "target", "import_policy", "artifact", "entities", "extensions"],
+  "properties": {
+    "api_version": { "const": "topology-as-code/v1" },
+    "artifact_api_version": { "const": "topology-as-code/artifact-v1" },
+    "metadata": { "$ref": "import-manifest.schema.json#/properties/metadata" },
+    "target": { "$ref": "import-manifest.schema.json#/properties/target" },
+    "import_policy": { "$ref": "import-manifest.schema.json#/properties/import_policy" },
+    "artifact": {
+      "type": "object",
+      "required": ["compiler_version", "content_hash", "entity_counts", "extension_record_count"],
+      "properties": {
+        "compiler_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "content_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "entity_counts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "extension_record_count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "entities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id"],
+          "properties": { "id": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "extensions": {
+      "type": "array",
+      "items": { "$ref": "extension.schema.json" }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,52 @@
+# Explicit physical can-edges for the manual operator legs around the opaque
+# AutoStore cell. Grid-to-reporting-point connectivity remains intrinsic to
+# CTRL_ASC_01 and is compiled as controller-internal can-edges.
+
+connections:
+  - id: "ENTRY_TO_INDUCTION_01"
+    from: "ENTRY"
+    to: "WC_PORT_01"
+    direction: "one_way"
+    transport_mode: "walking"
+
+  - id: "ENTRY_TO_INDUCTION_02"
+    from: "ENTRY"
+    to: "WC_PORT_02"
+    direction: "one_way"
+    transport_mode: "walking"
+
+  - id: "INDUCTION_HANDOVER_01"
+    from: "WC_PORT_01"
+    to: "RP_PORT_01"
+    direction: "one_way"
+    transport_mode: "walking"
+
+  - id: "INDUCTION_HANDOVER_02"
+    from: "WC_PORT_02"
+    to: "RP_PORT_02"
+    direction: "one_way"
+    transport_mode: "walking"
+
+  - id: "PICK_HANDOVER_03"
+    from: "RP_PORT_03"
+    to: "WC_PORT_03"
+    direction: "one_way"
+    transport_mode: "walking"
+
+  - id: "PICK_HANDOVER_04"
+    from: "RP_PORT_04"
+    to: "WC_PORT_04"
+    direction: "one_way"
+    transport_mode: "walking"
+
+  - id: "PICK_TO_EXIT_03"
+    from: "WC_PORT_03"
+    to: "EXIT"
+    direction: "one_way"
+    transport_mode: "walking"
+
+  - id: "PICK_TO_EXIT_04"
+    from: "WC_PORT_04"
+    to: "EXIT"
+    direction: "one_way"
+    transport_mode: "walking"

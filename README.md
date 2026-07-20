@@ -123,7 +123,8 @@ always preserved.
 `compile.py` writes a deterministic artifact containing every building-owned
 desired-state entity: warehouse, storage types and points, sections, activity
 areas, work centers, doors, controllers, reporting points, equipment, telegram
-actions, lanes and conveyor topology, movement rules and replenishment
+actions, canonical directed `can_edge` entities, lanes and conveyor topology,
+movement rules and replenishment
 strategies. Its `artifact.content_hash` depends on the target, dataset ID,
 sorted entities and extensions, but not on the human revision. Re-importing
 the same hash is therefore idempotent.
@@ -139,6 +140,10 @@ Renames are intentionally not inferred. Changing an ID appears as a
 destructive deactivation plus a create and requires review. Inventory, open
 task and reference checks must be performed by the target-specific WMS adapter
 before applying a deactivation.
+
+The compiled output is a normative WMS-facing contract validated by
+`schemas/compiled-topology-artifact.schema.json`. It declares a separate
+artifact API version, compiler version and deterministic content hash.
 
 ## Strict Schema Validation
 
@@ -172,6 +177,11 @@ length, volume, speed and duration to kg, m, m3, m/s and s before hashing and
 planning, so equivalent quantities do not create false updates. Temperature
 zones are either `ambient` or an explicit Celsius range such as
 `{min: 2, max: 8, unit: "C"}`.
+
+Manual reachability is explicit through `connections`. A connection declares
+direction and transport mode. Manual and automated connectivity compile into
+the same directed `can_edge` collection; every allowed movement with
+resolvable source and target must have a physical path.
 
 Validation also compares every `allowed_load_unit_types` entry with its
 effective storage-point attributes. It checks design weight, geometric fit
@@ -232,9 +242,9 @@ drops an unknown payload.
   AutoStore grid, cold zone, hazmat) to show most entity types at once.
 - `customers/autostore_customer/` - a second, dedicated example: a single
   building that is *entirely* one AutoStore grid - just the grid, its
-  ports, the controller and the robot fleet, with no conveyor/lane
-  infrastructure modeled (grid-to-port connectivity is intrinsic to the
-  AS itself). Shows the minimal pattern for a single-technology
+  ports, the controller and the robot fleet. Manual operator connections are
+  explicit; grid-to-port connectivity remains intrinsic to the controller.
+  Shows the minimal pattern for a single-technology
   automation cell. Walked through step by step in
   [`docs/autostore-walkthrough.md`](docs/autostore-walkthrough.md).
 

@@ -30,6 +30,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from validate import collect_extension_imports, collect_imports, load_yaml  # noqa: E402
 
 
+ARTIFACT_API_VERSION = "topology-as-code/artifact-v1"
+COMPILER_VERSION = "1.0.0"
+
+
 def merge_attributes(default_attributes: dict, exception: dict | None) -> dict:
     merged = dict(default_attributes or {})
     if exception:
@@ -337,6 +341,73 @@ def normalize_quantities(value):
     return {key: normalize_quantities(item) for key, item in value.items()}
 
 
+def compile_can_edges(
+    storage_data: dict | None,
+    wcs_data: dict | None,
+    lanes_data: dict | None,
+) -> list[dict]:
+    """Compile every physical connection into canonical directed can-edges."""
+    edges: list[dict] = []
+
+    def add(source_type: str, source_id: str, source: str, target: str,
+            transport_mode: str, attributes: dict | None = None) -> None:
+        edge = {
+            "id": f"{source_type}:{source_id}:{source}:{target}",
+            "from": source,
+            "to": target,
+            "source_type": source_type,
+            "source_id": source_id,
+            "transport_mode": transport_mode,
+        }
+        edge.update(attributes or {})
+        edges.append(edge)
+
+    for connection in (lanes_data or {}).get("connections", []):
+        attributes = {
+            key: connection[key]
+            for key in ("expected_duration", "capacity") if key in connection
+        }
+        add("connection", connection["id"], connection["from"], connection["to"],
+            connection["transport_mode"], attributes)
+        if connection["direction"] == "bidirectional":
+            add("connection", connection["id"], connection["to"], connection["from"],
+                connection["transport_mode"], attributes)
+
+    for segment in (lanes_data or {}).get("conveyor_segments", []):
+        attributes = {"capacity": segment["capacity"]} if "capacity" in segment else {}
+        add("conveyor_segment", segment["id"], segment["from"], segment["to"],
+            "conveyor", attributes)
+
+    for lane in (lanes_data or {}).get("lanes", []):
+        for source in lane.get("connects", []):
+            for target in lane.get("connects", []):
+                if source != target:
+                    add("lane", lane["id"], source, target, "lane")
+
+    main = (lanes_data or {}).get("conveyor_main") or {}
+    for source in main.get("connects", []):
+        for target in main.get("connects", []):
+            if source != target:
+                attributes = ({"capacity_units_per_hour": main["capacity_units_per_hour"]}
+                              if "capacity_units_per_hour" in main else {})
+                add("conveyor_main", "CONVEYOR_MAIN", source, target, "conveyor", attributes)
+
+    controller_nodes: dict[str, set[str]] = {}
+    for storage_type in (storage_data or {}).get("storage_types", []):
+        if storage_type.get("controller"):
+            controller_nodes.setdefault(storage_type["controller"], set()).add(storage_type["id"])
+    for reporting_point in (wcs_data or {}).get("reporting_points", []):
+        if reporting_point.get("controller"):
+            controller_nodes.setdefault(reporting_point["controller"], set()).add(reporting_point["id"])
+    for controller, nodes in controller_nodes.items():
+        for source in nodes:
+            for target in nodes:
+                if source != target:
+                    add("controller_internal", controller, source, target, "controller_internal")
+
+    return sorted(edges, key=lambda edge: edge["id"])
+
+
 def compile_entity_collections(
     warehouse_data: dict,
     storage_data: dict,
@@ -423,6 +494,7 @@ def compile_entity_collections(
         "lane": list((lanes_data or {}).get("lanes", [])),
         "conveyor_segment": list((lanes_data or {}).get("conveyor_segments", [])),
         "conveyor_main": conveyor_main,
+        "can_edge": compile_can_edges(storage_data, wcs_data, lanes_data),
         "movement_rule": list((movement_data or {}).get("movement_rules", [])),
         "replenishment_strategy": list(
             (replenishment_data or {}).get("replenishment_strategies", [])
@@ -454,6 +526,7 @@ def build_import_artifact(
     normalized_extensions = normalize_extensions(extensions)
     desired_state = {
         "api_version": warehouse_data["api_version"],
+        "artifact_api_version": ARTIFACT_API_VERSION,
         "dataset_id": warehouse_data["metadata"]["dataset_id"],
         "target": warehouse_data["target"],
         "entities": normalized_entities,
@@ -465,10 +538,12 @@ def build_import_artifact(
     content_hash = f"sha256:{hashlib.sha256(canonical).hexdigest()}"
     return {
         "api_version": warehouse_data["api_version"],
+        "artifact_api_version": ARTIFACT_API_VERSION,
         "metadata": dict(warehouse_data["metadata"]),
         "target": dict(warehouse_data["target"]),
         "import_policy": dict(warehouse_data["import_policy"]),
         "artifact": {
+            "compiler_version": COMPILER_VERSION,
             "content_hash": content_hash,
             "entity_counts": {
                 entity_type: len(items)

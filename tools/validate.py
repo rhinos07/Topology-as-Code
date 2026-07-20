@@ -313,6 +313,7 @@ def validate_lanes(path: Path) -> list[str]:
     data = load_yaml(path) or {}
     errors += duplicate_id_errors(data.get("lanes", []), "lane", path)
     errors += duplicate_id_errors(data.get("conveyor_segments", []), "conveyor_segment", path)
+    errors += duplicate_id_errors(data.get("connections", []), "connection", path)
     return errors
 
 
@@ -906,6 +907,7 @@ def check_lane_refs(
     element_ids: dict[str, set[str]],
 ) -> list[str]:
     """Checks referential integrity in lanes.yaml:
+    - connection.from/to -> storage_type / door / reporting_point / work_center ids
     - lane.connects -> storage_type / door / work_center ids
     - conveyor_segment.from/to -> storage_type / door / reporting_point / work_center ids
     - conveyor_main.connects -> storage_type / door / work_center ids
@@ -931,6 +933,15 @@ def check_lane_refs(
 
     if not known_ids:
         return errors
+
+    for connection in data.get("connections", []):
+        for field in ("from", "to"):
+            ref = connection.get(field)
+            if ref and ref not in known_ids:
+                errors.append(
+                    f"{lanes_path}: connection '{connection.get('id', '?')}': {field} "
+                    f"'{ref}' not found in topology endpoints"
+                )
 
     for lane in data.get("lanes", []):
         lane_id = lane.get("id", "?")
@@ -1330,6 +1341,9 @@ def build_extension_entity_index(
             item["id"] for item in (wcs_data or {}).get("telegram_actions", []) if item.get("id")
         },
         "lane": {item["id"] for item in (lanes_data or {}).get("lanes", []) if item.get("id")},
+        "connection": {
+            item["id"] for item in (lanes_data or {}).get("connections", []) if item.get("id")
+        },
         "conveyor_segment": {
             item["id"] for item in (lanes_data or {}).get("conveyor_segments", []) if item.get("id")
         },
@@ -1436,11 +1450,11 @@ def check_graph_reachability(
 ) -> list[str]:
     """Checks executable automated/segment-bound rules against the topology graph.
 
-    Lanes and conveyor_main are bidirectional, conveyor_segments are directed.
+    Explicit connections honor their direction. Lanes and conveyor_main are
+    bidirectional, conveyor_segments are directed.
     Storage types and reporting points owned by the same controller are mutually
     reachable inside that controller boundary (e.g. an opaque AutoStore grid).
-    Manual rules remain implicit because forklift/walking paths are intentionally
-    not exhaustively modeled.
+    Allowed rules with resolvable from/to endpoints always require a can-path.
     """
     errors: list[str] = []
     adjacency: dict[str, set[str]] = {}
@@ -1450,6 +1464,12 @@ def check_graph_reachability(
         adjacency.setdefault(target, set())
         if bidirectional:
             adjacency[target].add(source)
+
+    for connection in (lanes_data or {}).get("connections", []):
+        add_edge(
+            connection["from"], connection["to"],
+            bidirectional=connection.get("direction") == "bidirectional",
+        )
 
     for lane in (lanes_data or {}).get("lanes", []):
         points = lane.get("connects", [])
@@ -1488,16 +1508,10 @@ def check_graph_reachability(
         if not rule.get("allowed"):
             continue
         via_segment = rule.get("via_segment")
-        requires_path = rule.get("execution") == "automated" or bool(via_segment)
-        if not requires_path:
-            continue
         sources = _movement_endpoint_nodes(rule.get("from"), activity_nodes)
         targets = _movement_endpoint_nodes(rule.get("to"), activity_nodes)
-        if not sources or not targets:
-            errors.append(
-                f"{movement_path}: movement_rule '{rule.get('id', '?')}': automated or "
-                "segment-bound rule requires resolvable from and to endpoints"
-            )
+        requires_path = bool(sources and targets)
+        if not requires_path:
             continue
         if via_segment in segments:
             segment = segments[via_segment]

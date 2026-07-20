@@ -103,6 +103,20 @@ class ReferentialIntegrityTests(unittest.TestCase):
 
 
 class GraphReachabilityTests(unittest.TestCase):
+    def test_manual_rule_requires_explicit_can_path(self):
+        movement = {"movement_rules": [{
+            "id": "MANUAL", "allowed": True, "execution": "manual",
+            "from": {"storage_type": "A"}, "to": {"storage_type": "B"},
+        }]}
+        errors = check_graph_reachability(PATH, movement, {}, {}, {})
+        self.assertTrue(any("no directed topology path" in error for error in errors))
+
+        lanes = {"connections": [{
+            "id": "A_B", "from": "A", "to": "B",
+            "direction": "one_way", "transport_mode": "forklift",
+        }]}
+        self.assertEqual(check_graph_reachability(PATH, movement, {}, {}, lanes), [])
+
     def test_directed_segment_cannot_be_used_backwards(self):
         movement = {"movement_rules": [{
             "id": "BACKWARDS", "allowed": True, "execution": "automated",

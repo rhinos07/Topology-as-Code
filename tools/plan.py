@@ -14,6 +14,8 @@ from pathlib import Path
 
 import yaml
 
+from validate import make_validator
+
 
 OPERATIONAL_FIELDS = {
     "allowed_load_unit_types", "blocked", "blocked_reason",
@@ -23,11 +25,13 @@ OPERATIONAL_FIELDS = {
 }
 
 OPERATIONAL_ENTITY_TYPES = {
-    "activity_area", "channel", "controller", "conveyor_main", "conveyor_segment",
+    "activity_area", "can_edge", "channel", "controller", "conveyor_main", "conveyor_segment",
     "door", "equipment", "lane", "movement_rule", "replenishment_strategy",
     "reporting_point", "section", "storage_type", "telegram_action",
     "work_center",
 }
+
+ARTIFACT_VALIDATOR = make_validator("compiled-topology-artifact.schema.json")
 
 
 def load_artifact(path: Path) -> dict:
@@ -35,8 +39,15 @@ def load_artifact(path: Path) -> dict:
         data = yaml.safe_load(file)
     if not isinstance(data, dict):
         raise ValueError(f"{path}: artifact must be a YAML object")
+    schema_errors = sorted(
+        ARTIFACT_VALIDATOR.iter_errors(data), key=lambda error: list(error.absolute_path)
+    )
+    if schema_errors:
+        error = schema_errors[0]
+        location = " -> ".join(str(part) for part in error.absolute_path) or "(root)"
+        raise ValueError(f"{path}: [{location}] {error.message}")
     required = {
-        "api_version", "metadata", "target", "import_policy",
+        "api_version", "artifact_api_version", "metadata", "target", "import_policy",
         "artifact", "entities", "extensions",
     }
     missing = sorted(required - data.keys())
@@ -48,6 +59,7 @@ def load_artifact(path: Path) -> dict:
     }
     desired_state = {
         "api_version": data["api_version"],
+        "artifact_api_version": data["artifact_api_version"],
         "dataset_id": data["metadata"].get("dataset_id"),
         "target": data["target"],
         "entities": normalized_entities,
@@ -116,6 +128,8 @@ def index_extension_records(artifact: dict) -> dict[tuple[str, str, str], dict]:
 def build_plan(current: dict, desired: dict, current_path: Path, desired_path: Path) -> dict:
     if current["api_version"] != desired["api_version"]:
         raise ValueError("api_version mismatch: migrate artifacts before comparison")
+    if current["artifact_api_version"] != desired["artifact_api_version"]:
+        raise ValueError("artifact_api_version mismatch: migrate artifacts before comparison")
     current_dataset = current["metadata"].get("dataset_id")
     desired_dataset = desired["metadata"].get("dataset_id")
     if current_dataset != desired_dataset:
@@ -199,13 +213,32 @@ def build_plan(current: dict, desired: dict, current_path: Path, desired_path: P
             })
 
     unchanged = len(current_entities.keys() & desired_entities.keys()) - len(updates)
+    changed_types = {
+        entry.get("entity") for entry in creates + updates + deactivations + conflicts
+        if entry.get("entity")
+    }
+    impact = {
+        "routing_graph_changed": bool(changed_types.intersection({
+            "can_edge", "lane", "conveyor_segment", "conveyor_main", "movement_rule",
+        })),
+        "inventory_locations_affected": "storage_point" in changed_types,
+        "open_tasks_check_required": bool(changed_types.intersection({
+            "storage_point", "can_edge", "controller", "reporting_point",
+            "lane", "conveyor_segment", "conveyor_main",
+        })),
+        "provider_bindings_check_required": bool(changed_types.intersection({
+            "controller", "reporting_point",
+        })),
+    }
     return {
         "api_version": desired["api_version"],
+        "artifact_api_version": desired["artifact_api_version"],
         "dataset_id": desired_dataset,
         "target": desired["target"],
         "expected_current_hash": current["artifact"]["content_hash"],
         "desired_hash": desired["artifact"]["content_hash"],
         "requires_approval": desired["import_policy"]["require_plan_approval"],
+        "impact": impact,
         "summary": {
             "create": len(creates), "update": len(updates),
             "deactivate": len(deactivations), "conflict": len(conflicts),

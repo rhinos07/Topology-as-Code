@@ -1,6 +1,5 @@
-# "May" - independent of "can" (structure/lanes.yaml, not present in this
-# minimal example - grid <-> port connectivity is intrinsic to the AS
-# itself, not modeled as separate conveyor/lane infrastructure).
+# "May" - independent of "can" (structure/lanes.yaml models the manual
+# operator legs; grid <-> port connectivity is intrinsic to the AS controller).
 # Whole building is explicit_only - see structure/storage.yaml comments.
 #
 # Each port is modeled twice (see structure/storage.yaml / wcs.yaml):

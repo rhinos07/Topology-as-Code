@@ -1,6 +1,21 @@
 # Physical connectivity ("can"). Functional permission is defined in
 # strategies/movement_rules.yaml ("may") - deliberately separated.
 
+connections:
+  - id: "MAN_HBR_TO_FIX"
+    from: "HBR"
+    to: "FIX"
+    direction: "bidirectional"
+    transport_mode: "forklift"
+    expected_duration: {value: 4, unit: "min"}
+
+  - id: "MAN_PACK_TO_STAGING"
+    from: "WC_PACK_01"
+    to: "STAGING"
+    direction: "bidirectional"
+    transport_mode: "walking"
+    expected_duration: {value: 2, unit: "min"}
+
 lanes:
   - id: "lane_main_a"
     template: "lane_shuttle_standard"

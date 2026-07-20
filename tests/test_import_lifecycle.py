@@ -6,9 +6,14 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 from compile import (  # noqa: E402
-    build_import_artifact, compile_entity_collections, compile_storage_types,
+    ARTIFACT_API_VERSION, COMPILER_VERSION, build_import_artifact,
+    compile_can_edges, compile_entity_collections, compile_storage_types,
 )
 from plan import build_plan, load_artifact  # noqa: E402
+from validate import make_validator  # noqa: E402
+
+
+ARTIFACT_VALIDATOR = make_validator("compiled-topology-artifact.schema.json")
 
 
 def warehouse_data(revision="1", removal_policy="deactivate"):
@@ -24,6 +29,24 @@ def warehouse_data(revision="1", removal_policy="deactivate"):
 
 
 class ArtifactTests(unittest.TestCase):
+    def test_manual_connection_compiles_to_directed_can_edges(self):
+        lanes = {"connections": [{
+            "id": "WALK_A_B", "from": "A", "to": "B",
+            "direction": "bidirectional", "transport_mode": "walking",
+            "expected_duration": {"value": 2, "unit": "min"},
+        }]}
+        edges = compile_can_edges({}, {}, lanes)
+        self.assertEqual([(edge["from"], edge["to"]) for edge in edges], [
+            ("A", "B"), ("B", "A"),
+        ])
+        self.assertTrue(all(edge["transport_mode"] == "walking" for edge in edges))
+
+    def test_artifact_declares_contract_and_compiler_versions(self):
+        artifact = build_import_artifact(warehouse_data(), [{"id": "A"}])
+        self.assertEqual(artifact["artifact_api_version"], ARTIFACT_API_VERSION)
+        self.assertEqual(artifact["artifact"]["compiler_version"], COMPILER_VERSION)
+        self.assertFalse(list(ARTIFACT_VALIDATOR.iter_errors(artifact)))
+
     def test_channel_is_a_separate_compiled_entity(self):
         storage_data = {"storage_types": [{
             "id": "CHANNEL_A",
@@ -109,6 +132,18 @@ class ArtifactTests(unittest.TestCase):
 
 
 class PlanTests(unittest.TestCase):
+    def test_can_edge_change_requires_routing_and_open_task_checks(self):
+        current = build_import_artifact(
+            warehouse_data(), [], entities={"can_edge": [{"id": "E", "from": "A", "to": "B"}]},
+        )
+        desired = build_import_artifact(
+            warehouse_data("2"), [], entities={"can_edge": [{"id": "E", "from": "A", "to": "C"}]},
+        )
+        plan = build_plan(current, desired, Path("current.yaml"), Path("desired.yaml"))
+        self.assertTrue(plan["impact"]["routing_graph_changed"])
+        self.assertTrue(plan["impact"]["open_tasks_check_required"])
+        self.assertFalse(plan["impact"]["inventory_locations_affected"])
+
     def test_plan_classifies_create_update_and_deactivation(self):
         current = build_import_artifact(warehouse_data(), [{"id": "A", "max_weight": {"value": 1, "unit": "kg"}}, {"id": "REMOVED"}])
         desired = build_import_artifact(warehouse_data("2"), [{"id": "A", "max_weight": {"value": 2, "unit": "kg"}}, {"id": "NEW"}])

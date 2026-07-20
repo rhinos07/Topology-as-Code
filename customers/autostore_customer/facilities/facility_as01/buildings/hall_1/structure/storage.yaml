@@ -66,7 +66,8 @@ work_centers:
 
 # System boundary of the AS cell: where induction totes come from before
 # reaching a port, and where picked goods go after leaving a port. No
-# door/lane/conveyor here on purpose (see structure decisions above) -
+# no door/conveyor here on purpose (see structure/lanes.yaml for the explicit
+# manual operator connections) -
 # these two work_centers just give movement_rules a visible source/
 # destination outside the AS itself; what happens beyond them (goods
 # receipt, packing, shipping) is the rest of the facility, not this cell.

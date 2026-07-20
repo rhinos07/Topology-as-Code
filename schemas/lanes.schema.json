@@ -5,6 +5,27 @@
   "description": "Physical connectivity between storage_types, doors and work_centers ('can') - see strategies/movement_rules.yaml for functional permission ('may').",
   "type": "object",
   "properties": {
+    "connections": {
+      "type": "array",
+      "description": "Explicit physical can-edges, especially for manual walking, forklift and tugger routes. Functional permission remains in movement_rules.",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to", "direction", "transport_mode"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "direction": { "type": "string", "enum": ["one_way", "bidirectional"] },
+          "transport_mode": {
+            "type": "string",
+            "enum": ["walking", "forklift", "tugger", "amr", "conveyor"]
+          },
+          "expected_duration": { "$ref": "quantity.schema.json#/definitions/duration" },
+          "capacity": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
     "lanes": {
       "type": "array",
       "items": {

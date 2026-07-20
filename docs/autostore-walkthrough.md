@@ -17,8 +17,8 @@ strategies/movement_rules.yaml # every allowed goods movement, decant + putaway 
 strategies/replenishment.yaml  # deliberately empty - see "Why there is no replenishment" below
 ```
 
-There is no `structure/lanes.yaml` in this building - see
-["Why there is no lanes.yaml"](#why-there-is-no-lanesyaml) below.
+`structure/lanes.yaml` contains only the explicit manual operator legs; the
+AutoStore controller-internal graph remains opaque.
 
 ## 1. The grid is one opaque `storage_point`, not a rack of columns
 
@@ -252,21 +252,21 @@ This exists because "who executes this" is operationally important
 when endpoints change - the check catches that class of error the same
 way schema validation catches a typo'd enum value.
 
-## 6. Why there is no `lanes.yaml`
+## 6. Why `lanes.yaml` only contains manual connections
 
 Other buildings in this repo (e.g. `example_customer/hall_3`) have a
 `structure/lanes.yaml` describing physical conveyor connectivity ("can")
-separately from `movement_rules.yaml` ("may"). This building has none.
+separately from `movement_rules.yaml` ("may"). This building uses explicit
+`connections` for the manual ENTRY/port/EXIT legs.
 
-Reasoning: grid-to-port connectivity is intrinsic to what an AutoStore
+Grid-to-port connectivity is intrinsic to what an AutoStore
 installation *is* - there's no separate conveyor/lane technology choice
 to make or document, unlike, say, a shuttle system where the lane layout
 is a real design decision. Modeling a `lane`/`conveyor_segment` here
 would describe infrastructure that doesn't exist as a distinct thing to
-configure. `ENTRY` and `EXIT` are plain `work_center`s precisely so this
-building doesn't need to invent door/conveyor infrastructure just to
-give `movement_rule`s a source and a destination outside the cell - see
-the comment in `structure/storage.yaml` above their definitions.
+configure. The manual handovers and walking paths do exist physically and are
+therefore explicit can-edges. `ENTRY` and `EXIT` remain plain work centers; no
+door or conveyor infrastructure is invented.
 
 ## 7. Why there is no replenishment strategy
 

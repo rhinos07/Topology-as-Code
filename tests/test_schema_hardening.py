@@ -20,6 +20,7 @@ STORAGE_VALIDATOR = make_validator("storage-type.schema.json")
 MOVEMENT_VALIDATOR = make_validator("movement-rule.schema.json")
 WCS_VALIDATOR = make_validator("wcs.schema.json")
 STORAGE_FILE_VALIDATOR = make_validator("storage.schema.json")
+LANES_VALIDATOR = make_validator("lanes.schema.json")
 
 
 def rack():
@@ -194,6 +195,19 @@ class StorageTypeSchemaTests(unittest.TestCase):
         value["section_membership"] = {"require_full_coverage": True}
         errors = check_section_membership(Path("storage.yaml"), {"storage_types": [value]})
         self.assertTrue(any("has no section" in error for error in errors))
+
+
+class LanesSchemaTests(unittest.TestCase):
+    def test_manual_connection_is_closed_and_requires_direction(self):
+        valid = {"connections": [{
+            "id": "A_B", "from": "A", "to": "B",
+            "direction": "bidirectional", "transport_mode": "walking",
+            "expected_duration": {"value": 2, "unit": "min"},
+        }]}
+        self.assertFalse(list(LANES_VALIDATOR.iter_errors(valid)))
+        invalid = copy.deepcopy(valid)
+        invalid["connections"][0]["directon"] = invalid["connections"][0].pop("direction")
+        self.assertTrue(list(LANES_VALIDATOR.iter_errors(invalid)))
 
 
 class MovementRuleSchemaTests(unittest.TestCase):
