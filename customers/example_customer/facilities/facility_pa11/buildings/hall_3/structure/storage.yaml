@@ -184,7 +184,7 @@ storage_types:
   # = bins per column and access_order 'lifo'.
   - id: "AUTOSTORE_A"
     template: "autostore_bin_location"   # bin weight/carrier shared with autostore_customer's grid
-    automation_level: "conveyor_automated"
+    automation_level: "controller_automated"   # robots on a grid, not a conveyor
     movement_policy: "explicit_only"
     access_model: "block"
     depth: 1

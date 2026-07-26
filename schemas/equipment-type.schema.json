@@ -14,7 +14,8 @@
     "description": { "type": "string" },
     "automation_level": {
       "type": "string",
-      "enum": ["manual", "conveyor_automated", "mixed"]
+      "pattern": "^[a-z0-9_]+$",
+      "description": "References an id in elements/automation_levels.yaml. Describes how this equipment class is operated; it carries no movement_policy consequence, which applies per storage_type."
     },
     "max_payload": { "$ref": "quantity.schema.json#/definitions/mass" },
     "max_speed": { "$ref": "quantity.schema.json#/definitions/speed" }

@@ -66,6 +66,7 @@ warehouse-definitions/
 │   ├── rack_templates.yaml       # Storage/lane/workstation templates (filename predates the storage_templates catalog)
 │   ├── load_unit_types.yaml      # Pallet/container/carton definitions
 │   ├── equipment_types.yaml      # Equipment classes and capabilities
+│   ├── automation_levels.yaml    # How an area/building/equipment is operated, and what that implies
 │   ├── process_types.yaml        # Inbound/outbound/internal movement/cross-dock categories
 │   ├── blocking_reasons.yaml     # Reasons a storage_point can be blocked
 │   └── hazmat_classes.yaml       # Hazardous material / compliance classifications
@@ -200,6 +201,37 @@ Logical and physical placement are deliberately separate: `zone` is a logical
 warehouse grouping such as `ZONE_COLD_B`; `position` only accepts structured
 physical coordinates (`x`, `y`, and optional `z`). A section remains an
 independent operational subdivision within a storage type.
+
+## Automation Levels
+
+`automation_level` references `elements/automation_levels.yaml` rather than
+being a closed enum. Each entry states its own consequences, which used to
+be hardcoded as JSON Schema conditionals per value:
+
+```yaml
+- id: "controller_automated"
+  automated: true                    # a controller may be attached
+  movement_policy: "explicit_only"   # what a storage_type here must use
+  requires_movement_policy: true     # ...and must state
+```
+
+`tools/validate.py` enforces those three rules - the level must exist, its
+implied `movement_policy` must match, and a `storage_type` may only declare
+a `controller` on an automated level. The rules are unchanged; only where
+they are enforced moved, which is the accepted trade for making the level
+set open (see
+[`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md),
+measure 3). Adding a level is now a catalog entry instead of a schema
+change in three files plus three invariant edits.
+
+The immediate payoff is that the model can state the truth: an AutoStore
+grid used to be declared `conveyor_automated` although no conveying
+equipment is involved. It is `controller_automated` now, and an AGV is
+`vehicle_automated`. The enum had been forcing a false statement about the
+physical system.
+
+Note that `movement_policy` itself stays a closed enum - it is grammar (how
+movement rules are read), not vocabulary.
 
 ## Storage Templates
 

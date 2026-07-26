@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://topology-as-code.internal/schemas/automation-level.schema.json",
+  "title": "Automation Level",
+  "description": "Catalog entry describing how an area, building or equipment class is operated, and what that implies for movement rules. Replaces a closed enum that was duplicated across three schemas with the behavioural consequences hardcoded as conditionals - see Warehouse-as-Code ADR-0001, measure 3.",
+  "type": "object",
+  "required": ["id", "automated"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Unique ID, e.g. 'manual', 'controller_automated'."
+    },
+    "description": { "type": "string" },
+    "automated": {
+      "type": "boolean",
+      "description": "Whether automation is present at this level at all. A storage_type may only declare a controller when its automation_level is automated - tools/validate.py enforces this."
+    },
+    "movement_policy": {
+      "type": "string",
+      "enum": ["default_allow", "explicit_only"],
+      "description": "The movement_policy a storage_type at this level must use, if it states one. Omit for a level that carries no such consequence. This enum stays closed on purpose: it is grammar (how rules are read), not vocabulary."
+    },
+    "requires_movement_policy": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, a storage_type at this level must state movement_policy rather than leaving it out. Only meaningful together with movement_policy."
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "requires_movement_policy": { "const": true } }, "required": ["requires_movement_policy"] },
+      "then": { "required": ["movement_policy"] }
+    }
+  ]
+}

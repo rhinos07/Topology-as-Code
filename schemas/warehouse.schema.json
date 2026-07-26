@@ -21,7 +21,8 @@
         "name": { "type": "string" },
         "automation_level": {
           "type": "string",
-          "enum": ["manual", "conveyor_automated", "mixed"]
+          "pattern": "^[a-z0-9_]+$",
+          "description": "References an id in elements/automation_levels.yaml. Building-level summary; it carries no movement_policy consequence of its own - that applies per storage_type."
         },
         "imports": {
           "type": "array",
