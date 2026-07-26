@@ -1,13 +1,48 @@
 # Reusable, rarely changed building blocks.
 # Referenced by structure/lanes.yaml (lane_templates) and
-# structure/storage.yaml (workstation_templates).
+# structure/storage.yaml (workstation_templates, storage_templates).
+
+# Physical characteristics of a kind of storage location, factored out of
+# the individual buildings that use it. Referenced by
+# structure/storage.yaml -> storage_type.template.
 #
-# A rack_templates catalog used to live here too, but was removed: no
-# schema field anywhere ever let a storage_type/storage_point reference a
-# rack template id (physical rack attributes are carried by
-# storage_type.default_attributes/exceptions instead) - found dead by
-# WMS-POC's Topology-as-Code review, unreferenced by any customer data or
-# test.
+# A storage_template carries only what is intrinsic to the location kind
+# (how heavy, how big, which carriers fit). Everything building-specific -
+# zone, section, position - stays on the storage_type itself and is
+# deliberately not expressible here.
+#
+# Merge semantics: the template supplies default_attributes values; the
+# storage_type's own default_attributes override them KEY BY KEY, and a
+# storage_point exception overrides those in turn. The merge is shallow,
+# so overriding a nested key such as 'size' replaces the whole object
+# rather than merging into it - same semantics storage_point exceptions
+# already use.
+#
+# (An earlier rack_templates catalog lived here and was removed as dead:
+# no schema field ever let a storage_type reference it. This catalog is
+# that idea reconnected - see Warehouse-as-Code ADR-0001.)
+storage_templates:
+  - id: "pallet_bay_euro_1000"
+    description: "Single euro-pallet bay, 1000 kg design load - the standard bay used across cold and channel storage."
+    max_weight: { value: 1000, unit: "kg" }
+    capacity_per_point: 1
+    size:
+      width: { value: 1.2, unit: "m" }
+      depth: { value: 0.8, unit: "m" }
+      height: { value: 0.4, unit: "m" }
+    allowed_load_unit_types: ["pallet_euro"]
+
+  - id: "heavy_bay_1500"
+    description: "Ambient location rated for a 1500 kg load unit, one unit per point. Carrier types stay open - the using storage_type decides them."
+    max_weight: { value: 1500, unit: "kg" }
+    temperature_zone: "ambient"
+    capacity_per_point: 1
+
+  - id: "autostore_bin_location"
+    description: "A location holding AutoStore bins. Capacity and envelope stay open: they differ between a modeled grid column and an opaque controller-managed grid."
+    max_weight: { value: 30, unit: "kg" }
+    temperature_zone: "ambient"
+    allowed_load_unit_types: ["autostore_bin"]
 
 lane_templates:
   - id: "lane_shuttle_standard"

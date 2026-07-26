@@ -27,7 +27,13 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate import collect_extension_imports, collect_imports, load_yaml  # noqa: E402
+from validate import (  # noqa: E402
+    collect_extension_imports,
+    collect_imports,
+    load_storage_templates,
+    load_yaml,
+    resolve_storage_templates,
+)
 
 
 ARTIFACT_API_VERSION = "topology-as-code/artifact-v1"
@@ -314,6 +320,10 @@ STORAGE_TYPE_SOURCE_FIELDS = {
     "storage_point_generator", "layout_variants", "layout_grid",
     "storage_points", "default_attributes", "exceptions", "sections",
     "section_membership",
+    # Authoring-layer indirection, already resolved into default_attributes
+    # before this point - the artifact states effective values, never the
+    # template it happened to inherit them from.
+    "template",
 }
 
 UNIT_NORMALIZATION = {
@@ -598,6 +608,12 @@ def main(argv: list[str]) -> int:
 
     warehouse_data = load_yaml(warehouse_file)
     storage_data = load_yaml(storage_file)
+    # storage_type.template is an authoring-layer convenience only: it is
+    # resolved into default_attributes here, so every downstream expansion
+    # and the artifact itself see the same explicit values a storage_type
+    # would have carried if it had spelled them out. Templating a
+    # storage_type therefore never changes the compiled contract or its hash.
+    resolve_storage_templates(storage_data, load_storage_templates())
     extension_data = [
         load_yaml(path) for path in collect_extension_imports(warehouse_file)
         if path.exists()

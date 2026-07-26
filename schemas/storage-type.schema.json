@@ -11,6 +11,11 @@
       "pattern": "^[A-Z0-9_]+$",
       "description": "Unique ID, e.g. 'HBR', 'ASRS', 'BLK'"
     },
+    "template": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "References an id in elements/rack_templates.yaml storage_templates. The template supplies default_attributes values; this storage_type's own default_attributes override them key by key (shallow merge - overriding a nested key such as 'size' replaces the whole object). Optional: a storage_type whose attributes are unique to it can state them directly and omit this."
+    },
     "automation_level": {
       "type": "string",
       "enum": ["manual", "conveyor_automated", "mixed"],

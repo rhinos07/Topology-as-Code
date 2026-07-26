@@ -1,9 +1,41 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://topology-as-code.internal/schemas/rack-templates.schema.json",
-  "title": "Lane and Workstation Templates",
+  "title": "Storage, Lane and Workstation Templates",
   "type": "object",
   "properties": {
+    "storage_templates": {
+      "description": "Reusable physical characteristics of a kind of storage location, referenced by storage_type.template. Carries only what is intrinsic to the location kind; zone/section/position stay on the storage_type because they are building-specific. Values are merged UNDER the storage_type's own default_attributes (shallow, key by key).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "description": { "type": "string" },
+          "max_weight": { "$ref": "quantity.schema.json#/definitions/mass" },
+          "temperature_zone": { "$ref": "quantity.schema.json#/definitions/temperatureZone" },
+          "capacity_per_point": { "type": "integer", "minimum": 1 },
+          "size": { "$ref": "storage-type.schema.json#/definitions/size" },
+          "capacity_volume": { "$ref": "quantity.schema.json#/definitions/volume" },
+          "allowed_load_unit_types": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "References ids in elements/load_unit_types.yaml."
+          },
+          "hazmat_classes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "References ids in elements/hazmat_classes.yaml."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "lane_templates": {
       "type": "array",
       "items": {

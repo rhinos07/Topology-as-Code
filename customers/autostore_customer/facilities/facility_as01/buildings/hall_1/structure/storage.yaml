@@ -11,6 +11,7 @@ storage_types:
   # --- Declared as a single explicit storage_point (no generator, since ---
   # --- there is nothing to generate - it's just the one block place).   ---
   - id: "AUTOSTORE_GRID"
+    template: "autostore_bin_location"   # same bin weight/carrier as example_customer's AUTOSTORE_A
     automation_level: "conveyor_automated"
     movement_policy: "explicit_only"     # every route must be explicitly defined
     access_model: "block"
@@ -20,10 +21,7 @@ storage_types:
       - coordinate: "AS_GRID"    # the whole grid, as one opaque block place
 
     default_attributes:
-      max_weight: { value: 30, unit: "kg" }        # per bin
-      temperature_zone: "ambient"
       capacity_per_point: 4800  # nominal total bin slots the controller reports for this grid
-      allowed_load_unit_types: ["autostore_bin"]
       zone: "ZONE_GRID_1"
 
 # Functional cross-cutting grouping - orthogonal to the physical hierarchy.
