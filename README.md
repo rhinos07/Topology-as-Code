@@ -67,6 +67,7 @@ warehouse-definitions/
 │   ├── load_unit_types.yaml      # Pallet/container/carton definitions
 │   ├── equipment_types.yaml      # Equipment classes and capabilities
 │   ├── automation_levels.yaml    # How an area/building/equipment is operated, and what that implies
+│   ├── storage_technologies.yaml # Which kind of system fulfils storage in an area
 │   ├── process_types.yaml        # Inbound/outbound/internal movement/cross-dock categories
 │   ├── blocking_reasons.yaml     # Reasons a storage_point can be blocked
 │   └── hazmat_classes.yaml       # Hazardous material / compliance classifications
@@ -233,6 +234,44 @@ physical system.
 Note that `movement_policy` itself stays a closed enum - it is grammar (how
 movement rules are read), not vocabulary.
 
+## Storage Technologies
+
+`storage_type.technology` references `elements/storage_technologies.yaml`
+and names **which kind of system fulfils** storage in an area - the thing
+an order is handed to.
+
+It is easy to confuse with `automation_level`, so the line is worth
+stating plainly:
+
+| | Question it answers | Example |
+|---|---|---|
+| `automation_level` | *How* is the area operated? | `conveyor_automated` |
+| `technology` | *Which system* fulfils it? | `shuttle` |
+
+They are genuinely independent, and `hall_3` shows why a single field
+could not carry both: `HBR` and `CHANNEL_A` are **both**
+`conveyor_automated`, but one is a shuttle rack and the other a satellite
+flow channel. An order routed to one cannot be served by the other, so
+collapsing them would lose a distinction the warehouse actually has.
+`tests/test_storage_technologies.py` pins exactly that case.
+
+**Why this lives here.** Two sibling repos need this vocabulary and
+neither owned it: `Allocation-as-Code`'s search zones resolve to a
+`storage_type`, and `OrderOrchestration-as-Code`'s
+`split_rule.when.dimension_value` names the technology a split rule
+claims. Nothing connected the two, so `WMS-POC` had to hardcode a
+zone-to-technology table to get from a search result to a split decision
+(its Finding #8). The fact belongs where the area is defined, which is
+here.
+
+`tools/compile.py` also derives an `activity_area`'s technology from the
+`storage_type`s its `bins_from` entries point at, so consumers read it
+straight from the artifact instead of each re-deriving it. An
+`activity_area` spanning several technologies is legitimate -
+`INVENTORY_ZONE_A` really does cover `HBR` and `BLK` - so a mixed area
+simply gets **no** technology rather than being rejected; a consumer that
+needs one has to say so itself.
+
 ## Storage Templates
 
 `elements/rack_templates.yaml`'s `storage_templates` catalog factors out the
@@ -325,6 +364,9 @@ drops an unknown payload.
   Can be a rack location or a block location, differs in access model
   (`direct` vs. `lifo`). Details: `docs/entity-glossary.md`.
 - **storage_type** — storage area that groups storage_points (e.g. high-bay rack).
+- **storage_technology** — which *kind of system* fulfils an area
+  (`autostore`, `shuttle`, …), referenced by `storage_type.technology`.
+  Distinct from `automation_level` — see "Storage Technologies" below.
 - **storage_template** — reusable physical characteristics of a *kind* of
   storage location (how heavy, how big, which carriers fit), referenced by
   `storage_type.template`. See "Storage Templates" below.

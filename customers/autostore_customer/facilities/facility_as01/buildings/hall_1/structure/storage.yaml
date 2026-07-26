@@ -13,6 +13,7 @@ storage_types:
   - id: "AUTOSTORE_GRID"
     template: "autostore_bin_location"   # same bin weight/carrier as example_customer's AUTOSTORE_A
     automation_level: "controller_automated"   # a grid, not a conveyor - the controller owns the internal mechanics
+    technology: "autostore"
     movement_policy: "explicit_only"     # every route must be explicitly defined
     access_model: "block"
     controller: "CTRL_ASC_01"      # references structure/wcs.yaml controller_definitions - owns the internal column/bin detail

@@ -1,0 +1,36 @@
+# Reusable catalog of storage technologies - which KIND OF SYSTEM fulfils
+# storage in an area. Referenced by storage_type.technology.
+#
+# Distinct from automation_level, which they are easy to confuse:
+#
+#   automation_level  = HOW an area is operated (manual, conveyor_automated,
+#                       controller_automated, ...) and what that implies for
+#                       movement rules.
+#   technology        = WHICH SYSTEM fulfils it - the thing an order is
+#                       handed to.
+#
+# They are genuinely independent: HBR and CHANNEL_A are both
+# 'conveyor_automated' but are different systems (a shuttle rack and a
+# satellite flow channel), and an order routed to one cannot be served by
+# the other.
+#
+# This catalog is the anchor for a vocabulary two sibling repos had no
+# shared definition for: Allocation-as-Code's search zones resolve to a
+# storage_type and therefore to a technology, and
+# OrderOrchestration-as-Code's split_rule.when.dimension_value names the
+# technology a split rule claims. Before this existed, nothing connected
+# the two and a runtime had to hardcode the mapping - see WMS-POC's
+# README, Finding #8, and Warehouse-as-Code ADR-0001.
+
+storage_technologies:
+  - id: "manual_warehouse"
+    description: "Conventional storage served by people and manually driven equipment - racking, block storage, pick faces."
+
+  - id: "shuttle"
+    description: "Rack storage served by shuttles on rails, coordinated by a material-flow controller."
+
+  - id: "channel_storage"
+    description: "Channel/flow storage served by satellite vehicles or gravity, accessed sequentially from the channel ends."
+
+  - id: "autostore"
+    description: "Cube storage: bins stacked in a grid, retrieved by robots and presented at ports. The controller owns the internal mechanics; the WMS sees the grid and its ports."

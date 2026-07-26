@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://topology-as-code.internal/schemas/storage-technology.schema.json",
+  "title": "Storage Technology",
+  "description": "Catalog entry naming a kind of system that fulfils storage in an area - the thing an order is handed to. Distinct from automation_level, which describes how an area is operated: HBR and CHANNEL_A are both conveyor_automated but are different systems. Referenced by storage_type.technology, and the anchor for OrderOrchestration-as-Code's split_rule.when.dimension_value.",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Unique ID, e.g. 'autostore', 'manual_warehouse'."
+    },
+    "description": { "type": "string" }
+  },
+  "additionalProperties": false
+}
