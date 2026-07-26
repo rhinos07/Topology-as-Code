@@ -63,7 +63,7 @@ status.
 warehouse-definitions/
 ├── schemas/              # JSON Schema for validating all YAML files
 ├── elements/             # Reusable templates and catalogs
-│   ├── rack_templates.yaml       # Lane/workstation templates (filename predates a removed rack_templates catalog)
+│   ├── rack_templates.yaml       # Storage/lane/workstation templates (filename predates the storage_templates catalog)
 │   ├── load_unit_types.yaml      # Pallet/container/carton definitions
 │   ├── equipment_types.yaml      # Equipment classes and capabilities
 │   ├── process_types.yaml        # Inbound/outbound/internal movement/cross-dock categories
@@ -201,6 +201,45 @@ warehouse grouping such as `ZONE_COLD_B`; `position` only accepts structured
 physical coordinates (`x`, `y`, and optional `z`). A section remains an
 independent operational subdivision within a storage type.
 
+## Storage Templates
+
+`elements/rack_templates.yaml`'s `storage_templates` catalog factors out the
+physical characteristics of a *kind* of storage location, so buildings that
+use the same kind of bay stop restating its millimetres and load rating:
+
+```yaml
+- id: "COLD_ZONE_B"
+  template: "pallet_bay_euro_1000"   # weight, size, carriers come from here
+  access_model: "rack"
+  default_attributes:
+    temperature_zone: { min: 2, max: 8, unit: "C" }   # only what differs
+    zone: "ZONE_COLD_B"
+```
+
+A template carries only what is intrinsic to the location kind. Anything
+building-specific - `zone`, `section`, `position` - stays on the
+`storage_type` and is deliberately not expressible in a template.
+
+The merge is a three-level cascade, shallow at each level: template, then
+the `storage_type`'s own `default_attributes`, then a `storage_point`
+exception. Shallow means overriding a nested key such as `size` replaces
+the whole object rather than merging into it - the same semantics
+exceptions already had.
+
+`template` is authoring-layer indirection only. `tools/compile.py`
+resolves it into `default_attributes` before any expansion, and strips the
+field itself, so the artifact always states effective values and never the
+template they came from. **Templating a storage_type is therefore a source
+refactor that cannot change the compiled contract or its `content_hash`** -
+both example buildings were converted with byte-identical artifacts, and
+`tests/test_storage_templates.py` pins that guarantee.
+
+This is the L1/L2 split from
+[`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md):
+the human-authored layer states intent, the compiled artifact stays
+exhaustive and strict. An earlier `rack_templates` catalog was removed
+because nothing could reference it; this is that idea reconnected.
+
 ## WMS-specific Extension Sidecars
 
 Vendor-specific roundtrip data lives in optional namespaced sidecars instead
@@ -254,6 +293,9 @@ drops an unknown payload.
   Can be a rack location or a block location, differs in access model
   (`direct` vs. `lifo`). Details: `docs/entity-glossary.md`.
 - **storage_type** — storage area that groups storage_points (e.g. high-bay rack).
+- **storage_template** — reusable physical characteristics of a *kind* of
+  storage location (how heavy, how big, which carriers fit), referenced by
+  `storage_type.template`. See "Storage Templates" below.
 - **activity_area** — functional cross-cutting grouping, orthogonal to the
   physical hierarchy (a storage_point can belong to multiple activity_areas).
 - **reporting_point** — communication point between WMS and a downstream

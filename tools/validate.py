@@ -19,6 +19,7 @@ Extension planned (see README "Next Steps"):
       must exist for every lane
 """
 
+import copy
 import sys
 import json
 from pathlib import Path
@@ -41,9 +42,14 @@ ELEMENT_CATALOGS = {
 }
 
 TEMPLATE_CATALOGS = {
+    "storage_templates": "storage_templates",
     "lane_templates": "lane_templates",
     "workstation_templates": "workstation_templates",
 }
+
+# Keys on a storage_template that describe the template itself rather than
+# an attribute to merge into a storage_type's default_attributes.
+STORAGE_TEMPLATE_META_KEYS = {"id", "description"}
 
 
 def load_yaml(path: Path) -> dict:
@@ -341,6 +347,48 @@ def collect_element_ids() -> dict[str, set[str]]:
     return ids
 
 
+def load_storage_templates() -> dict[str, dict]:
+    """Loads elements/rack_templates.yaml storage_templates as id -> template."""
+    template_file = ELEMENTS_DIR / "rack_templates.yaml"
+    if not template_file.exists():
+        return {}
+    data = load_yaml(template_file) or {}
+    return {
+        item["id"]: item
+        for item in data.get("storage_templates", [])
+        if item.get("id")
+    }
+
+
+def resolve_storage_templates(
+    storage_data: dict | None,
+    templates: dict[str, dict],
+) -> None:
+    """Resolves each storage_type.template into its default_attributes, in place.
+
+    The template supplies values; the storage_type's own default_attributes
+    win key by key. The merge is shallow, matching compile.py's
+    merge_attributes(): overriding a nested key such as 'size' replaces the
+    whole object rather than merging into it.
+
+    Callers must run this before any check that reads default_attributes,
+    so a templated storage_type is checked on its effective values rather
+    than on what it happens to spell out locally. An unknown template id is
+    left unresolved on purpose - check_storage_refs reports it as an error.
+    """
+    for st in (storage_data or {}).get("storage_types", []):
+        template = templates.get(st.get("template"))
+        if not template:
+            continue
+        merged = {
+            key: copy.deepcopy(value)
+            for key, value in template.items()
+            if key not in STORAGE_TEMPLATE_META_KEYS
+        }
+        merged.update(st.get("default_attributes") or {})
+        st["default_attributes"] = merged
+
+
 def validate_template_catalogs(path: Path) -> list[str]:
     data = load_yaml(path) or {}
     errors: list[str] = validate_file(path, "rack-templates.schema.json")
@@ -357,15 +405,21 @@ def check_storage_refs(
     path: Path,
     ctrl_ids: set[str],
     element_ids: dict[str, set[str]],
+    storage_data: dict | None = None,
 ) -> list[str]:
     """Checks referential integrity in storage.yaml:
     - storage_type.controller -> controller_definitions.id (wcs.yaml)
+    - storage_type.template -> storage_templates.id (elements/rack_templates.yaml)
     - storage_type.default_attributes.allowed_load_unit_types -> load_unit_types.id
     - storage points/exceptions/layout variants -> load unit and blocking catalogs
     - work_center.workstation_template -> workstation_templates.id
+
+    Pass storage_data to check already template-resolved data, so that
+    attributes a storage_type inherits from its template are checked too
+    rather than only the ones it spells out locally.
     """
     errors: list[str] = []
-    data = load_yaml(path)
+    data = storage_data if storage_data is not None else load_yaml(path)
     if not data:
         return errors
 
@@ -373,6 +427,7 @@ def check_storage_refs(
     br_ids = element_ids.get("blocking_reasons", set())
     hazmat_ids = element_ids.get("hazmat_classes", set())
     workstation_ids = element_ids.get("workstation_templates", set())
+    storage_template_ids = element_ids.get("storage_templates", set())
 
     for st in data.get("storage_types", []):
         st_id = st.get("id", "?")
@@ -381,6 +436,13 @@ def check_storage_refs(
         if ctrl and ctrl not in ctrl_ids:
             errors.append(
                 f"{path}: storage_type '{st_id}': controller '{ctrl}' not found in wcs.yaml controller_definitions"
+            )
+
+        template = st.get("template")
+        if template and template not in storage_template_ids:
+            errors.append(
+                f"{path}: storage_type '{st_id}': template '{template}' not found "
+                f"in elements/rack_templates.yaml storage_templates"
             )
 
         for lut in (st.get("default_attributes") or {}).get("allowed_load_unit_types", []):
@@ -1578,6 +1640,11 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
     movement_data = load_yaml(imports["movement_rules.yaml"]) if "movement_rules.yaml" in imports else {}
     replenishment_data = load_yaml(imports["replenishment.yaml"]) if "replenishment.yaml" in imports else {}
 
+    # Resolve storage_type.template into default_attributes before any check
+    # that reads them, so a templated storage_type is validated on its
+    # effective attributes - same resolution compile.py applies.
+    resolve_storage_templates(storage_data, load_storage_templates())
+
     # Cross-file checks: run regardless of element_ids availability so that
     # within-file references (e.g. door -> staging section) are always verified.
 
@@ -1587,7 +1654,9 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
             for cd in (wcs_data or {}).get("controller_definitions", [])
             if cd.get("id")
         }
-        all_errors += check_storage_refs(imports["storage.yaml"], ctrl_ids, element_ids)
+        all_errors += check_storage_refs(
+            imports["storage.yaml"], ctrl_ids, element_ids, storage_data
+        )
         all_errors += check_storage_compatibility(imports["storage.yaml"], storage_data)
         all_errors += check_door_staging_refs(imports["storage.yaml"])
         all_errors += check_activity_area_refs(imports["storage.yaml"])
