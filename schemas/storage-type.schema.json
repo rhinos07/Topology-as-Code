@@ -20,7 +20,12 @@
       "type": "string",
       "pattern": "^[a-z0-9_]+$",
       "default": "manual",
-      "description": "References an id in elements/automation_levels.yaml. The consequences of a level - which movement_policy it implies, and whether a controller may be attached - are stated by the catalog entry and enforced by tools/validate.py, not hardcoded here."
+      "description": "References an id in elements/automation_levels.yaml. Describes HOW this area is operated. The consequences of a level - which movement_policy it implies, and whether a controller may be attached - are stated by the catalog entry and enforced by tools/validate.py, not hardcoded here. See 'technology' for which system fulfils the area, which is a different question."
+    },
+    "technology": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "References an id in elements/storage_technologies.yaml: WHICH KIND OF SYSTEM fulfils storage here - the thing an order is handed to. Independent of automation_level, which says how the area is operated: HBR and CHANNEL_A are both 'conveyor_automated' but are a shuttle rack and a satellite channel respectively, and an order routed to one cannot be served by the other. This is the anchor for OrderOrchestration-as-Code's split_rule.when.dimension_value and for resolving an Allocation-as-Code search zone to a fulfilling system. Optional, but the compiler can only derive an activity_area's technology when its storage_types state one."
     },
     "controller": {
       "type": "string",

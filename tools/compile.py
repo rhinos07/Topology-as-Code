@@ -316,6 +316,39 @@ def normalize_extensions(extensions: list[dict] | None) -> list[dict]:
     return sorted(normalized, key=lambda data: data["extension"]["namespace"])
 
 
+def derive_activity_area_technology(storage_data: dict) -> list[dict]:
+    """Resolves each activity_area's storage technology from the storage_types
+    its bins_from entries point at, and emits it alongside.
+
+    An activity_area is a functional grouping that can legitimately span
+    several storage_types (INVENTORY_ZONE_A covers HBR and BLK), so a mixed
+    area is NOT an error - it simply gets no technology and a consumer that
+    needs one has to say so itself. Deriving it here means Allocation-as-Code
+    search zones and OrderOrchestration-as-Code split targets can resolve a
+    technology straight from the artifact instead of each consumer
+    re-deriving it - see WMS-POC Finding #8.
+    """
+    technology_by_storage_type = {
+        st["id"]: st.get("technology")
+        for st in storage_data.get("storage_types", [])
+    }
+
+    areas = []
+    for area in storage_data.get("activity_areas", []):
+        entity = dict(area)
+        # bins_from entries are either '<storage_type>' or '<storage_type>.<section>'.
+        sources = {ref.split(".", 1)[0] for ref in area.get("bins_from", [])}
+        technologies = {
+            technology_by_storage_type.get(source) for source in sources
+        }
+        if len(technologies) == 1:
+            technology = technologies.pop()
+            if technology is not None:
+                entity["technology"] = technology
+        areas.append(entity)
+    return areas
+
+
 STORAGE_TYPE_SOURCE_FIELDS = {
     "storage_point_generator", "layout_variants", "layout_grid",
     "storage_points", "default_attributes", "exceptions", "sections",
@@ -494,7 +527,7 @@ def compile_entity_collections(
         "storage_point": list(points),
         "channel": channels,
         "section": sections,
-        "activity_area": list(storage_data.get("activity_areas", [])),
+        "activity_area": derive_activity_area_technology(storage_data),
         "work_center": list(storage_data.get("work_centers", [])),
         "door": list(storage_data.get("doors", [])),
         "controller": list((wcs_data or {}).get("controller_definitions", [])),

@@ -6,6 +6,7 @@ storage_types:
   # --- Rack location area, automated (shuttle) ---
   - id: "HBR"
     automation_level: "conveyor_automated"
+    technology: "shuttle"
     movement_policy: "explicit_only"     # every route must be explicitly defined
     access_model: "rack"
     access_order: "direct"
@@ -59,6 +60,7 @@ storage_types:
   - id: "HBR_FLEX"
     template: "heavy_bay_1500"    # 1500 kg ambient bay, one unit per point
     automation_level: "manual"
+    technology: "manual_warehouse"
     movement_policy: "default_allow"
     access_model: "rack"
     access_order: "direct"
@@ -82,6 +84,7 @@ storage_types:
   # --- Block location area, manual (forklift) ---
   - id: "BLK"
     automation_level: "manual"
+    technology: "manual_warehouse"
     movement_policy: "default_allow"     # explicitly prohibiting exceptions is sufficient
     access_model: "block"
     depth: 5
@@ -109,6 +112,7 @@ storage_types:
   # --- Fixed-location picking area, manual ---
   - id: "FIX"
     automation_level: "manual"
+    technology: "manual_warehouse"
     movement_policy: "default_allow"
     access_model: "rack"
     access_order: "direct"
@@ -143,6 +147,7 @@ storage_types:
   - id: "COLD_ZONE_B"
     template: "pallet_bay_euro_1000"   # standard euro-pallet bay; only the temperature differs
     automation_level: "manual"
+    technology: "manual_warehouse"
     movement_policy: "default_allow"
     access_model: "rack"
     access_order: "direct"
@@ -161,6 +166,7 @@ storage_types:
   - id: "CHANNEL_A"
     template: "pallet_bay_euro_1000"   # same bay as COLD_ZONE_B, ambient
     automation_level: "conveyor_automated"
+    technology: "channel_storage"
     movement_policy: "explicit_only"
     access_model: "channel"
     channel_depth: 6
@@ -185,6 +191,7 @@ storage_types:
   - id: "AUTOSTORE_A"
     template: "autostore_bin_location"   # bin weight/carrier shared with autostore_customer's grid
     automation_level: "controller_automated"   # robots on a grid, not a conveyor
+    technology: "autostore"
     movement_policy: "explicit_only"
     access_model: "block"
     depth: 1
@@ -209,6 +216,7 @@ storage_types:
   # --- Hazardous materials storage, manual, compliance-restricted ---
   - id: "HAZMAT_A"
     automation_level: "manual"
+    technology: "manual_warehouse"
     movement_policy: "default_allow"
     access_model: "rack"
     access_order: "direct"
@@ -236,6 +244,7 @@ storage_types:
   - id: "STAGING"
     template: "heavy_bay_1500"    # same bay rating as HBR_FLEX, but takes any carrier
     automation_level: "manual"
+    technology: "manual_warehouse"
     movement_policy: "default_allow"
     access_model: "block"
     depth: 1

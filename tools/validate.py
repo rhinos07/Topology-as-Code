@@ -35,6 +35,7 @@ ELEMENTS_DIR = REPO_ROOT / "elements"
 
 ELEMENT_CATALOGS = {
     "automation_levels.yaml": ("automation-level.schema.json", "automation_levels"),
+    "storage_technologies.yaml": ("storage-technology.schema.json", "storage_technologies"),
     "load_unit_types.yaml": ("load-unit-type.schema.json", "load_unit_types"),
     "equipment_types.yaml": ("equipment-type.schema.json", "equipment_types"),
     "process_types.yaml": ("process-type.schema.json", "process_types"),
@@ -523,6 +524,7 @@ def check_storage_refs(
     hazmat_ids = element_ids.get("hazmat_classes", set())
     workstation_ids = element_ids.get("workstation_templates", set())
     storage_template_ids = element_ids.get("storage_templates", set())
+    technology_ids = element_ids.get("storage_technologies", set())
 
     for st in data.get("storage_types", []):
         st_id = st.get("id", "?")
@@ -531,6 +533,13 @@ def check_storage_refs(
         if ctrl and ctrl not in ctrl_ids:
             errors.append(
                 f"{path}: storage_type '{st_id}': controller '{ctrl}' not found in wcs.yaml controller_definitions"
+            )
+
+        technology = st.get("technology")
+        if technology and technology_ids and technology not in technology_ids:
+            errors.append(
+                f"{path}: storage_type '{st_id}': technology '{technology}' not found "
+                f"in elements/storage_technologies.yaml"
             )
 
         template = st.get("template")
