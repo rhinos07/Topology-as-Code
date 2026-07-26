@@ -24,7 +24,7 @@ warehouse:
   name: "Hall_1"
   # Whole building is one AutoStore cell - no manual pallet handling,
   # unlike example_customer/hall_3 which mixes automation levels.
-  automation_level: "conveyor_automated"
+  automation_level: "controller_automated"
 
   imports:
     - "structure/storage.yaml"

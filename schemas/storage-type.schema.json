@@ -18,8 +18,9 @@
     },
     "automation_level": {
       "type": "string",
-      "enum": ["manual", "conveyor_automated", "mixed"],
-      "default": "manual"
+      "pattern": "^[a-z0-9_]+$",
+      "default": "manual",
+      "description": "References an id in elements/automation_levels.yaml. The consequences of a level - which movement_policy it implies, and whether a controller may be attached - are stated by the catalog entry and enforced by tools/validate.py, not hardcoded here."
     },
     "controller": {
       "type": "string",
@@ -312,14 +313,6 @@
       }
     },
     {
-      "if": { "properties": { "automation_level": { "const": "manual" } }, "required": ["automation_level"] },
-      "then": { "properties": { "movement_policy": { "const": "default_allow" } } }
-    },
-    {
-      "if": { "properties": { "automation_level": { "const": "conveyor_automated" } }, "required": ["automation_level"] },
-      "then": { "required": ["movement_policy"], "properties": { "movement_policy": { "const": "explicit_only" } } }
-    },
-    {
       "oneOf": [
         {
           "required": ["storage_point_generator"],
@@ -342,8 +335,8 @@
     {
       "if": { "required": ["controller"] },
       "then": {
-        "required": ["automation_level"],
-        "properties": { "automation_level": { "enum": ["conveyor_automated", "mixed"] } }
+        "comment": "That the level must additionally be an automated one is enforced by tools/validate.py against elements/automation_levels.yaml, since which levels are automated is catalog data now.",
+        "required": ["automation_level"]
       }
     }
   ],

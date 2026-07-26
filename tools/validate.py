@@ -34,6 +34,7 @@ SCHEMA_DIR = REPO_ROOT / "schemas"
 ELEMENTS_DIR = REPO_ROOT / "elements"
 
 ELEMENT_CATALOGS = {
+    "automation_levels.yaml": ("automation-level.schema.json", "automation_levels"),
     "load_unit_types.yaml": ("load-unit-type.schema.json", "load_unit_types"),
     "equipment_types.yaml": ("equipment-type.schema.json", "equipment_types"),
     "process_types.yaml": ("process-type.schema.json", "process_types"),
@@ -345,6 +346,100 @@ def collect_element_ids() -> dict[str, set[str]]:
                 item.get("id") for item in data.get(list_key, []) if item.get("id")
             }
     return ids
+
+
+def load_automation_levels() -> dict[str, dict]:
+    """Loads elements/automation_levels.yaml as id -> level entry.
+
+    Unlike collect_element_ids(), which only needs the ids for reference
+    checks, the automation-level invariants need each entry's own fields
+    (automated, movement_policy, requires_movement_policy) - those consequences
+    used to be hardcoded as JSON Schema conditionals and are catalog data now.
+    """
+    catalog_file = ELEMENTS_DIR / "automation_levels.yaml"
+    if not catalog_file.exists():
+        return {}
+    data = load_yaml(catalog_file) or {}
+    return {
+        item["id"]: item
+        for item in data.get("automation_levels", [])
+        if item.get("id")
+    }
+
+
+def check_automation_level_consequences(
+    path: Path,
+    storage_data: dict | None,
+    levels: dict[str, dict],
+) -> list[str]:
+    """Enforces what each automation_level implies for a storage_type.
+
+    Replaces three JSON Schema conditionals that hardcoded the enum values:
+    manual implied default_allow, conveyor_automated required explicit_only,
+    and a controller was only allowed on an automated level. The rules are
+    unchanged - they are read off the catalog entry now instead of being
+    spelled out per value, so a new level needs no schema edit.
+
+    An unknown automation_level is reported once here rather than by every
+    rule that would then have nothing to look up.
+    """
+    errors: list[str] = []
+    if not levels:
+        return errors
+
+    for st in (storage_data or {}).get("storage_types", []):
+        st_id = st.get("id", "?")
+        level_id = st.get("automation_level")
+        if level_id is None:
+            continue
+
+        level = levels.get(level_id)
+        if level is None:
+            errors.append(
+                f"{path}: storage_type '{st_id}': automation_level '{level_id}' "
+                f"not found in elements/automation_levels.yaml"
+            )
+            continue
+
+        policy = st.get("movement_policy")
+        expected = level.get("movement_policy")
+        if expected is not None:
+            if policy is None:
+                if level.get("requires_movement_policy"):
+                    errors.append(
+                        f"{path}: storage_type '{st_id}': automation_level "
+                        f"'{level_id}' requires movement_policy '{expected}' to be stated"
+                    )
+            elif policy != expected:
+                errors.append(
+                    f"{path}: storage_type '{st_id}': automation_level "
+                    f"'{level_id}' implies movement_policy '{expected}', found '{policy}'"
+                )
+
+        if st.get("controller") and not level.get("automated"):
+            errors.append(
+                f"{path}: storage_type '{st_id}': controller requires an automated "
+                f"automation_level, but '{level_id}' is not automated"
+            )
+
+    return errors
+
+
+def check_automation_level_refs(
+    path: Path,
+    automation_level: str | None,
+    context: str,
+    levels: dict[str, dict],
+) -> list[str]:
+    """Reference check for automation_level outside storage_types (a building's
+    own level, an equipment_type's). Neither carries movement_policy
+    consequences - those apply per storage_type."""
+    if not levels or automation_level is None or automation_level in levels:
+        return []
+    return [
+        f"{path}: {context}: automation_level '{automation_level}' "
+        f"not found in elements/automation_levels.yaml"
+    ]
 
 
 def load_storage_templates() -> dict[str, dict]:
@@ -1645,10 +1740,21 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
     # effective attributes - same resolution compile.py applies.
     resolve_storage_templates(storage_data, load_storage_templates())
 
+    automation_levels = load_automation_levels()
+    all_errors += check_automation_level_refs(
+        warehouse_file,
+        (load_yaml(warehouse_file) or {}).get("warehouse", {}).get("automation_level"),
+        "warehouse",
+        automation_levels,
+    )
+
     # Cross-file checks: run regardless of element_ids availability so that
     # within-file references (e.g. door -> staging section) are always verified.
 
     if "storage.yaml" in imports:
+        all_errors += check_automation_level_consequences(
+            imports["storage.yaml"], storage_data, automation_levels
+        )
         ctrl_ids = {
             cd.get("id")
             for cd in (wcs_data or {}).get("controller_definitions", [])
@@ -1800,6 +1906,19 @@ def main(argv: list[str]) -> int:
     template_file = ELEMENTS_DIR / "rack_templates.yaml"
     if template_file.exists():
         all_errors += validate_template_catalogs(template_file)
+
+    # Cross-catalog: equipment_types name an automation_level too, and the
+    # schema can only check its shape now that the values live in a catalog.
+    automation_levels = load_automation_levels()
+    equipment_file = ELEMENTS_DIR / "equipment_types.yaml"
+    if equipment_file.exists():
+        for equipment in (load_yaml(equipment_file) or {}).get("equipment_types", []):
+            all_errors += check_automation_level_refs(
+                equipment_file,
+                equipment.get("automation_level"),
+                f"equipment_type '{equipment.get('id', '?')}'",
+                automation_levels,
+            )
 
     element_ids = collect_element_ids()
 

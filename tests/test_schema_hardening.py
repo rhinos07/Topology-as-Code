@@ -11,7 +11,8 @@ sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 from compile import compile_storage_types  # noqa: E402
 from validate import (  # noqa: E402
-    check_section_membership, check_storage_compatibility, make_validator,
+    check_automation_level_consequences, check_section_membership,
+    check_storage_compatibility, load_automation_levels, make_validator,
     validate_storage_types,
 )
 
@@ -131,9 +132,15 @@ class StorageTypeSchemaTests(unittest.TestCase):
         self.assert_invalid(value)
 
     def test_automated_storage_requires_explicit_policy(self):
-        value = rack()
+        """Unchanged rule, moved enforcement: this was a JSON Schema
+        conditional hardcoding the enum value until automation_level became a
+        catalog. See Warehouse-as-Code ADR-0001, measure 3."""
+        value = rack()   # rack() is default_allow
         value["automation_level"] = "conveyor_automated"
-        self.assert_invalid(value)
+        errors = check_automation_level_consequences(
+            Path("storage.yaml"), {"storage_types": [value]}, load_automation_levels()
+        )
+        self.assertTrue(any("implies movement_policy 'explicit_only'" in e for e in errors))
 
     def test_blocked_point_requires_reason(self):
         value = rack()

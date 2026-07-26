@@ -16,12 +16,12 @@ equipment_types:
 
   - id: "agv_pallet"
     description: "Automated guided vehicle for pallet transport"
-    automation_level: "conveyor_automated"
+    automation_level: "vehicle_automated"
     max_payload: { value: 1000, unit: "kg" }
     max_speed: { value: 1.5, unit: "m/s" }
 
   - id: "autostore_robot"
     description: "AutoStore grid robot - retrieves/stacks bins within the grid and delivers them to ports"
-    automation_level: "conveyor_automated"
+    automation_level: "controller_automated"
     max_payload: { value: 30, unit: "kg" }
     max_speed: { value: 3.0, unit: "m/s" }

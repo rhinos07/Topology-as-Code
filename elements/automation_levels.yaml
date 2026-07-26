@@ -1,0 +1,44 @@
+# Reusable catalog of automation levels.
+# Referenced by storage_type.automation_level (structure/storage.yaml),
+# warehouse.automation_level (warehouse.yaml) and
+# equipment_type.automation_level (elements/equipment_types.yaml).
+#
+# These used to be a closed enum in three schemas, with the behavioural
+# differences between the values hardcoded as JSON Schema conditionals.
+# Each entry now states those consequences itself, so a new level is a
+# catalog entry rather than a schema change plus three invariant edits -
+# see Warehouse-as-Code ADR-0001, measure 3.
+#
+# 'automated' says whether automation is present at this level at all: a
+# storage_type may only declare a controller when its level is automated.
+# 'movement_policy' is the policy a storage_type at this level must use;
+# 'requires_movement_policy' additionally forces it to be stated rather
+# than left out. tools/validate.py enforces both.
+
+automation_levels:
+  - id: "manual"
+    description: "Operated by people and manually driven equipment. Routes are permitted by default; prohibitions are the explicit exception."
+    automated: false
+    movement_policy: "default_allow"
+
+  - id: "conveyor_automated"
+    description: "Automated by fixed conveying equipment - conveyors, sorters, shuttle rails. Every route must be explicitly defined."
+    automated: true
+    movement_policy: "explicit_only"
+    requires_movement_policy: true
+
+  - id: "controller_automated"
+    description: "Automated by a dedicated controller that manages its own internal mechanics and exposes only ports/boundaries - an AutoStore grid, an AS/RS the WMS books as a whole. No conveying equipment is involved, so 'conveyor_automated' would be a false statement about the physical system."
+    automated: true
+    movement_policy: "explicit_only"
+    requires_movement_policy: true
+
+  - id: "vehicle_automated"
+    description: "Automated by free-roaming vehicles (AGV/AMR) rather than fixed conveying equipment. Routes are still explicit, but the physical system is a fleet, not a conveyor."
+    automated: true
+    movement_policy: "explicit_only"
+    requires_movement_policy: true
+
+  - id: "mixed"
+    description: "Both manual and automated operation in the same area. Deliberately carries no movement_policy consequence - the using storage_type decides, because the mix differs case by case."
+    automated: true
