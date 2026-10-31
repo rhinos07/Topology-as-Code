@@ -42,6 +42,14 @@ storage_types:
         blocked: true
         blocked_reason: "OBSTRUCTION"    # column in the way
 
+    # Travel path basis: route aisle = grid aisle, position = stack.
+    # Which end is entered (and so the sort direction) is decided at runtime.
+    routing:
+      default_entries: ["start"]          # dead-end aisles, entered at stack 1
+      aisles:
+        - aisle: 1
+          entries: ["start", "end"]       # through aisle next to the main road
+
     sections:
       - id: "SEC_FAST"
         criteria: { access_frequency: "high" }

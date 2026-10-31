@@ -28,6 +28,7 @@ warehouse:
     - "structure/storage.yaml"
     - "structure/lanes.yaml"
     - "structure/wcs.yaml"
+    - "structure/scan_codes.yaml"
     - "strategies/replenishment.yaml"
     - "strategies/movement_rules.yaml"
 

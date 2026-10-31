@@ -6,6 +6,8 @@ Sources, all reached via the warehouse.yaml imports:
     storage_points on each storage_type, plus work_centers flagged
     storage_point_ref: true
   - wcs.yaml: reporting_points flagged storage_point_ref: true
+  - scan_codes.yaml (optional): explicitly maintained scan code per
+    storage_point, copied onto the compiled point as scan_code
 
 This is the deterministic artifact step before planning/apply: the WMS sees
 concrete storage_points plus all building-owned topology, controller and
@@ -50,6 +52,54 @@ def merge_attributes(default_attributes: dict, exception: dict | None) -> dict:
     return merged
 
 
+def route_defaults(storage_type: dict, aisle: int, position: int) -> dict:
+    """Derived travel sort key for a generated point: grid aisle and the
+    position along it (stack or bay). Empty when the storage_type has no
+    routing block. Exceptions merged afterwards may override both values."""
+    if "routing" not in storage_type:
+        return {}
+    return {"route_aisle": aisle, "route_position": position}
+
+
+def route_aisle_id(storage_type_id: str, aisle: int) -> str:
+    return f"{storage_type_id}.A{aisle:02d}"
+
+
+def assign_route_aisles(storage_type: dict, points: list[dict]) -> None:
+    """Replaces the numeric route_aisle on each point by the compiled
+    route_aisle id ('<storage_type>.A<nn>')."""
+    if "routing" not in storage_type:
+        return
+    for point in points:
+        if isinstance(point.get("route_aisle"), int):
+            point["route_aisle"] = route_aisle_id(storage_type["id"], point["route_aisle"])
+
+
+def compile_route_aisles(storage_type: dict, points: list[dict]) -> list[dict]:
+    """One route_aisle entity per aisle used by the storage_type's points,
+    with its usable entries and default sequence."""
+    routing = storage_type.get("routing")
+    if not routing:
+        return []
+    overrides = {item["aisle"]: item for item in routing.get("aisles", [])}
+    prefix = f"{storage_type['id']}.A"
+    used = sorted({
+        int(point["route_aisle"][len(prefix):])
+        for point in points
+        if str(point.get("route_aisle", "")).startswith(prefix)
+    })
+    aisles = []
+    for number in used:
+        override = overrides.get(number, {})
+        aisles.append({
+            "id": route_aisle_id(storage_type["id"], number),
+            "storage_type": storage_type["id"],
+            "aisle": number,
+            "sequence": override.get("sequence", number),
+            "entries": list(override.get("entries", routing["default_entries"])),
+        })
+    return aisles
+
 def expand_storage_point_generator(storage_type: dict) -> tuple[list[dict], list[str]]:
     warnings = []
     gen = storage_type["storage_point_generator"]
@@ -80,6 +130,7 @@ def expand_storage_point_generator(storage_type: dict) -> tuple[list[dict], list
                         "id": f"{storage_type['id']}.{coordinate}",
                         "storage_type": storage_type["id"],
                         "coordinate": coordinate,
+                        **route_defaults(storage_type, aisle, stack),
                         **attributes,
                     }
                     if depth is not None:
@@ -144,6 +195,7 @@ def expand_layout_variants(storage_type: dict) -> tuple[list[dict], list[str]]:
                         "coordinate": coordinate,
                         "layout_variant": variant["id"],
                         "physical_bay": f"{storage_type['id']}-{aisle:02d}-{bay:02d}",
+                        **route_defaults(storage_type, aisle, bay),
                         **attributes,
                     })
 
@@ -238,6 +290,7 @@ def compile_storage_types(storage_data: dict) -> tuple[list[dict], list[str]]:
             continue
 
         assign_point_sections(storage_type, points)
+        assign_route_aisles(storage_type, points)
 
         all_points += points
         warnings += w
@@ -283,6 +336,21 @@ def expand_storage_point_refs(storage_data: dict, wcs_data: dict | None) -> list
         points.append(point)
 
     return points
+
+
+def apply_scan_codes(points: list[dict], scan_code_data: dict | None) -> list[str]:
+    """Copies the explicitly maintained scan codes (scan_codes.yaml) onto
+    the compiled storage_points. Points without an entry get no scan_code
+    field. Returns an error for an entry whose storage_point does not exist."""
+    by_id = {point["id"]: point for point in points}
+    errors = []
+    for entry in (scan_code_data or {}).get("scan_codes", []) or []:
+        point = by_id.get(entry.get("storage_point"))
+        if point is None:
+            errors.append(f"scan code for unknown storage_point '{entry.get('storage_point')}'")
+            continue
+        point["scan_code"] = entry["code"]
+    return errors
 
 
 def point_group(point: dict) -> str:
@@ -352,7 +420,7 @@ def derive_activity_area_technology(storage_data: dict) -> list[dict]:
 STORAGE_TYPE_SOURCE_FIELDS = {
     "storage_point_generator", "layout_variants", "layout_grid",
     "storage_points", "default_attributes", "exceptions", "sections",
-    "section_membership",
+    "section_membership", "routing",
     # Authoring-layer indirection, already resolved into default_attributes
     # before this point - the artifact states effective values, never the
     # template it happened to inherit them from.
@@ -527,6 +595,13 @@ def compile_entity_collections(
         "storage_point": list(points),
         "channel": channels,
         "section": sections,
+        "route_aisle": [
+            aisle
+            for source in storage_data.get("storage_types", [])
+            for aisle in compile_route_aisles(
+                source, [point for point in points if point.get("storage_type") == source["id"]]
+            )
+        ],
         "activity_area": derive_activity_area_technology(storage_data),
         "work_center": list(storage_data.get("work_centers", [])),
         "door": list(storage_data.get("doors", [])),
@@ -654,6 +729,9 @@ def main(argv: list[str]) -> int:
     points, warnings = compile_storage_types(storage_data)
     points += expand_storage_point_refs(storage_data, wcs_data)
     errors = find_duplicate_ids(points)
+    scan_code_file = next((p for p in imports if p.name == "scan_codes.yaml"), None)
+    if scan_code_file and scan_code_file.exists():
+        errors += apply_scan_codes(points, load_yaml(scan_code_file))
 
     counts: dict[str, int] = {}
     for point in points:

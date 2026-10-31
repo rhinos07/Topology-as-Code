@@ -1509,6 +1509,93 @@ def _compiled_storage_point_ids(storage_data: dict | None, wcs_data: dict | None
     return ids
 
 
+def check_routing(path: Path, storage_data: dict | None) -> list[str]:
+    """Checks storage_type.routing against the point definitions:
+    - route_aisle / route_position on an exception or explicit point need
+      a routing block on the storage_type;
+    - with routing, every explicit storage_point states both values;
+    - routing.aisles lists each aisle once, and only aisles that exist."""
+    errors: list[str] = []
+    for st in (storage_data or {}).get("storage_types", []):
+        st_id = st.get("id", "?")
+        routing = st.get("routing")
+        entries = list(st.get("exceptions", [])) + list(st.get("storage_points", []))
+        if not routing:
+            for entry in entries:
+                if "route_aisle" in entry or "route_position" in entry:
+                    errors.append(
+                        f"{path}: storage_type '{st_id}' coordinate '{entry.get('coordinate')}':"
+                        f" route_aisle/route_position need a routing block on the storage_type"
+                    )
+            continue
+
+        if "storage_point_generator" in st:
+            aisles = set(range(1, st["storage_point_generator"].get("aisles", 1) + 1))
+        elif "layout_variants" in st:
+            aisles = set(range(1, st.get("layout_grid", {}).get("aisles", 1) + 1))
+        else:
+            aisles = set()
+            for point in st.get("storage_points", []):
+                missing = [key for key in ("route_aisle", "route_position") if key not in point]
+                if missing:
+                    errors.append(
+                        f"{path}: storage_type '{st_id}' coordinate '{point.get('coordinate')}':"
+                        f" routing is set, so {' and '.join(missing)} must be stated"
+                    )
+        aisles.update(
+            entry["route_aisle"] for entry in entries if isinstance(entry.get("route_aisle"), int)
+        )
+
+        seen: set[int] = set()
+        for item in routing.get("aisles", []):
+            number = item.get("aisle")
+            if number in seen:
+                errors.append(f"{path}: storage_type '{st_id}': routing aisle {number} listed twice")
+            seen.add(number)
+            if number not in aisles:
+                errors.append(
+                    f"{path}: storage_type '{st_id}': routing aisle {number} has no storage_points"
+                )
+    return errors
+
+
+def validate_scan_codes(path: Path) -> list[str]:
+    """Schema check for scan_codes.yaml plus uniqueness: one entry per
+    storage_point, and one storage_point per code within the warehouse."""
+    errors = validate_file(path, "scan-codes.schema.json")
+    data = load_yaml(path) or {}
+    seen_points: set[str] = set()
+    seen_codes: dict[str, str] = {}
+    for entry in data.get("scan_codes", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        point = entry.get("storage_point")
+        code = entry.get("code")
+        if point in seen_points:
+            errors.append(f"{path}: storage_point '{point}' has more than one scan code")
+        seen_points.add(point)
+        if code in seen_codes and code is not None:
+            errors.append(
+                f"{path}: scan code '{code}' is used by both"
+                f" '{seen_codes[code]}' and '{point}'"
+            )
+        seen_codes.setdefault(code, point)
+    return errors
+
+
+def check_scan_code_refs(
+    path: Path, storage_data: dict | None, wcs_data: dict | None
+) -> list[str]:
+    """Every scan code must point to a compiled storage_point."""
+    errors: list[str] = []
+    known = _compiled_storage_point_ids(storage_data, wcs_data)
+    for entry in (load_yaml(path) or {}).get("scan_codes", []) or []:
+        point = entry.get("storage_point") if isinstance(entry, dict) else None
+        if point and point not in known:
+            errors.append(f"{path}: scan code for unknown storage_point '{point}'")
+    return errors
+
+
 def build_extension_entity_index(
     storage_data: dict | None,
     wcs_data: dict | None,
@@ -1780,6 +1867,8 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
             all_errors += validate_lanes(imported)
         elif name == "wcs.yaml":
             all_errors += validate_wcs(imported)
+        elif name == "scan_codes.yaml":
+            all_errors += validate_scan_codes(imported)
         else:
             data = load_yaml(imported)
             if data is None:
@@ -1830,6 +1919,7 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
             imports["storage.yaml"], storage_data, wcs_data
         )
         all_errors += check_section_membership(imports["storage.yaml"], storage_data)
+        all_errors += check_routing(imports["storage.yaml"], storage_data)
 
     if "wcs.yaml" in imports:
         all_errors += check_wcs_refs(imports["wcs.yaml"], element_ids)
@@ -1848,6 +1938,9 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
 
     if "replenishment.yaml" in imports:
         all_errors += check_replenishment_refs(imports["replenishment.yaml"], storage_data)
+
+    if "scan_codes.yaml" in imports:
+        all_errors += check_scan_code_refs(imports["scan_codes.yaml"], storage_data, wcs_data)
 
     if "lanes.yaml" in imports:
         all_errors += check_lane_refs(
