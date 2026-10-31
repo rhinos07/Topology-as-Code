@@ -20,7 +20,7 @@ pattern (JSON Schema validation, `structure/` vs. `strategies/`,
 
 Two of this repo's own `elements/` catalogs are shared-vocabulary
 candidates for the siblings above, not yet acted on:
-- `elements/process_types.yaml` (`putaway_task`, `pick_task`, …) - meant
+- `elements/process_types.yaml` (`goods_receipt`, `putaway_task`, `pick_task`, `load_task`, …) - meant
   to be the same vocabulary `OrderOrchestration-as-Code`'s
   `workflow_trigger` values reference when they hand off to the
   warehouse.
@@ -68,7 +68,7 @@ warehouse-definitions/
 │   ├── equipment_types.yaml      # Equipment classes and capabilities
 │   ├── automation_levels.yaml    # How an area/building/equipment is operated, and what that implies
 │   ├── storage_technologies.yaml # Which kind of system fulfils storage in an area
-│   ├── process_types.yaml        # Inbound/outbound/internal movement/cross-dock categories
+│   ├── process_types.yaml        # Movement-triggering processes (receipt, putaway, pick, pack, load, relocation, …)
 │   ├── blocking_reasons.yaml     # Reasons a storage_point can be blocked
 │   └── hazmat_classes.yaml       # Hazardous material / compliance classifications
 ├── customers/

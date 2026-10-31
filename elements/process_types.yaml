@@ -29,3 +29,31 @@ process_types:
   - id: "cross_dock_task"
     category: "cross_dock"
     description: "Move goods directly from inbound staging to outbound staging, bypassing storage"
+
+  - id: "goods_receipt"
+    category: "inbound"
+    description: "Unload goods at an inbound door into inbound staging, before putaway"
+
+  - id: "returns_receipt"
+    category: "inbound"
+    description: "Receive customer returns at a returns door into returns staging, kept apart from regular goods receipt so they can be inspected and routed differently"
+
+  - id: "quality_inspection"
+    category: "internal_movement"
+    description: "Move goods to a quality-inspection area and back, e.g. incoming inspection or stock on quality hold"
+
+  - id: "relocation"
+    category: "internal_movement"
+    description: "Move stock between storage places without an order, e.g. consolidation, defragmentation or re-slotting"
+
+  - id: "count_task"
+    category: "internal_movement"
+    description: "Bring stock to a counting place for a physical inventory count, e.g. a goods-to-person port. Counting in place without a movement is not a process type"
+
+  - id: "pack_task"
+    category: "outbound"
+    description: "Move packed goods from a packing station to outbound staging"
+
+  - id: "load_task"
+    category: "outbound"
+    description: "Move goods from outbound staging through an outbound door onto the truck"
