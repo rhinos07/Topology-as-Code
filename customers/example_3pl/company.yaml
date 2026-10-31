@@ -1,0 +1,11 @@
+# Example 3PL (logistics service provider) holding stock of two owners
+# in one warehouse. Same company id as MasterData-as-Code's example_3pl,
+# whose items carry the owners. Example data, not a real site.
+# This file validates against schemas/company.schema.json
+
+company:
+  id: "example_3pl"
+  name: "Example 3PL Logistics GmbH"
+
+  facilities:
+    - "facilities/facility_lp01/facility.yaml"
