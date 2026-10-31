@@ -331,7 +331,10 @@ warehouse:
 
 The sidecar envelope is validated by `schemas/extension.schema.json`. Its
 namespace, version and dataset must be valid, every record must reference an
-existing entity, and duplicate namespace/entity records are rejected. Only
+existing entity, and duplicate namespace/entity records are rejected. A
+record may target any entity type the compiler emits for the building
+(e.g. `storage_point`, `bay`, `shelf`, `route_aisle`); `tools/validate.py`
+takes the list from the compiler, so the schema has no fixed enum. Only
 `records[].payload` is intentionally open and remains opaque to generic tools.
 
 ```yaml
