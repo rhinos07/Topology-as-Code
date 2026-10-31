@@ -56,7 +56,7 @@ movement_rules:
     from: { work_center: "WC_PACK_01" }
     to: { storage_type: "STAGING", section: "SEC_STAGING_OUT" }
     allowed: true
-    trigger: "pick_task"
+    trigger: "pack_task"
 
   # --- Cross-dock: inbound staging straight to outbound staging, bypassing storage ---
   - id: "MOVE_CROSSDOCK_IN_TO_OUT"
@@ -65,3 +65,35 @@ movement_rules:
     to: { storage_type: "STAGING", section: "SEC_STAGING_OUT" }
     allowed: true
     trigger: "cross_dock_task"
+
+  # --- Goods receipt: unloading at DOOR_01 into inbound staging ---
+  # Doors are not movement endpoints; a door's staging_section stands in
+  # for it (see structure/storage.yaml doors).
+  - id: "RECEIVE_INTO_STAGING_IN"
+    applies_to_policy: "default_allow"
+    to: { storage_type: "STAGING", section: "SEC_STAGING_IN" }
+    allowed: true
+    trigger: "goods_receipt"
+
+  # --- Returns: DOOR_03 into returns staging, kept apart from receipts ---
+  - id: "RECEIVE_RETURNS_INTO_STAGING"
+    applies_to_policy: "default_allow"
+    to: { storage_type: "STAGING", section: "SEC_STAGING_RETURNS" }
+    allowed: true
+    trigger: "returns_receipt"
+
+  # --- Loading: outbound staging to DOOR_02 / truck ---
+  - id: "LOAD_FROM_STAGING_OUT"
+    applies_to_policy: "default_allow"
+    from: { storage_type: "STAGING", section: "SEC_STAGING_OUT" }
+    allowed: true
+    trigger: "load_task"
+
+  # --- Relocation inside block storage, e.g. consolidating partial stacks ---
+  - id: "RELOCATE_WITHIN_BLK"
+    applies_to_policy: "default_allow"
+    from: { storage_type: "BLK" }
+    to: { storage_type: "BLK" }
+    allowed: true
+    homogeneity_check: true
+    trigger: "relocation"
