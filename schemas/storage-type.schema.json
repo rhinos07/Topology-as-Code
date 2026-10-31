@@ -154,6 +154,14 @@
             "type": "string",
             "description": "Direct local section id. Overrides selector-based membership for this point."
           },
+          "route_aisle": {
+            "type": "integer", "minimum": 1,
+            "description": "Overrides the derived route aisle number (see storage_type.routing). Only allowed when the storage_type declares routing."
+          },
+          "route_position": {
+            "type": "integer", "minimum": 0,
+            "description": "Overrides the derived position within the route aisle (see storage_type.routing). Only allowed when the storage_type declares routing."
+          },
           "allowed_load_unit_types": {
             "type": "array",
             "items": { "type": "string" },
@@ -230,6 +238,14 @@
             "type": "string",
             "description": "Direct local section id overriding selector-based membership."
           },
+          "route_aisle": {
+            "type": "integer", "minimum": 1,
+            "description": "Overrides the derived route aisle number (see storage_type.routing). Only allowed when the storage_type declares routing."
+          },
+          "route_position": {
+            "type": "integer", "minimum": 0,
+            "description": "Overrides the derived position within the route aisle (see storage_type.routing). Only allowed when the storage_type declares routing."
+          },
           "allowed_load_unit_types": {
             "type": "array",
             "items": { "type": "string" },
@@ -247,6 +263,35 @@
           }
         ]
       }
+    },
+    "routing": {
+      "type": "object",
+      "description": "Static basis for travel path sorting. When set, every compiled storage_point carries route_aisle (compiled route_aisle id) and route_position. Defaults: storage_point_generator -> aisle / stack, layout_variants -> aisle / bay; explicit storage_points must state route_aisle and route_position; exceptions may override both. The level is not part of the sort key. Which end of an aisle the operator enters - and so whether route_position is walked ascending or descending - is a runtime routing decision; this block only states which ends are usable.",
+      "properties": {
+        "default_entries": {
+          "$ref": "#/definitions/routeEntries",
+          "description": "Usable aisle ends for every route aisle without an entry in aisles. start = the end with the lowest route_position."
+        },
+        "aisles": {
+          "type": "array",
+          "description": "Per-aisle overrides of entries and sequence.",
+          "items": {
+            "type": "object",
+            "required": ["aisle"],
+            "properties": {
+              "aisle": { "type": "integer", "minimum": 1 },
+              "entries": { "$ref": "#/definitions/routeEntries" },
+              "sequence": {
+                "type": "integer", "minimum": 0,
+                "description": "Default order of this aisle in a tour. Without it the aisle number is used."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["default_entries"],
+      "additionalProperties": false
     },
     "sections": {
       "type": "array",
@@ -350,6 +395,13 @@
     }
   ],
   "definitions": {
+    "routeEntries": {
+      "type": "array",
+      "items": { "enum": ["start", "end"] },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "[start] or [end]: dead-end aisle, entered from one end only. [start, end]: through aisle."
+    },
     "axisSelector": {
       "type": "object",
       "oneOf": [
