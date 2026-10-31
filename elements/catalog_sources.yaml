@@ -6,11 +6,16 @@
 catalog_sources:
 - file: load_unit_types.yaml
   repo: rhinos07/MasterData-as-Code
-  ref: 5fdca7cba0358105f2133151e83f727b0d4dc4a9
+  ref: dc8d3710d5897e87cf83eeec2ff2707e9099ef32
   path: elements/load_unit_types.yaml
   sha256: 9e1a33d0bf6ab97c874ff63cd4862517bfafe486552ca3e3b6cfcdcebd8dd49c
 - file: storage_conditions.yaml
   repo: rhinos07/MasterData-as-Code
-  ref: 5fdca7cba0358105f2133151e83f727b0d4dc4a9
+  ref: dc8d3710d5897e87cf83eeec2ff2707e9099ef32
   path: elements/storage_conditions.yaml
   sha256: 8592539834fca98035c667cdbf8a016b065f347f7fc86f8a92cbaa9221445e78
+- file: uom_types.yaml
+  repo: rhinos07/MasterData-as-Code
+  ref: dc8d3710d5897e87cf83eeec2ff2707e9099ef32
+  path: elements/uom_types.yaml
+  sha256: 8e287952c0b8308dbced2741ae5a9b03a4b16688bedd1b8119b2e7906a0a8e8b

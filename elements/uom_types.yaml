@@ -1,0 +1,13 @@
+# Reusable catalog of base unit-of-measure types an item's packaging
+# hierarchy can be expressed in. Referenced by structure/packaging.yaml
+# and structure/items.yaml's default_uom.
+
+uom_types:
+  - id: "each"
+    description: "A single consumer/sales unit."
+
+  - id: "case"
+    description: "A pack of multiple 'each' units, typically the smallest unit received from a supplier."
+
+  - id: "pallet"
+    description: "A full pallet of cases - the largest unit normally moved as a whole load unit."

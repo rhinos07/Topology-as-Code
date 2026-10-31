@@ -23,8 +23,8 @@ Shared vocabulary with the siblings above:
   `pick_task`, `load_task`, …) - owned here; meant to be the same
   vocabulary `OrderOrchestration-as-Code`'s `workflow_trigger` values
   reference when they hand off to the warehouse.
-- `elements/load_unit_types.yaml` and `elements/storage_conditions.yaml`
-  - **owned by `MasterData-as-Code`**. This repo keeps **pinned,
+- `elements/load_unit_types.yaml`, `elements/storage_conditions.yaml` and
+  `elements/uom_types.yaml` - **owned by `MasterData-as-Code`**. This repo keeps **pinned,
   byte-identical copies**: `elements/catalog_sources.yaml` records the
   source commit and hash, `tools/sync_catalogs.py` checks and re-pins
   them, and CI compares the copies with `MasterData-as-Code` at the
@@ -69,6 +69,7 @@ warehouse-definitions/
 │   ├── rack_templates.yaml       # Storage/lane/workstation templates (filename predates the storage_templates catalog)
 │   ├── load_unit_types.yaml      # Pinned copy from MasterData-as-Code (carriers incl. tare)
 │   ├── storage_conditions.yaml   # Pinned copy from MasterData-as-Code (ambient/chilled/frozen)
+│   ├── uom_types.yaml            # Pinned copy from MasterData-as-Code (each/case/pallet)
 │   ├── catalog_sources.yaml      # Source commit + hash of the pinned copies
 │   ├── equipment_types.yaml      # Equipment classes and capabilities
 │   ├── automation_levels.yaml    # How an area/building/equipment is operated, and what that implies
