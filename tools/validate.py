@@ -1696,67 +1696,31 @@ def check_scan_code_refs(
 
 
 def build_extension_entity_index(
+    warehouse_data: dict | None,
     storage_data: dict | None,
     wcs_data: dict | None,
     lanes_data: dict | None,
     movement_data: dict | None,
     replenishment_data: dict | None,
 ) -> dict[str, set[str]]:
-    storage_types = (storage_data or {}).get("storage_types", [])
-    channel_ids: set[str] = set()
-    for storage_type in storage_types:
-        if storage_type.get("access_model") != "channel":
-            continue
-        generator = storage_type.get("storage_point_generator") or {}
-        for aisle in range(1, generator.get("aisles", 1) + 1):
-            for stack in range(1, generator.get("stacks", 1) + 1):
-                for level in range(1, generator.get("levels", 1) + 1):
-                    coordinate = generator["coordinate_pattern"].format(
-                        aisle=aisle, stack=stack, level=level
-                    )
-                    channel_ids.add(f"{storage_type['id']}.{coordinate}")
-    return {
-        "storage_point": _compiled_storage_point_ids(storage_data, wcs_data),
-        "storage_type": {item["id"] for item in storage_types if item.get("id")},
-        "channel": channel_ids,
-        "section": {
-            f"{st['id']}.{section['id']}" for st in storage_types if st.get("id")
-            for section in st.get("sections", []) if section.get("id")
-        },
-        "activity_area": {
-            item["id"] for item in (storage_data or {}).get("activity_areas", []) if item.get("id")
-        },
-        "work_center": {
-            item["id"] for item in (storage_data or {}).get("work_centers", []) if item.get("id")
-        },
-        "door": {item["id"] for item in (storage_data or {}).get("doors", []) if item.get("id")},
-        "reporting_point": {
-            item["id"] for item in (wcs_data or {}).get("reporting_points", []) if item.get("id")
-        },
-        "controller": {
-            item["id"] for item in (wcs_data or {}).get("controller_definitions", []) if item.get("id")
-        },
-        "equipment": {item["id"] for item in (wcs_data or {}).get("equipment", []) if item.get("id")},
-        "telegram_action": {
-            item["id"] for item in (wcs_data or {}).get("telegram_actions", []) if item.get("id")
-        },
-        "lane": {item["id"] for item in (lanes_data or {}).get("lanes", []) if item.get("id")},
-        "connection": {
-            item["id"] for item in (lanes_data or {}).get("connections", []) if item.get("id")
-        },
-        "conveyor_segment": {
-            item["id"] for item in (lanes_data or {}).get("conveyor_segments", []) if item.get("id")
-        },
-        "conveyor_main": {"CONVEYOR_MAIN"} if (lanes_data or {}).get("conveyor_main") else set(),
-        "movement_rule": {
-            item["id"] for item in (movement_data or {}).get("movement_rules", []) if item.get("id")
-        },
-        "replenishment_strategy": {
-            item["id"] for item in (replenishment_data or {}).get("replenishment_strategies", [])
-            if item.get("id")
-        },
-    }
+    """entity type -> ids, taken from what tools/compile.py emits for this
+    building. Extension records may target any compiled entity type, so a
+    new entity kind (e.g. bay, shelf, route_aisle) is extensible without
+    touching extension.schema.json. storage_data must already have its
+    templates resolved."""
+    # Imported here: compile.py imports this module at load time.
+    from compile import compile_entity_collections, compile_storage_types, expand_storage_point_refs
 
+    storage = copy.deepcopy(storage_data or {})
+    points, _ = compile_storage_types(storage)
+    points += expand_storage_point_refs(storage, wcs_data)
+    warehouse = copy.deepcopy(warehouse_data or {})
+    warehouse.setdefault("warehouse", {})
+    warehouse.setdefault("target", {}).setdefault("building", "")
+    entities = compile_entity_collections(
+        warehouse, storage, wcs_data, lanes_data, movement_data, replenishment_data, points,
+    )
+    return {kind: {item["id"] for item in items} for kind, items in entities.items()}
 
 def validate_extensions(
     warehouse_file: Path,
@@ -1796,7 +1760,12 @@ def validate_extensions(
                     f"{path}: duplicate extension record {entity_type}/{entity_id}"
                 )
             record_keys.add(key)
-            if entity_type in entity_index and entity_id not in entity_index[entity_type]:
+            if entity_type not in entity_index:
+                errors.append(
+                    f"{path}: extension record {entity_type}/{entity_id}: '{entity_type}' "
+                    f"is not a compiled entity type (known: {', '.join(sorted(entity_index))})"
+                )
+            elif entity_id not in entity_index[entity_type]:
                 errors.append(
                     f"{path}: extension record {entity_type}/{entity_id} references "
                     "an unknown entity"
@@ -2050,9 +2019,17 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
     extension_files = collect_extension_imports(warehouse_file)
     if len(extension_files) != len(set(extension_files)):
         all_errors.append(f"{warehouse_file}: duplicate extension import path")
-    entity_index = build_extension_entity_index(
-        storage_data, wcs_data, lanes_data, movement_data, replenishment_data
-    )
+    try:
+        entity_index = build_extension_entity_index(
+            load_yaml(warehouse_file), storage_data, wcs_data, lanes_data,
+            movement_data, replenishment_data,
+        )
+    except (KeyError, ValueError, TypeError, IndexError) as error:
+        # Structure errors are reported by the checks above; without a
+        # compilable building there is nothing to resolve records against.
+        entity_index = {}
+        if extension_files:
+            all_errors.append(f"{warehouse_file}: extension records not checked, building does not compile ({error})")
     all_errors += validate_extensions(warehouse_file, extension_files, entity_index)
 
     return all_errors

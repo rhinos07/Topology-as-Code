@@ -18,3 +18,15 @@ extension:
       entity_id: "HBR"
       payload:
         proprietary_area_class: "ASRS_HIGH_BAY"
+
+    # Any compiled entity type can carry vendor data, including the
+    # rack-statics and routing entities.
+    - entity_type: "bay"
+      entity_id: "HBR.F01-01"
+      payload:
+        rack_inspection_tag: "RI-2026-0117"
+
+    - entity_type: "route_aisle"
+      entity_id: "HBR.A01"
+      payload:
+        device_aisle_no: 1

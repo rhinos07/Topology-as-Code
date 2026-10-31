@@ -89,5 +89,46 @@ class ExtensionTests(unittest.TestCase):
         self.assertEqual(plan["summary"]["conflict"], 1)
 
 
+class CompiledEntityTypeTests(unittest.TestCase):
+    """entity_type is checked against what the compiler emits, not a
+    fixed list in the schema."""
+
+    HALL_3 = REPO_ROOT / "customers" / "example_customer" / "facilities" / "facility_pa11" / "buildings" / "hall_3" / "warehouse.yaml"
+
+    def test_schema_accepts_any_entity_type_name(self):
+        value = extension()
+        value["extension"]["records"][0]["entity_type"] = "bay"
+        self.assertEqual(list(EXTENSION_VALIDATOR.iter_errors(value)), [])
+
+    def test_index_contains_new_compiled_entities(self):
+        from validate import build_extension_entity_index, collect_imports, load_storage_templates, load_yaml, resolve_storage_templates
+        imports = {p.name: load_yaml(p) for p in collect_imports(self.HALL_3)}
+        storage = imports["storage.yaml"]
+        resolve_storage_templates(storage, load_storage_templates())
+        index = build_extension_entity_index(
+            load_yaml(self.HALL_3), storage, imports.get("wcs.yaml"), imports.get("lanes.yaml"),
+            imports.get("movement_rules.yaml"), imports.get("replenishment.yaml"),
+        )
+        self.assertIn("HBR.F01-01", index["bay"])
+        self.assertIn("HBR.F01-01-L01", index["shelf"])
+        self.assertIn("HBR.A01", index["route_aisle"])
+
+    def test_unknown_entity_type_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            warehouse = root / "warehouse.yaml"
+            sidecar = root / "extension.yaml"
+            warehouse.write_text(yaml.safe_dump(warehouse_data()), encoding="utf-8")
+            value = extension(dataset_id=warehouse_data()["metadata"]["dataset_id"])
+            value["extension"]["records"][0]["entity_type"] = "spaceship"
+            sidecar.write_text(yaml.safe_dump(value), encoding="utf-8")
+            errors = validate_extensions(warehouse, [sidecar], {"storage_point": {"A.01"}})
+        self.assertTrue(any("not a compiled entity type" in error for error in errors), errors)
+
+    def test_hall_3_sidecar_with_bay_and_route_aisle_is_valid(self):
+        from validate import collect_element_ids, validate_warehouse_file
+        self.assertEqual(validate_warehouse_file(self.HALL_3, collect_element_ids()), [])
+
+
 if __name__ == "__main__":
     unittest.main()
