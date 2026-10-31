@@ -176,6 +176,10 @@
       "properties": {
         "max_weight": { "$ref": "quantity.schema.json#/definitions/mass" },
         "temperature_zone": { "$ref": "quantity.schema.json#/definitions/temperatureZone" },
+        "storage_condition": {
+          "type": "string",
+          "description": "References an id in elements/storage_conditions.yaml (pinned copy of MasterData-as-Code's catalog), e.g. 'chilled'. Lets putaway match an item's storage_condition. When temperature_zone is set too, tools/validate.py checks that its range lies within the class range ('ambient' as a string only matches the 'ambient' class)."
+        },
         "capacity_per_point": { "type": "integer", "minimum": 1 },
         "size": { "$ref": "#/definitions/size" },
         "position": { "$ref": "#/definitions/position" },

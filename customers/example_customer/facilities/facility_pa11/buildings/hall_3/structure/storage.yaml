@@ -21,6 +21,7 @@ storage_types:
     default_attributes:
       max_weight: { value: 1500, unit: "kg" }
       temperature_zone: "ambient"
+      storage_condition: "ambient"
       capacity_per_point: 1
       size:
         width: { value: 1.2, unit: "m" }
@@ -101,6 +102,7 @@ storage_types:
     default_attributes:
       max_weight: { value: 1500, unit: "kg" }       # per load unit
       temperature_zone: "ambient"
+      storage_condition: "ambient"
       capacity_per_point: 15     # 5 deep x 3 high
       size:
         width: { value: 2.4, unit: "m" }
@@ -126,6 +128,7 @@ storage_types:
     default_attributes:
       max_weight: { value: 50, unit: "kg" }
       temperature_zone: "ambient"
+      storage_condition: "ambient"
       capacity_per_point: 1
       size:
         width: { value: 0.4, unit: "m" }
@@ -160,6 +163,7 @@ storage_types:
 
     default_attributes:
       temperature_zone: { min: 2, max: 8, unit: "C" }
+      storage_condition: "chilled"
       zone: "ZONE_COLD_B"
 
   # --- Channel/flow storage, satellite-operated (FIFO) ---
@@ -182,6 +186,7 @@ storage_types:
 
     default_attributes:
       temperature_zone: "ambient"
+      storage_condition: "ambient"
       zone: "ZONE_CHANNEL_A"
 
   # --- AutoStore-style cube storage, automated (robots on a grid) ---
@@ -230,6 +235,7 @@ storage_types:
     default_attributes:
       max_weight: { value: 1000, unit: "kg" }
       temperature_zone: "ambient"
+      storage_condition: "ambient"
       capacity_per_point: 1
       size:
         width: { value: 1.2, unit: "m" }

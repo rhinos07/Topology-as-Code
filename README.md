@@ -18,18 +18,21 @@ pattern (JSON Schema validation, `structure/` vs. `strategies/`,
 | [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
 | [`Allocation-as-Code`](https://github.com/rhinos07/Allocation-as-Code) | Stock-search configuration: search-zone sequence, selection strategy, constraints |
 
-Two of this repo's own `elements/` catalogs are shared-vocabulary
-candidates for the siblings above, not yet acted on:
-- `elements/process_types.yaml` (`goods_receipt`, `putaway_task`, `pick_task`, `load_task`, …) - meant
-  to be the same vocabulary `OrderOrchestration-as-Code`'s
-  `workflow_trigger` values reference when they hand off to the
-  warehouse.
-- `elements/load_unit_types.yaml` (`pallet_euro`, `carton`, …) -
-  conceptually packaging *master data*; a candidate to eventually move
-  to `MasterData-as-Code` (see that repo's "Shared Vocabulary" section).
-
-Both catalogs currently stay put and duplicated where needed - don't
-extract/move them until real drift or duplication pain shows up.
+Shared vocabulary with the siblings above:
+- `elements/process_types.yaml` (`goods_receipt`, `putaway_task`,
+  `pick_task`, `load_task`, …) - owned here; meant to be the same
+  vocabulary `OrderOrchestration-as-Code`'s `workflow_trigger` values
+  reference when they hand off to the warehouse.
+- `elements/load_unit_types.yaml` and `elements/storage_conditions.yaml`
+  - **owned by `MasterData-as-Code`**. This repo keeps **pinned,
+  byte-identical copies**: `elements/catalog_sources.yaml` records the
+  source commit and hash, `tools/sync_catalogs.py` checks and re-pins
+  them, and CI compares the copies with `MasterData-as-Code` at the
+  pinned commit. So the storage-envelope checks against carrier
+  dimensions keep working, and this repo decides itself when to take
+  over a new source version. Do not edit the copies; change them in
+  `MasterData-as-Code`, then run
+  `python tools/sync_catalogs.py --update --source-root <checkout> --ref <commit>`.
 
 `Allocation-as-Code`'s `search_rule.steps[].zone` references this repo's
 `storage_type`/`activity_area` ids by string, the same loosely-coupled
@@ -64,7 +67,9 @@ warehouse-definitions/
 ├── schemas/              # JSON Schema for validating all YAML files
 ├── elements/             # Reusable templates and catalogs
 │   ├── rack_templates.yaml       # Storage/lane/workstation templates (filename predates the storage_templates catalog)
-│   ├── load_unit_types.yaml      # Pallet/container/carton definitions
+│   ├── load_unit_types.yaml      # Pinned copy from MasterData-as-Code (carriers incl. tare)
+│   ├── storage_conditions.yaml   # Pinned copy from MasterData-as-Code (ambient/chilled/frozen)
+│   ├── catalog_sources.yaml      # Source commit + hash of the pinned copies
 │   ├── equipment_types.yaml      # Equipment classes and capabilities
 │   ├── automation_levels.yaml    # How an area/building/equipment is operated, and what that implies
 │   ├── storage_technologies.yaml # Which kind of system fulfils storage in an area
@@ -89,8 +94,9 @@ warehouse-definitions/
 │                           └── movement_rules.yaml
 ├── tools/
 │   ├── validate.py       # Validation script (schema + consistency checks)
-│   └── compile.py        # Expands storage_point_generator/layout_variants into
-│                         #   concrete storage_point instances (build/ output)
+│   ├── compile.py        # Expands storage_point_generator/layout_variants into
+│   │                     #   concrete storage_point instances (build/ output)
+│   └── sync_catalogs.py  # Checks / re-pins the catalogs copied from MasterData-as-Code
 ├── docs/
 │   └── entity-glossary.md
 └── .github/workflows/validate.yaml   # CI pipeline (example, may need porting to TeamCity)

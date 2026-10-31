@@ -9,6 +9,7 @@ on:
       - "elements/**"
       - "schemas/**"
       - "tools/**"
+      - "tests/**"
       - ".github/workflows/validate.yaml"
   push:
     branches: [main]
@@ -63,3 +64,44 @@ jobs:
             echo "== compiling $wh =="
             python tools/compile.py "$wh"
           done
+
+  # Pinned MasterData-as-Code catalogs (elements/catalog_sources.yaml):
+  # the copies must match their recorded hash and the source repo at the
+  # pinned commit. A change in MasterData-as-Code does not turn this red -
+  # only an edited copy or a wrong pin does.
+  catalogs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - id: pin
+        run: echo "ref=$(python tools/sync_catalogs.py --print-ref)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          repository: rhinos07/MasterData-as-Code
+          ref: ${{ steps.pin.outputs.ref }}
+          path: masterdata-as-code
+
+      - name: Check pinned catalogs against source
+        run: python tools/sync_catalogs.py --source-root masterdata-as-code
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v

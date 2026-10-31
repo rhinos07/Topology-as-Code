@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://topology-as-code.internal/schemas/load-unit-type.schema.json",
   "title": "Load Unit Type",
-  "description": "Physical definition of a load unit (pallet, container, carton) that can be referenced by movement_rules and replenishment_strategies.",
+  "description": "Physical definition of a load unit (pallet, container, carton) that can be referenced by movement_rules and replenishment_strategies. The catalog is owned by MasterData-as-Code; elements/load_unit_types.yaml here is a pinned copy (elements/catalog_sources.yaml, tools/sync_catalogs.py). This schema validates the copy and must accept every field the source schema allows.",
   "type": "object",
   "required": ["id"],
   "properties": {
@@ -24,6 +24,10 @@
       "additionalProperties": false
     },
     "max_weight": { "$ref": "quantity.schema.json#/definitions/mass" },
+    "tare_weight": {
+      "$ref": "quantity.schema.json#/definitions/mass",
+      "description": "Own weight of the empty carrier."
+    },
     "stackable": { "type": "boolean" },
     "volume": {
       "$ref": "quantity.schema.json#/definitions/volume",

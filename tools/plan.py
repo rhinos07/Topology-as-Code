@@ -21,7 +21,8 @@ OPERATIONAL_FIELDS = {
     "allowed_load_unit_types", "blocked", "blocked_reason",
     "capacity_per_point", "capacity_volume", "controller", "layout_variant",
     "channel", "channel_depth", "channel_position", "entry_side", "exit_side",
-    "max_weight", "physical_bay", "position", "size", "storage_type", "zone",
+    "max_weight", "physical_bay", "position", "size", "storage_condition",
+    "storage_type", "zone",
 }
 
 OPERATIONAL_ENTITY_TYPES = {

@@ -1,5 +1,12 @@
-# Reusable definitions of physical load unit types (pallets, containers, cartons).
-# Referenced by movement_rule.allowed_load_unit_types and replenishment_strategy.unit_conversion.
+# Reusable definitions of physical load unit types (pallets, containers,
+# cartons). Owned here since MasterData-as-Code took over the catalog from
+# Topology-as-Code (Warehouse-as-Code backlog D1). Topology-as-Code keeps a
+# pinned, byte-identical copy for its storage-envelope checks - after a
+# change here, update the pin there (Topology-as-Code tools/sync_catalogs.py).
+# Validates against schemas/load-unit-type.schema.json (per entry).
+#
+# tare_weight values are approximate examples, not taken from a standard -
+# check them against the carrier actually used.
 
 load_unit_types:
   - id: "pallet_euro"
@@ -9,6 +16,7 @@ load_unit_types:
       depth: { value: 1.2, unit: "m" }
       height: { value: 0.144, unit: "m" }
     max_weight: { value: 1000, unit: "kg" }
+    tare_weight: { value: 25, unit: "kg" }
     stackable: true
     volume: { value: 0.138, unit: "m3" }
 
@@ -19,6 +27,7 @@ load_unit_types:
       depth: { value: 1.2, unit: "m" }
       height: { value: 0.144, unit: "m" }
     max_weight: { value: 1500, unit: "kg" }
+    tare_weight: { value: 30, unit: "kg" }
     stackable: true
     volume: { value: 0.173, unit: "m3" }
 
@@ -29,6 +38,7 @@ load_unit_types:
       depth: { value: 1.2, unit: "m" }
       height: { value: 0.97, unit: "m" }
     max_weight: { value: 700, unit: "kg" }
+    tare_weight: { value: 85, unit: "kg" }
     stackable: true
     volume: { value: 0.931, unit: "m3" }
 
@@ -39,6 +49,7 @@ load_unit_types:
       depth: { value: 0.3, unit: "m" }
       height: { value: 0.3, unit: "m" }
     max_weight: { value: 20, unit: "kg" }
+    tare_weight: { value: 0.5, unit: "kg" }
     stackable: false
     volume: { value: 0.036, unit: "m3" }
 
@@ -49,6 +60,7 @@ load_unit_types:
       depth: { value: 0.449, unit: "m" }
       height: { value: 0.31, unit: "m" }
     max_weight: { value: 30, unit: "kg" }
+    tare_weight: { value: 3, unit: "kg" }
     stackable: true
     volume: { value: 0.09, unit: "m3" }
 
@@ -59,5 +71,6 @@ load_unit_types:
       depth: { value: 0.4, unit: "m" }
       height: { value: 0.32, unit: "m" }
     max_weight: { value: 25, unit: "kg" }
+    tare_weight: { value: 1.5, unit: "kg" }
     stackable: true
     volume: { value: 0.077, unit: "m3" }
