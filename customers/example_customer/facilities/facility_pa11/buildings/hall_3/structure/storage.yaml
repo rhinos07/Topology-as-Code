@@ -332,12 +332,30 @@ activity_areas:
     activity: "physical_inventory"
     bins_from: ["HBR.SEC_SLOW", "BLK"]
 
+  # Putaway into the AutoStore grid (OrderOrchestration inbound_advice
+  # sends the AutoStore share of an ASN here).
+  - id: "PUTAWAY_ZONE_GRID"
+    activity: "putaway"
+    bins_from: ["AUTOSTORE_A"]
+
+  # Consolidation of shuttle and manual sub-orders before dispatch
+  # (OrderOrchestration b2c_multi_system).
+  - id: "CONSOLIDATION_1"
+    activity: "consolidation"
+    bins_from: ["STAGING.SEC_STAGING_OUT"]
+
 # Workstations
 work_centers:
   - id: "WC_PACK_01"
     step: "packing"
     workstation_template: "ws_pick_to_light"
     storage_point_ref: true    # WIP inventory can be booked at the work center itself
+
+  # AutoStore port exit: the farthest point an AutoStore sub-order can
+  # reach on its own (OrderOrchestration b2c_standard SPLIT_TO_AUTOSTORE).
+  - id: "EXIT"
+    step: "goods_dispatch"
+    storage_point_ref: true
 
 # Doors / goods receipt-dispatch
 doors:
