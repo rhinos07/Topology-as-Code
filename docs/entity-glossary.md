@@ -68,7 +68,7 @@ the opposite side — typical for satellite/drive-in racking or gravity flow rac
 | `movement_rule` | Defines whether a goods movement is functionally permitted (**"may"**) — independent of physical reachability (`lane`) |
 | `movement_rule.execution` | Optional `manual`/`automated` marker for who carries out a leg. `automated` = both endpoints sit under the same `controller`, so that controller's equipment performs it; `manual` = an operator leg, no equipment. Redundant with the endpoints' controllers on purpose — `tools/validate.py` flags an `execution` that contradicts them. The finer mode (`controller_autonomous`/`wms_controlled`) stays on `equipment.mode`. |
 | `movement_policy` | `default_allow` (manual areas, only prohibitions explicit) vs. `explicit_only` (conveyor areas, every route must be explicitly defined) |
-| `replenishment_strategy` | Replenishment rule: `min_max`, `quantity_based`, `zero_stock`, `predictive` |
+| `replenishment_strategy` | Replenishment rule: `min_max`, `quantity_based`, `zero_stock`, `predictive`. `unit_conversion.from_uom`/`to_uom` reference `elements/uom_types.yaml`, a pinned copy of `MasterData-as-Code`'s unit catalog (`each`, `case`, `pallet`). |
 | Cross-dock | A `movement_rule` with `trigger: "cross_dock_task"` connecting inbound staging directly to outbound staging, bypassing storage entirely. Modeled as a normal `movement_rule` between two `section`s of the `STAGING` storage_type - no separate entity needed. |
 
 ## Reusable Catalogs (`elements/`)

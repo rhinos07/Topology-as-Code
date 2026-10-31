@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://topology-as-code.internal/schemas/uom-type.schema.json",
+  "title": "UOM Type",
+  "description": "Unit of measure (each, case, pallet). The catalog is owned by MasterData-as-Code; elements/uom_types.yaml here is a pinned copy (elements/catalog_sources.yaml). Referenced by replenishment_strategy.unit_conversion.from_uom/to_uom. Must accept every field the source schema allows.",
+  "type": "object",
+  "required": [
+    "id"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

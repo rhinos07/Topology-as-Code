@@ -43,6 +43,7 @@ ELEMENT_CATALOGS = {
     "hazmat_classes.yaml": ("hazmat-class.schema.json", "hazmat_classes"),
     # Pinned copy of MasterData-as-Code's catalog, see elements/catalog_sources.yaml.
     "storage_conditions.yaml": ("storage-condition.schema.json", "storage_conditions"),
+    "uom_types.yaml": ("uom-type.schema.json", "uom_types"),
 }
 
 TEMPLATE_CATALOGS = {
@@ -1049,6 +1050,8 @@ def check_replenishment_refs(
     - source/destination.storage_type -> storage_type.id
     - source/destination.section -> section.id within that storage_type
     - source/destination.activity_area -> activity_area.id
+    - unit_conversion.from_uom/to_uom -> uom_types.id (pinned copy of
+      MasterData-as-Code's elements/uom_types.yaml)
     """
     errors: list[str] = []
     data = load_yaml(path)
@@ -1068,8 +1071,20 @@ def check_replenishment_refs(
         if aa.get("id"):
             activity_area_ids.add(aa["id"])
 
+    uom_catalog = load_yaml(ELEMENTS_DIR / "uom_types.yaml") or {}
+    uom_ids = {u.get("id") for u in uom_catalog.get("uom_types", []) if u.get("id")}
+
     for strat in data.get("replenishment_strategies", []):
         strat_id = strat.get("id", "?")
+        conversion = strat.get("unit_conversion") or {}
+        for field in ("from_uom", "to_uom"):
+            uom = conversion.get(field)
+            if uom and uom_ids and uom not in uom_ids:
+                errors.append(
+                    f"{path}: replenishment_strategy '{strat_id}':"
+                    f" unit_conversion.{field} '{uom}' not found in elements/uom_types.yaml"
+                    f" (pinned copy of MasterData-as-Code's uom catalog)"
+                )
         for role in ("source", "destination"):
             endpoint = strat.get(role)
             if not isinstance(endpoint, dict):

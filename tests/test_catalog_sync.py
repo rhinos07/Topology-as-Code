@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 from sync_catalogs import check, load_sources, sha256, update  # noqa: E402
-from validate import _check_storage_condition  # noqa: E402
+from validate import _check_storage_condition, check_replenishment_refs  # noqa: E402
 
 ELEMENTS = REPO_ROOT / "elements"
 
@@ -73,6 +73,27 @@ class StorageConditionCheckTest(unittest.TestCase):
 
     def test_condition_without_zone_passes(self):
         self.assertEqual(self.errors(storage_condition="frozen"), [])
+
+
+class UomReferenceTest(unittest.TestCase):
+    STORAGE = {"storage_types": [{"id": "HBR"}, {"id": "FIX"}], "activity_areas": []}
+
+    def errors(self, from_uom, to_uom):
+        import yaml
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "replenishment.yaml"
+            path.write_text(yaml.safe_dump({"replenishment_strategies": [{
+                "id": "R", "source": {"storage_type": "HBR"}, "destination": {"storage_type": "FIX"},
+                "unit_conversion": {"from_uom": from_uom, "to_uom": to_uom},
+            }]}), encoding="utf-8")
+            return check_replenishment_refs(path, self.STORAGE)
+
+    def test_masterdata_uoms_pass(self):
+        self.assertEqual(self.errors("pallet", "each"), [])
+
+    def test_unknown_uom_fails(self):
+        # 'piece' was the drift D1a: MasterData-as-Code calls the unit 'each'.
+        self.assertTrue(any("to_uom 'piece' not found" in e for e in self.errors("pallet", "piece")))
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ replenishment_strategies:
       activity_area: "PICK_ZONE_A"
     unit_conversion:
       from_uom: "pallet"
-      to_uom: "piece"
+      to_uom: "each"
     priority: "normal"
     timing: "immediate"
 

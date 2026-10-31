@@ -31,7 +31,7 @@ movement_rules:
     allowed: false
     reason: "Cold chain must not be interrupted"
 
-  # --- Standard replenishment route HBR -> FIX (pallet -> piece) ---
+  # --- Standard replenishment route HBR -> FIX (pallet -> each) ---
   - id: "MOVE_STORAGE_TO_PICKFACE"
     applies_to_policy: "default_allow"
     from: { storage_type: "HBR" }
