@@ -42,6 +42,15 @@ storage_types:
         blocked: true
         blocked_reason: "OBSTRUCTION"    # column in the way
 
+    # Rack statics (example values, not from a real rack). A bay holds
+    # 2 pallet positions side by side over all 6 levels.
+    load_limits:
+      positions_per_bay: 2
+      bay_max_weight: { value: 15000, unit: "kg" }    # field load
+      shelf_max_weight: { value: 3600, unit: "kg" }   # shelf load (2 x 1800 reinforced)
+      exceptions:
+        - { aisle: 12, bay: 4, bay_max_weight: { value: 9000, unit: "kg" } }  # older bay at the wall
+
     # Travel path basis: route aisle = grid aisle, position = stack.
     # Which end is entered (and so the sort direction) is decided at runtime.
     routing:
@@ -78,15 +87,22 @@ storage_types:
       - id: "2_industrial"
         load_unit_type: "pallet_industrial"
         positions_per_bay: 2
-        coordinate_pattern: "FLEX-{aisle:02d}-{bay:02d}-IND-{slot:1d}"
+        coordinate_pattern: "FLEX-{aisle:02d}-{bay:02d}-L{level:02d}-IND-{slot:1d}"
       - id: "3_euro"
         load_unit_type: "pallet_euro"
         positions_per_bay: 3
-        coordinate_pattern: "FLEX-{aisle:02d}-{bay:02d}-EUR-{slot:1d}"
+        coordinate_pattern: "FLEX-{aisle:02d}-{bay:02d}-L{level:02d}-EUR-{slot:1d}"
 
     layout_grid:
       aisles: 2
       bays: 3
+      levels: 4
+
+    # Rack statics (example values). The grid bay is the field; the
+    # variant (2 or 3 pallets) is chosen per shelf.
+    load_limits:
+      bay_max_weight: { value: 16000, unit: "kg" }
+      shelf_max_weight: { value: 4000, unit: "kg" }
 
     # No default_attributes: the template already states all of them.
 
@@ -191,6 +207,12 @@ storage_types:
       stacks: 6
       levels: 4
       coordinate_pattern: "CH-{aisle:02d}-{stack:02d}-{level:02d}"
+
+    # Rack statics (example values). A bay holds 3 channels side by side;
+    # the shelf load covers all channel depths of those 3 channels.
+    load_limits:
+      positions_per_bay: 3
+      shelf_max_weight: { value: 18000, unit: "kg" }
 
     default_attributes:
       temperature_zone: "ambient"

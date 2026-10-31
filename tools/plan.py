@@ -18,17 +18,17 @@ from validate import make_validator
 
 
 OPERATIONAL_FIELDS = {
-    "allowed_load_unit_types", "blocked", "blocked_reason",
+    "allowed_load_unit_types", "bay", "blocked", "blocked_reason",
     "capacity_per_point", "capacity_volume", "controller", "layout_variant",
     "channel", "channel_depth", "channel_position", "entry_side", "exit_side",
-    "max_weight", "physical_bay", "position", "route_aisle", "route_position", "scan_code", "size", "storage_condition",
+    "max_weight", "physical_bay", "position", "route_aisle", "route_position", "scan_code", "shelf", "size", "storage_condition",
     "storage_type", "zone",
 }
 
 OPERATIONAL_ENTITY_TYPES = {
-    "activity_area", "can_edge", "channel", "controller", "conveyor_main", "conveyor_segment",
+    "activity_area", "bay", "can_edge", "channel", "controller", "conveyor_main", "conveyor_segment",
     "door", "equipment", "lane", "movement_rule", "replenishment_strategy", "route_aisle",
-    "reporting_point", "section", "storage_type", "telegram_action",
+    "reporting_point", "section", "shelf", "storage_type", "telegram_action",
     "work_center",
 }
 
