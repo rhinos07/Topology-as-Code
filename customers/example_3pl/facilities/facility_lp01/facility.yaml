@@ -1,0 +1,14 @@
+# This file validates against schemas/facility.schema.json
+
+facility:
+  id: "LP01"
+  name: "Contract Logistics Center LP01"
+  reference_number: "LP01"
+  address:
+    street: "Kontraktweg 7"
+    postal_code: "12345"
+    city: "Musterstadt"
+    country: "DE"
+
+  buildings:
+    - "buildings/hall_1/warehouse.yaml"

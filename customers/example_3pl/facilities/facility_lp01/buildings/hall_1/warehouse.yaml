@@ -1,0 +1,27 @@
+# Building-level file of the 3PL example. Validates against
+# schemas/warehouse.schema.json
+
+api_version: "topology-as-code/v1"
+
+metadata:
+  dataset_id: "example_3pl/lp01/hall_1"
+  revision: "1"
+
+target:
+  wms_type: "generic"
+  tenant: "example_3pl"
+  facility: "LP01"
+  building: "hall_1"
+
+import_policy:
+  mode: "reconcile"
+  removal_policy: "deactivate"
+  unmanaged_objects: "preserve"
+  require_plan_approval: true
+
+warehouse:
+  name: "Hall_1"
+  automation_level: "manual"
+
+  imports:
+    - "structure/storage.yaml"

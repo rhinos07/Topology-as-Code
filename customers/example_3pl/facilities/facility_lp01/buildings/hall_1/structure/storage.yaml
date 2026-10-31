@@ -1,0 +1,132 @@
+# Physical structure of the 3PL example: one manual pallet rack split
+# into an Alpha and a Beta section, a small-parts shelf for pick faces,
+# and staging at the doors. Which owner may use which area is not
+# topology - it is Allocation-as-Code's owner_zones.yaml.
+# Validated against schemas/storage-type.schema.json (per storage type)
+
+storage_types:
+
+  # --- Manual pallet rack, forklift ---
+  - id: "RACK"
+    automation_level: "manual"
+    technology: "manual_warehouse"
+    movement_policy: "default_allow"
+    access_model: "rack"
+    access_order: "direct"
+
+    storage_point_generator:
+      aisles: 4
+      stacks: 10
+      levels: 4
+      coordinate_pattern: "R-{aisle:02d}-{stack:02d}-{level:02d}"
+
+    default_attributes:
+      max_weight: { value: 1000, unit: "kg" }
+      temperature_zone: "ambient"
+      storage_condition: "ambient"
+      capacity_per_point: 1
+      size:
+        width: { value: 1.2, unit: "m" }
+        depth: { value: 0.8, unit: "m" }
+        height: { value: 1.5, unit: "m" }
+      zone: "ZONE_RACK"
+      allowed_load_unit_types: ["pallet_euro"]
+
+    sections:
+      - id: "SEC_ALPHA"
+        selector:
+          aisles: { from: 1, to: 2 }
+      - id: "SEC_BETA"
+        selector:
+          aisles: { from: 3, to: 4 }
+
+    section_membership:
+      require_full_coverage: true
+
+    # Rack statics (example values): 2 pallets per bay.
+    load_limits:
+      positions_per_bay: 2
+      bay_max_weight: { value: 8000, unit: "kg" }
+      shelf_max_weight: { value: 2000, unit: "kg" }
+
+  # --- Small-parts shelf for pick faces (cartons) ---
+  - id: "SHELF"
+    automation_level: "manual"
+    technology: "manual_warehouse"
+    movement_policy: "default_allow"
+    access_model: "rack"
+    access_order: "direct"
+
+    storage_point_generator:
+      aisles: 2
+      stacks: 6
+      levels: 1
+      coordinate_pattern: "S-{aisle:02d}-{stack:02d}"
+
+    default_attributes:
+      max_weight: { value: 40, unit: "kg" }
+      temperature_zone: "ambient"
+      storage_condition: "ambient"
+      capacity_per_point: 1
+      size:
+        width: { value: 0.4, unit: "m" }
+        depth: { value: 0.6, unit: "m" }
+        height: { value: 0.4, unit: "m" }
+      zone: "ZONE_SHELF"
+      allowed_load_unit_types: ["carton"]
+
+  # --- Staging at the doors ---
+  - id: "STAGING"
+    automation_level: "manual"
+    technology: "manual_warehouse"
+    movement_policy: "default_allow"
+    access_model: "block"
+    access_order: "lifo"
+    depth: 1
+    stack_height: 1
+
+    storage_point_generator:
+      aisles: 2
+      coordinate_pattern: "STG-{aisle:02d}"
+
+    default_attributes:
+      max_weight: { value: 1000, unit: "kg" }
+      temperature_zone: "ambient"
+      storage_condition: "ambient"
+      capacity_per_point: 1
+      size:
+        width: { value: 1.2, unit: "m" }
+        depth: { value: 0.8, unit: "m" }
+        height: { value: 1.8, unit: "m" }
+      zone: "ZONE_STAGING"
+      allowed_load_unit_types: ["pallet_euro"]
+
+    sections:
+      - id: "SEC_STAGING_IN"
+        selector:
+          aisles: { from: 1, to: 1 }
+      - id: "SEC_STAGING_OUT"
+        selector:
+          aisles: { from: 2, to: 2 }
+
+activity_areas:
+  - id: "PUTAWAY_ALPHA"
+    activity: "putaway"
+    bins_from: ["RACK.SEC_ALPHA"]
+
+  - id: "PUTAWAY_BETA"
+    activity: "putaway"
+    bins_from: ["RACK.SEC_BETA"]
+
+  - id: "PICK_SHELF"
+    activity: "picking"
+    bins_from: ["SHELF"]
+
+doors:
+  - id: "DOOR_IN"
+    direction: "inbound"
+    staging_section: "STAGING.SEC_STAGING_IN"
+
+  - id: "DOOR_OUT"
+    direction: "outbound"
+    staging_section: "STAGING.SEC_STAGING_OUT"
