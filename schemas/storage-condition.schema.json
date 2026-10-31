@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://topology-as-code.internal/schemas/storage-condition.schema.json",
+  "title": "Storage Condition",
+  "description": "Storage condition class (ambient, chilled, frozen) with a temperature range. The catalog is owned by MasterData-as-Code; elements/storage_conditions.yaml here is a pinned copy. Referenced by storage_type.default_attributes.storage_condition.",
+  "type": "object",
+  "required": [
+    "id",
+    "temperature"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "description": {
+      "type": "string"
+    },
+    "temperature": {
+      "type": "object",
+      "required": [
+        "min",
+        "max",
+        "unit"
+      ],
+      "properties": {
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "unit": {
+          "const": "C"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

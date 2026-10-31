@@ -41,6 +41,8 @@ ELEMENT_CATALOGS = {
     "process_types.yaml": ("process-type.schema.json", "process_types"),
     "blocking_reasons.yaml": ("blocking-reason.schema.json", "blocking_reasons"),
     "hazmat_classes.yaml": ("hazmat-class.schema.json", "hazmat_classes"),
+    # Pinned copy of MasterData-as-Code's catalog, see elements/catalog_sources.yaml.
+    "storage_conditions.yaml": ("storage-condition.schema.json", "storage_conditions"),
 }
 
 TEMPLATE_CATALOGS = {
@@ -497,6 +499,35 @@ def validate_template_catalogs(path: Path) -> list[str]:
     return errors
 
 
+def _check_storage_condition(path: Path, st_id: str, attrs: dict) -> list[str]:
+    """storage_condition must exist in elements/storage_conditions.yaml
+    (pinned MasterData-as-Code copy). With temperature_zone set as well,
+    the zone must fit the class: a range must lie within the class range,
+    the string 'ambient' only fits the class 'ambient'."""
+    condition = attrs.get("storage_condition")
+    if not condition:
+        return []
+    catalog = load_yaml(ELEMENTS_DIR / "storage_conditions.yaml") or {}
+    classes = {c["id"]: c for c in catalog.get("storage_conditions", []) if c.get("id")}
+    if condition not in classes:
+        return [f"{path}: storage_type '{st_id}': default_attributes.storage_condition '{condition}' not found in elements/storage_conditions.yaml"]
+
+    zone = attrs.get("temperature_zone")
+    span = classes[condition]["temperature"]
+    if zone is None:
+        return []
+    if isinstance(zone, str):
+        if zone != condition:
+            return [f"{path}: storage_type '{st_id}': temperature_zone '{zone}' does not match storage_condition '{condition}'"]
+        return []
+    if zone.get("min", span["min"]) < span["min"] or zone.get("max", span["max"]) > span["max"]:
+        return [
+            f"{path}: storage_type '{st_id}': temperature_zone {zone.get('min')}..{zone.get('max')} C "
+            f"lies outside storage_condition '{condition}' ({span['min']}..{span['max']} C)"
+        ]
+    return []
+
+
 def check_storage_refs(
     path: Path,
     ctrl_ids: set[str],
@@ -555,6 +586,8 @@ def check_storage_refs(
                     f"{path}: storage_type '{st_id}': default_attributes.allowed_load_unit_types '{lut}'"
                     f" not found in elements/load_unit_types.yaml"
                 )
+
+        errors += _check_storage_condition(path, st_id, st.get("default_attributes") or {})
 
         for hazmat in (st.get("default_attributes") or {}).get("hazmat_classes", []):
             if hazmat not in hazmat_ids:

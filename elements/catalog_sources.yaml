@@ -1,0 +1,16 @@
+# Catalogs copied byte-identically from sibling repos and pinned to a
+# source commit. Do not edit the copies; change the source and re-pin:
+#   python tools/sync_catalogs.py --update --source-root <checkout> --ref <commit>
+# CI checks the copies against this file and against the source at ref.
+
+catalog_sources:
+- file: load_unit_types.yaml
+  repo: rhinos07/MasterData-as-Code
+  ref: 5fdca7cba0358105f2133151e83f727b0d4dc4a9
+  path: elements/load_unit_types.yaml
+  sha256: 9e1a33d0bf6ab97c874ff63cd4862517bfafe486552ca3e3b6cfcdcebd8dd49c
+- file: storage_conditions.yaml
+  repo: rhinos07/MasterData-as-Code
+  ref: 5fdca7cba0358105f2133151e83f727b0d4dc4a9
+  path: elements/storage_conditions.yaml
+  sha256: 8592539834fca98035c667cdbf8a016b065f347f7fc86f8a92cbaa9221445e78

@@ -1,0 +1,20 @@
+# Storage condition classes. Items reference them via storage_condition
+# (inheritable from the category); Topology-as-Code storage types reference
+# the same ids through a pinned copy of this file. Validates against
+# schemas/storage-condition.schema.json (per entry).
+#
+# Ranges are example values: "ambient" here follows the common 15-25 C
+# convention for controlled room temperature; adjust per customer.
+
+storage_conditions:
+  - id: "ambient"
+    description: "Controlled room temperature"
+    temperature: { min: 15, max: 25, unit: "C" }
+
+  - id: "chilled"
+    description: "Refrigerated"
+    temperature: { min: 2, max: 8, unit: "C" }
+
+  - id: "frozen"
+    description: "Deep-frozen"
+    temperature: { min: -30, max: -18, unit: "C" }
