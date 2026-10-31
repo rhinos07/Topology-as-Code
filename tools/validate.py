@@ -1509,6 +1509,81 @@ def _compiled_storage_point_ids(storage_data: dict | None, wcs_data: dict | None
     return ids
 
 
+def check_load_limits(path: Path, storage_data: dict | None) -> list[str]:
+    """Checks storage_type.load_limits (rack statics):
+    - positions_per_bay divides the generator's stacks;
+    - exceptions name existing bays, each bay at most once;
+    - limits do not contradict each other: no storage point may be allowed
+      more than its shelf carries, no shelf more than its bay.
+    That a fully loaded bay or shelf would exceed its limit is not an
+    error: the runtime checks the measured weight."""
+    errors: list[str] = []
+    mass = {"kg": 1.0, "g": 0.001, "t": 1000.0}
+    for st in (storage_data or {}).get("storage_types", []):
+        limits = st.get("load_limits")
+        generator = st.get("storage_point_generator")
+        if not limits or not generator:
+            continue
+        st_id = st.get("id", "?")
+        per_bay = limits.get("positions_per_bay", 1)
+        aisles, stacks, levels = (generator.get(k, 1) for k in ("aisles", "stacks", "levels"))
+        if stacks % per_bay:
+            errors.append(
+                f"{path}: storage_type '{st_id}': load_limits.positions_per_bay {per_bay}"
+                f" does not divide storage_point_generator.stacks {stacks}"
+            )
+            continue
+        bays = stacks // per_bay
+
+        overrides: dict[tuple[int, int], dict] = {}
+        for item in limits.get("exceptions", []):
+            key = (item.get("aisle"), item.get("bay"))
+            if key in overrides:
+                errors.append(f"{path}: storage_type '{st_id}': load_limits exception for aisle {key[0]} bay {key[1]} listed twice")
+            elif not (1 <= key[0] <= aisles and 1 <= key[1] <= bays):
+                errors.append(f"{path}: storage_type '{st_id}': load_limits exception for aisle {key[0]} bay {key[1]} names no existing bay")
+            overrides[key] = item
+
+        def limit(key: tuple[int, int], name: str) -> float | None:
+            return _quantity_value(overrides.get(key, {}).get(name, limits.get(name)), mass)
+
+        # Effective point max_weight per coordinate: default, then exception.
+        default_weight = _quantity_value((st.get("default_attributes") or {}).get("max_weight"), mass)
+        point_weights = {
+            exc.get("coordinate"): _quantity_value(exc.get("max_weight"), mass)
+            for exc in st.get("exceptions", []) if "max_weight" in exc
+        }
+        reported: set[tuple] = set()
+        for aisle in range(1, aisles + 1):
+            for stack in range(1, stacks + 1):
+                key = (aisle, (stack - 1) // per_bay + 1)
+                bay_limit, shelf_limit = limit(key, "bay_max_weight"), limit(key, "shelf_max_weight")
+                if bay_limit is not None and shelf_limit is not None and shelf_limit > bay_limit + 1e-9:
+                    if ("shelf", key) not in reported:
+                        reported.add(("shelf", key))
+                        errors.append(
+                            f"{path}: storage_type '{st_id}' aisle {key[0]} bay {key[1]}:"
+                            f" shelf_max_weight {shelf_limit:g} kg exceeds bay_max_weight {bay_limit:g} kg"
+                        )
+                carrier = shelf_limit if shelf_limit is not None else bay_limit
+                if carrier is None:
+                    continue
+                for level in range(1, levels + 1):
+                    try:
+                        coordinate = generator["coordinate_pattern"].format(aisle=aisle, stack=stack, level=level)
+                    except (KeyError, ValueError, IndexError):
+                        coordinate = None
+                    weight = point_weights.get(coordinate, default_weight)
+                    if weight is not None and weight > carrier + 1e-9 and ("point", coordinate) not in reported:
+                        reported.add(("point", coordinate))
+                        errors.append(
+                            f"{path}: storage_type '{st_id}' coordinate '{coordinate}':"
+                            f" max_weight {weight:g} kg exceeds the"
+                            f" {'shelf' if shelf_limit is not None else 'bay'} limit {carrier:g} kg"
+                        )
+    return errors
+
+
 def check_routing(path: Path, storage_data: dict | None) -> list[str]:
     """Checks storage_type.routing against the point definitions:
     - route_aisle / route_position on an exception or explicit point need
@@ -1920,6 +1995,7 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
         )
         all_errors += check_section_membership(imports["storage.yaml"], storage_data)
         all_errors += check_routing(imports["storage.yaml"], storage_data)
+        all_errors += check_load_limits(imports["storage.yaml"], storage_data)
 
     if "wcs.yaml" in imports:
         all_errors += check_wcs_refs(imports["wcs.yaml"], element_ids)

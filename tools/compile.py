@@ -52,6 +52,53 @@ def merge_attributes(default_attributes: dict, exception: dict | None) -> dict:
     return merged
 
 
+def bay_id(storage_type_id: str, aisle: int, bay: int) -> str:
+    return f"{storage_type_id}.F{aisle:02d}-{bay:02d}"
+
+
+def load_group(storage_type: dict, aisle: int, stack: int, level: int) -> dict:
+    """bay and shelf ids for a generated point. Empty without load_limits.
+    All channel depths of a position share the bay and shelf."""
+    limits = storage_type.get("load_limits")
+    if not limits:
+        return {}
+    bay = (stack - 1) // limits["positions_per_bay"] + 1
+    bay_ref = bay_id(storage_type["id"], aisle, bay)
+    return {"bay": bay_ref, "shelf": f"{bay_ref}-L{level:02d}"}
+
+
+def compile_load_groups(storage_type: dict) -> tuple[list[dict], list[dict]]:
+    """bay and shelf entities of one storage_type, each carrying its
+    effective max_weight (default, overridden per bay by an exception).
+    A limit that is not configured is left out, not set to zero."""
+    limits = storage_type.get("load_limits")
+    generator = storage_type.get("storage_point_generator")
+    if not limits or not generator:
+        return [], []
+    overrides = {(item["aisle"], item["bay"]): item for item in limits.get("exceptions", [])}
+    bays_per_aisle = generator.get("stacks", 1) // limits["positions_per_bay"]
+    bays, shelves = [], []
+    for aisle in range(1, generator.get("aisles", 1) + 1):
+        for bay in range(1, bays_per_aisle + 1):
+            override = overrides.get((aisle, bay), {})
+            bay_ref = bay_id(storage_type["id"], aisle, bay)
+            bay_entity = {
+                "id": bay_ref, "storage_type": storage_type["id"],
+                "aisle": aisle, "bay": bay,
+            }
+            bay_weight = override.get("bay_max_weight", limits.get("bay_max_weight"))
+            if bay_weight:
+                bay_entity["max_weight"] = bay_weight
+            bays.append(bay_entity)
+            shelf_weight = override.get("shelf_max_weight", limits.get("shelf_max_weight"))
+            for level in range(1, generator.get("levels", 1) + 1):
+                shelf = {"id": f"{bay_ref}-L{level:02d}", "bay": bay_ref, "level": level}
+                if shelf_weight:
+                    shelf["max_weight"] = shelf_weight
+                shelves.append(shelf)
+    return bays, shelves
+
+
 def route_defaults(storage_type: dict, aisle: int, position: int) -> dict:
     """Derived travel sort key for a generated point: grid aisle and the
     position along it (stack or bay). Empty when the storage_type has no
@@ -131,6 +178,7 @@ def expand_storage_point_generator(storage_type: dict) -> tuple[list[dict], list
                         "storage_type": storage_type["id"],
                         "coordinate": coordinate,
                         **route_defaults(storage_type, aisle, stack),
+                        **load_group(storage_type, aisle, stack, level),
                         **attributes,
                     }
                     if depth is not None:
@@ -420,7 +468,7 @@ def derive_activity_area_technology(storage_data: dict) -> list[dict]:
 STORAGE_TYPE_SOURCE_FIELDS = {
     "storage_point_generator", "layout_variants", "layout_grid",
     "storage_points", "default_attributes", "exceptions", "sections",
-    "section_membership", "routing",
+    "section_membership", "routing", "load_limits",
     # Authoring-layer indirection, already resolved into default_attributes
     # before this point - the artifact states effective values, never the
     # template it happened to inherit them from.
@@ -595,6 +643,14 @@ def compile_entity_collections(
         "storage_point": list(points),
         "channel": channels,
         "section": sections,
+        "bay": [
+            bay for source in storage_data.get("storage_types", [])
+            for bay in compile_load_groups(source)[0]
+        ],
+        "shelf": [
+            shelf for source in storage_data.get("storage_types", [])
+            for shelf in compile_load_groups(source)[1]
+        ],
         "route_aisle": [
             aisle
             for source in storage_data.get("storage_types", [])

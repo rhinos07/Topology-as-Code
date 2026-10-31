@@ -264,6 +264,43 @@
         ]
       }
     },
+    "load_limits": {
+      "type": "object",
+      "description": "Rack statics: load limit per bay (field, all levels between two uprights) and per shelf (one level within a bay). Stated by the rack manufacturer; known early in planning. Only for storage_point_generator with access_model rack or channel. The compiler writes bay and shelf ids onto every point and emits bay/shelf entities with their limits. Topology states the limits only: the runtime sums the measured (scale) weight of the load units on a bay or shelf and compares it against them. A calculated weight is deliberately not used.",
+      "required": ["positions_per_bay"],
+      "properties": {
+        "positions_per_bay": {
+          "type": "integer", "minimum": 1,
+          "description": "Number of stacks (positions side by side) per bay. Bay n of an aisle covers stacks (n-1)*positions_per_bay+1 .. n*positions_per_bay. Must divide storage_point_generator.stacks."
+        },
+        "bay_max_weight": {
+          "$ref": "quantity.schema.json#/definitions/mass",
+          "description": "Field load: maximum total weight on one bay, all levels."
+        },
+        "shelf_max_weight": {
+          "$ref": "quantity.schema.json#/definitions/mass",
+          "description": "Shelf load: maximum total weight on one level of one bay, all positions (and, for channel storage, all channel depths) on it."
+        },
+        "exceptions": {
+          "type": "array",
+          "description": "Per-bay overrides, e.g. a reinforced bay.",
+          "items": {
+            "type": "object",
+            "required": ["aisle", "bay"],
+            "properties": {
+              "aisle": { "type": "integer", "minimum": 1 },
+              "bay": { "type": "integer", "minimum": 1 },
+              "bay_max_weight": { "$ref": "quantity.schema.json#/definitions/mass" },
+              "shelf_max_weight": { "$ref": "quantity.schema.json#/definitions/mass" }
+            },
+            "additionalProperties": false,
+            "anyOf": [{ "required": ["bay_max_weight"] }, { "required": ["shelf_max_weight"] }]
+          }
+        }
+      },
+      "additionalProperties": false,
+      "anyOf": [{ "required": ["bay_max_weight"] }, { "required": ["shelf_max_weight"] }]
+    },
     "routing": {
       "type": "object",
       "description": "Static basis for travel path sorting. When set, every compiled storage_point carries route_aisle (compiled route_aisle id) and route_position. Defaults: storage_point_generator -> aisle / stack, layout_variants -> aisle / bay; explicit storage_points must state route_aisle and route_position; exceptions may override both. The level is not part of the sort key. Which end of an aisle the operator enters - and so whether route_position is walked ascending or descending - is a runtime routing decision; this block only states which ends are usable.",
@@ -381,6 +418,13 @@
           "not": { "anyOf": [{ "required": ["storage_point_generator"] }, { "required": ["layout_variants"] }, { "required": ["layout_grid"] }] }
         }
       ]
+    },
+    {
+      "if": { "required": ["load_limits"] },
+      "then": {
+        "required": ["storage_point_generator"],
+        "properties": { "access_model": { "enum": ["rack", "channel"] } }
+      }
     },
     {
       "if": { "required": ["exceptions"] },
