@@ -6,6 +6,8 @@ Sources, all reached via the warehouse.yaml imports:
     storage_points on each storage_type, plus work_centers flagged
     storage_point_ref: true
   - wcs.yaml: reporting_points flagged storage_point_ref: true
+  - scan_codes.yaml (optional): explicitly maintained scan code per
+    storage_point, copied onto the compiled point as scan_code
 
 This is the deterministic artifact step before planning/apply: the WMS sees
 concrete storage_points plus all building-owned topology, controller and
@@ -283,6 +285,21 @@ def expand_storage_point_refs(storage_data: dict, wcs_data: dict | None) -> list
         points.append(point)
 
     return points
+
+
+def apply_scan_codes(points: list[dict], scan_code_data: dict | None) -> list[str]:
+    """Copies the explicitly maintained scan codes (scan_codes.yaml) onto
+    the compiled storage_points. Points without an entry get no scan_code
+    field. Returns an error for an entry whose storage_point does not exist."""
+    by_id = {point["id"]: point for point in points}
+    errors = []
+    for entry in (scan_code_data or {}).get("scan_codes", []) or []:
+        point = by_id.get(entry.get("storage_point"))
+        if point is None:
+            errors.append(f"scan code for unknown storage_point '{entry.get('storage_point')}'")
+            continue
+        point["scan_code"] = entry["code"]
+    return errors
 
 
 def point_group(point: dict) -> str:
@@ -654,6 +671,9 @@ def main(argv: list[str]) -> int:
     points, warnings = compile_storage_types(storage_data)
     points += expand_storage_point_refs(storage_data, wcs_data)
     errors = find_duplicate_ids(points)
+    scan_code_file = next((p for p in imports if p.name == "scan_codes.yaml"), None)
+    if scan_code_file and scan_code_file.exists():
+        errors += apply_scan_codes(points, load_yaml(scan_code_file))
 
     counts: dict[str, int] = {}
     for point in points:

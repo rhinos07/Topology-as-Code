@@ -1,0 +1,13 @@
+# Scan codes (location check codes) per storage_point.
+# Explicitly maintained - there is no generation rule. In practice this file
+# is written by a script (e.g. an export from the label printing system);
+# a storage_point without an entry has no scan code.
+# Validates against schemas/scan-codes.schema.json
+
+scan_codes:
+  - storage_point: "FIX.FIX-01-01"
+    code: "73"
+  - storage_point: "FIX.FIX-01-02"
+    code: "18"
+  - storage_point: "FIX.FIX-01-03"
+    code: "45"

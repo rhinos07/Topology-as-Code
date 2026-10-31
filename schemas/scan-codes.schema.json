@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://topology-as-code.internal/schemas/scan-codes.schema.json",
+  "title": "Scan Codes",
+  "description": "Explicitly maintained check code per storage_point (the code printed on the location label and scanned by the operator to confirm the location). There is no generation rule: the list is maintained by hand or written by an external script (e.g. from the label printing system). A storage_point without an entry has no scan code. The file is optional and imported from warehouse.yaml like any other structure file.",
+  "type": "object",
+  "required": ["scan_codes"],
+  "properties": {
+    "scan_codes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["storage_point", "code"],
+        "properties": {
+          "storage_point": {
+            "type": "string",
+            "description": "Compiled storage_point id ('<storage_type_id>.<coordinate>', or the id of a work_center / reporting_point flagged storage_point_ref)."
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[\\x21-\\x7E]{1,64}$",
+            "description": "Check code as scanned. Printable ASCII without spaces, 1-64 characters. Must be unique within the warehouse."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
