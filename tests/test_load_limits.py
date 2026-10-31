@@ -135,5 +135,64 @@ class LoadLimitValidationTest(unittest.TestCase):
         self.assertTrue(any("listed twice" in e for e in errors), errors)
 
 
+FLEX = {
+    "id": "FLX",
+    "access_model": "rack",
+    "access_order": "direct",
+    "layout_variants": [
+        {"id": "two", "load_unit_type": "pallet_industrial", "positions_per_bay": 2,
+         "coordinate_pattern": "{aisle:02d}-{bay:02d}-L{level:02d}-A{slot}"},
+        {"id": "three", "load_unit_type": "pallet_euro", "positions_per_bay": 3,
+         "coordinate_pattern": "{aisle:02d}-{bay:02d}-L{level:02d}-B{slot}"},
+    ],
+    "layout_grid": {"aisles": 1, "bays": 2, "levels": 3},
+    "default_attributes": {"capacity_per_point": 1, "max_weight": kg(1000)},
+    "load_limits": {"bay_max_weight": kg(9000), "shelf_max_weight": kg(3000)},
+}
+
+
+class LayoutVariantLoadLimitTest(unittest.TestCase):
+    def test_schema_accepts_levels_and_limits(self):
+        self.assertEqual(list(VALIDATOR.iter_errors(FLEX)), [])
+
+    def test_levels_expand_and_share_shelf(self):
+        points, _ = compile_storage_types({"storage_types": [copy.deepcopy(FLEX)]})
+        self.assertEqual(len(points), 1 * 2 * 3 * (2 + 3))
+        shelf = {p["shelf"] for p in points if p["coordinate"].startswith("01-02-L03-")}
+        self.assertEqual(shelf, {"FLX.F01-02-L03"})
+        point = next(p for p in points if p["coordinate"] == "01-02-L03-B1")
+        self.assertEqual(point["physical_bay"], "FLX-01-02-L03")
+        self.assertEqual(point["bay"], "FLX.F01-02")
+
+    def test_entities_use_grid_bays(self):
+        bays, shelves = compile_load_groups(copy.deepcopy(FLEX))
+        self.assertEqual((len(bays), len(shelves)), (2, 6))
+
+    def test_valid_flex_passes(self):
+        self.assertEqual(errors_for(FLEX), [])
+
+    def test_positions_per_bay_is_rejected(self):
+        storage_type = copy.deepcopy(FLEX)
+        storage_type["load_limits"]["positions_per_bay"] = 2
+        self.assertTrue(any("not used with layout_variants" in e for e in errors_for(storage_type)))
+
+    def test_point_above_shelf_is_rejected(self):
+        storage_type = copy.deepcopy(FLEX)
+        storage_type["load_limits"]["shelf_max_weight"] = kg(800)
+        self.assertTrue(any("exceeds the shelf limit" in e for e in errors_for(storage_type)))
+
+    def test_levels_need_level_placeholder(self):
+        from validate import validate_storage_types
+        import tempfile
+        import yaml
+        storage_type = copy.deepcopy(FLEX)
+        storage_type["layout_variants"][0]["coordinate_pattern"] = "{aisle:02d}-{bay:02d}-A{slot}"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "storage.yaml"
+            path.write_text(yaml.safe_dump({"storage_types": [storage_type]}), encoding="utf-8")
+            errors = validate_storage_types(path)
+        self.assertTrue(any("needs {level}" in e for e in errors), errors)
+
+
 if __name__ == "__main__":
     unittest.main()

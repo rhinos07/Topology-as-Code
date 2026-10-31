@@ -30,6 +30,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from validate import (  # noqa: E402
+    layout_variant_points,
     collect_extension_imports,
     collect_imports,
     load_storage_templates,
@@ -67,18 +68,45 @@ def load_group(storage_type: dict, aisle: int, stack: int, level: int) -> dict:
     return {"bay": bay_ref, "shelf": f"{bay_ref}-L{level:02d}"}
 
 
+def variant_load_group(storage_type: dict, aisle: int, bay: int, level: int) -> dict:
+    """bay and shelf ids for a layout_variants point: the grid bay is the
+    field, its level the shelf. Empty without load_limits."""
+    if not storage_type.get("load_limits"):
+        return {}
+    bay_ref = bay_id(storage_type["id"], aisle, bay)
+    return {"bay": bay_ref, "shelf": f"{bay_ref}-L{level:02d}"}
+
+
+def load_grid(storage_type: dict) -> tuple[int, int, int] | None:
+    """(aisles, bays per aisle, levels) of the bay/shelf grid, or None."""
+    limits = storage_type.get("load_limits")
+    if not limits:
+        return None
+    generator = storage_type.get("storage_point_generator")
+    if generator:
+        return (
+            generator.get("aisles", 1),
+            generator.get("stacks", 1) // limits.get("positions_per_bay", 1),
+            generator.get("levels", 1),
+        )
+    if "layout_variants" in storage_type:
+        grid = storage_type.get("layout_grid", {})
+        return grid.get("aisles", 1), grid.get("bays", 1), grid.get("levels", 1)
+    return None
+
+
 def compile_load_groups(storage_type: dict) -> tuple[list[dict], list[dict]]:
     """bay and shelf entities of one storage_type, each carrying its
     effective max_weight (default, overridden per bay by an exception).
     A limit that is not configured is left out, not set to zero."""
     limits = storage_type.get("load_limits")
-    generator = storage_type.get("storage_point_generator")
-    if not limits or not generator:
+    shape = load_grid(storage_type)
+    if not shape:
         return [], []
+    aisles, bays_per_aisle, levels = shape
     overrides = {(item["aisle"], item["bay"]): item for item in limits.get("exceptions", [])}
-    bays_per_aisle = generator.get("stacks", 1) // limits["positions_per_bay"]
     bays, shelves = [], []
-    for aisle in range(1, generator.get("aisles", 1) + 1):
+    for aisle in range(1, aisles + 1):
         for bay in range(1, bays_per_aisle + 1):
             override = overrides.get((aisle, bay), {})
             bay_ref = bay_id(storage_type["id"], aisle, bay)
@@ -91,7 +119,7 @@ def compile_load_groups(storage_type: dict) -> tuple[list[dict], list[dict]]:
                 bay_entity["max_weight"] = bay_weight
             bays.append(bay_entity)
             shelf_weight = override.get("shelf_max_weight", limits.get("shelf_max_weight"))
-            for level in range(1, generator.get("levels", 1) + 1):
+            for level in range(1, levels + 1):
                 shelf = {"id": f"{bay_ref}-L{level:02d}", "bay": bay_ref, "level": level}
                 if shelf_weight:
                     shelf["max_weight"] = shelf_weight
@@ -221,34 +249,29 @@ def expand_explicit_storage_points(storage_type: dict) -> tuple[list[dict], list
 
 
 def expand_layout_variants(storage_type: dict) -> tuple[list[dict], list[str]]:
-    variants = storage_type["layout_variants"]
-    grid = storage_type.get("layout_grid", {})
-    aisles = grid.get("aisles", 1)
-    bays = grid.get("bays", 1)
+    """Expands every layout variant over aisle x bay x level x slot.
+    physical_bay is the footprint whose variants exclude each other: the
+    bay, or with more than one level the bay's level (one shelf)."""
     default_attributes = storage_type.get("default_attributes", {})
-
+    multi_level = storage_type.get("layout_grid", {}).get("levels", 1) > 1
     points = []
-    for variant in variants:
-        pattern = variant["coordinate_pattern"]
-        positions = variant["positions_per_bay"]
-        for aisle in range(1, aisles + 1):
-            for bay in range(1, bays + 1):
-                for slot in range(1, positions + 1):
-                    coordinate = pattern.format(aisle=aisle, bay=bay, slot=slot)
-                    attributes = dict(default_attributes)
-                    attributes["allowed_load_unit_types"] = [variant["load_unit_type"]]
-                    points.append({
-                        "id": f"{storage_type['id']}.{coordinate}",
-                        "storage_type": storage_type["id"],
-                        "coordinate": coordinate,
-                        "layout_variant": variant["id"],
-                        "physical_bay": f"{storage_type['id']}-{aisle:02d}-{bay:02d}",
-                        **route_defaults(storage_type, aisle, bay),
-                        **attributes,
-                    })
-
+    for variant, aisle, bay, level, _slot, coordinate in layout_variant_points(storage_type):
+        attributes = dict(default_attributes)
+        attributes["allowed_load_unit_types"] = [variant["load_unit_type"]]
+        physical_bay = f"{storage_type['id']}-{aisle:02d}-{bay:02d}"
+        if multi_level:
+            physical_bay += f"-L{level:02d}"
+        points.append({
+            "id": f"{storage_type['id']}.{coordinate}",
+            "storage_type": storage_type["id"],
+            "coordinate": coordinate,
+            "layout_variant": variant["id"],
+            "physical_bay": physical_bay,
+            **route_defaults(storage_type, aisle, bay),
+            **variant_load_group(storage_type, aisle, bay, level),
+            **attributes,
+        })
     return points, []
-
 
 def _axis_matches(selector: dict | None, value: int) -> bool:
     if not selector:
@@ -283,22 +306,16 @@ def section_selector_coordinates(storage_type: dict, selector: dict) -> set[str]
                         )
                         coordinates.add(f"{base}-D{depth:02d}" if depth is not None else base)
     elif "layout_variants" in storage_type:
-        if set(selector).intersection({"stacks", "levels"}):
+        if set(selector).intersection({"stacks"}):
             return set()
-        grid = storage_type.get("layout_grid", {})
-        for variant in storage_type["layout_variants"]:
-            for aisle in range(1, grid.get("aisles", 1) + 1):
-                for bay in range(1, grid.get("bays", 1) + 1):
-                    for slot in range(1, variant["positions_per_bay"] + 1):
-                        if not (
-                            _axis_matches(selector.get("aisles"), aisle)
-                            and _axis_matches(selector.get("bays"), bay)
-                            and _axis_matches(selector.get("slots"), slot)
-                        ):
-                            continue
-                        coordinates.add(variant["coordinate_pattern"].format(
-                            aisle=aisle, bay=bay, slot=slot
-                        ))
+        for _variant, aisle, bay, level, slot, coordinate in layout_variant_points(storage_type):
+            if (
+                _axis_matches(selector.get("aisles"), aisle)
+                and _axis_matches(selector.get("bays"), bay)
+                and _axis_matches(selector.get("levels"), level)
+                and _axis_matches(selector.get("slots"), slot)
+            ):
+                coordinates.add(coordinate)
     return coordinates
 
 

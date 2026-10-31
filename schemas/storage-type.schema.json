@@ -121,10 +121,14 @@
     },
     "layout_grid": {
       "type": "object",
-      "description": "Required together with layout_variants. Defines how many physical bays exist (aisle x bay); each bay gets expanded into positions_per_bay storage_points per variant.",
+      "description": "Required together with layout_variants. Defines how many physical bays exist (aisle x bay x level); each bay level gets expanded into positions_per_bay storage_points per variant.",
       "properties": {
         "aisles": { "type": "integer", "minimum": 1, "default": 1 },
-        "bays": { "type": "integer", "minimum": 1, "default": 1 }
+        "bays": { "type": "integer", "minimum": 1, "default": 1 },
+        "levels": {
+          "type": "integer", "minimum": 1, "default": 1,
+          "description": "Number of levels per bay. With more than one level every variant's coordinate_pattern must contain {level}; the variants then exclude each other per bay and level (physical_bay gets a -L<nn> suffix)."
+        }
       },
       "additionalProperties": false
     },
@@ -266,12 +270,11 @@
     },
     "load_limits": {
       "type": "object",
-      "description": "Rack statics: load limit per bay (field, all levels between two uprights) and per shelf (one level within a bay). Stated by the rack manufacturer; known early in planning. Only for storage_point_generator with access_model rack or channel. The compiler writes bay and shelf ids onto every point and emits bay/shelf entities with their limits. Topology states the limits only: the runtime sums the measured (scale) weight of the load units on a bay or shelf and compares it against them. A calculated weight is deliberately not used.",
-      "required": ["positions_per_bay"],
+      "description": "Rack statics: load limit per bay (field, all levels between two uprights) and per shelf (one level within a bay). Stated by the rack manufacturer; known early in planning. Only for storage_point_generator or layout_variants, with access_model rack or channel. The compiler writes bay and shelf ids onto every point and emits bay/shelf entities with their limits. Topology states the limits only: the runtime sums the measured (scale) weight of the load units on a bay or shelf and compares it against them. A calculated weight is deliberately not used.",
       "properties": {
         "positions_per_bay": {
           "type": "integer", "minimum": 1,
-          "description": "Number of stacks (positions side by side) per bay. Bay n of an aisle covers stacks (n-1)*positions_per_bay+1 .. n*positions_per_bay. Must divide storage_point_generator.stacks."
+          "description": "storage_point_generator only (required there): number of stacks (positions side by side) per bay. Bay n of an aisle covers stacks (n-1)*positions_per_bay+1 .. n*positions_per_bay. Must divide storage_point_generator.stacks. Not used with layout_variants, where the layout_grid bay is the field and its level the shelf."
         },
         "bay_max_weight": {
           "$ref": "quantity.schema.json#/definitions/mass",
@@ -422,7 +425,7 @@
     {
       "if": { "required": ["load_limits"] },
       "then": {
-        "required": ["storage_point_generator"],
+        "anyOf": [{ "required": ["storage_point_generator"] }, { "required": ["layout_variants"] }],
         "properties": { "access_model": { "enum": ["rack", "channel"] } }
       }
     },

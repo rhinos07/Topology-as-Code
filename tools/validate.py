@@ -123,6 +123,22 @@ def validate_file(path: Path, schema_name: str) -> list[str]:
     return errors
 
 
+def layout_variant_points(st: dict):
+    """Yields (variant, aisle, bay, level, slot, coordinate) for every point
+    of a layout_variants storage_type. layout_grid.levels defaults to 1;
+    a pattern without {level} is only valid for a single level."""
+    grid = st.get("layout_grid", {})
+    for variant in st.get("layout_variants", []):
+        for aisle in range(1, grid.get("aisles", 1) + 1):
+            for bay in range(1, grid.get("bays", 1) + 1):
+                for level in range(1, grid.get("levels", 1) + 1):
+                    for slot in range(1, variant["positions_per_bay"] + 1):
+                        coordinate = variant["coordinate_pattern"].format(
+                            aisle=aisle, bay=bay, level=level, slot=slot
+                        )
+                        yield variant, aisle, bay, level, slot, coordinate
+
+
 def duplicate_id_errors(items: list[dict], context: str, path: Path) -> list[str]:
     """Reports duplicate non-empty IDs in an entity collection."""
     seen: set[str] = set()
@@ -161,6 +177,13 @@ def validate_storage_types(path: Path) -> list[str]:
     for st in storage_types:
         errors += duplicate_id_errors(st.get("sections", []), f"section in storage_type '{st.get('id', '?')}'", path)
         errors += duplicate_id_errors(st.get("layout_variants", []), f"layout_variant in storage_type '{st.get('id', '?')}'", path)
+        if st.get("layout_grid", {}).get("levels", 1) > 1:
+            for variant in st.get("layout_variants", []):
+                if "{level" not in variant.get("coordinate_pattern", ""):
+                    errors.append(
+                        f"{path}: storage_type '{st.get('id', '?')}' layout_variant '{variant.get('id', '?')}':"
+                        f" layout_grid.levels > 1 needs {{level}} in coordinate_pattern"
+                    )
         for field in ("storage_points", "exceptions"):
             coordinates = [entry.get("coordinate") for entry in st.get(field, []) if entry.get("coordinate")]
             duplicates = sorted({value for value in coordinates if coordinates.count(value) > 1})
@@ -1256,15 +1279,8 @@ def check_storage_coordinate_integrity(
                                 generated_coordinates.add(coordinate)
                                 register(st_id, coordinate)
             elif "layout_variants" in st:
-                grid = st.get("layout_grid", {})
-                for variant in st["layout_variants"]:
-                    for aisle in range(1, grid.get("aisles", 1) + 1):
-                        for bay in range(1, grid.get("bays", 1) + 1):
-                            for slot in range(1, variant["positions_per_bay"] + 1):
-                                coordinate = variant["coordinate_pattern"].format(
-                                    aisle=aisle, bay=bay, slot=slot
-                                )
-                                register(st_id, coordinate)
+                for *_, coordinate in layout_variant_points(st):
+                    register(st_id, coordinate)
             else:
                 for point in st.get("storage_points", []):
                     register(st_id, point["coordinate"])
@@ -1336,14 +1352,7 @@ def check_section_membership(path: Path, storage_data: dict | None) -> list[str]
                             for depth in depths
                         )
         elif variants:
-            grid = st.get("layout_grid", {})
-            for variant in variants:
-                for aisle in range(1, grid.get("aisles", 1) + 1):
-                    for bay in range(1, grid.get("bays", 1) + 1):
-                        for slot in range(1, variant["positions_per_bay"] + 1):
-                            coordinates.add(variant["coordinate_pattern"].format(
-                                aisle=aisle, bay=bay, slot=slot
-                            ))
+            coordinates.update(coordinate for *_, coordinate in layout_variant_points(st))
         else:
             coordinates = {
                 point.get("coordinate") for point in st.get("storage_points", [])
@@ -1380,10 +1389,13 @@ def check_section_membership(path: Path, storage_data: dict | None) -> list[str]
                 axes = ("aisles", "stacks", "levels", "depths")
                 patterns = [(None, generator["coordinate_pattern"])]
             elif variants:
-                unsupported = set(selector).intersection({"stacks", "levels", "depths"})
+                unsupported = set(selector).intersection({"stacks", "depths"})
                 grid = st.get("layout_grid", {})
-                maxima = {"aisles": grid.get("aisles", 1), "bays": grid.get("bays", 1)}
-                axes = ("aisles", "bays", "slots")
+                maxima = {
+                    "aisles": grid.get("aisles", 1), "bays": grid.get("bays", 1),
+                    "levels": grid.get("levels", 1),
+                }
+                axes = ("aisles", "bays", "levels", "slots")
                 patterns = [(variant["positions_per_bay"], variant["coordinate_pattern"]) for variant in variants]
             else:
                 unsupported = set(selector)
@@ -1416,9 +1428,10 @@ def check_section_membership(path: Path, storage_data: dict | None) -> list[str]
                 for positions, pattern in patterns:
                     for aisle in _axis_values(selector.get("aisles"), maxima["aisles"]):
                         for bay in _axis_values(selector.get("bays"), maxima["bays"]):
-                            for slot in _axis_values(selector.get("slots"), positions):
-                                if 1 <= aisle <= maxima["aisles"] and 1 <= bay <= maxima["bays"] and 1 <= slot <= positions:
-                                    selected.add(pattern.format(aisle=aisle, bay=bay, slot=slot))
+                            for level in _axis_values(selector.get("levels"), maxima["levels"]):
+                                for slot in _axis_values(selector.get("slots"), positions):
+                                    if 1 <= aisle <= maxima["aisles"] and 1 <= bay <= maxima["bays"] and 1 <= level <= maxima["levels"] and 1 <= slot <= positions:
+                                        selected.add(pattern.format(aisle=aisle, bay=bay, level=level, slot=slot))
             selector_matches[section_id] = selected
 
         direct: dict[str, str] = {}
@@ -1483,15 +1496,7 @@ def _compiled_storage_point_ids(storage_data: dict | None, wcs_data: dict | None
                                 coordinate = f"{base}-D{depth:02d}" if depth is not None else base
                                 ids.add(f"{st_id}.{coordinate}")
             elif "layout_variants" in st:
-                grid = st.get("layout_grid", {})
-                for variant in st["layout_variants"]:
-                    for aisle in range(1, grid.get("aisles", 1) + 1):
-                        for bay in range(1, grid.get("bays", 1) + 1):
-                            for slot in range(1, variant["positions_per_bay"] + 1):
-                                coordinate = variant["coordinate_pattern"].format(
-                                    aisle=aisle, bay=bay, slot=slot
-                                )
-                                ids.add(f"{st_id}.{coordinate}")
+                ids.update(f"{st_id}.{coordinate}" for *_, coordinate in layout_variant_points(st))
             else:
                 ids.update(
                     f"{st_id}.{point['coordinate']}" for point in st.get("storage_points", [])
@@ -1511,7 +1516,8 @@ def _compiled_storage_point_ids(storage_data: dict | None, wcs_data: dict | None
 
 def check_load_limits(path: Path, storage_data: dict | None) -> list[str]:
     """Checks storage_type.load_limits (rack statics):
-    - positions_per_bay divides the generator's stacks;
+    - generator: positions_per_bay is set and divides the stacks;
+      layout_variants: positions_per_bay is not set (the grid bay is the field);
     - exceptions name existing bays, each bay at most once;
     - limits do not contradict each other: no storage point may be allowed
       more than its shelf carries, no shelf more than its bay.
@@ -1521,19 +1527,50 @@ def check_load_limits(path: Path, storage_data: dict | None) -> list[str]:
     mass = {"kg": 1.0, "g": 0.001, "t": 1000.0}
     for st in (storage_data or {}).get("storage_types", []):
         limits = st.get("load_limits")
-        generator = st.get("storage_point_generator")
-        if not limits or not generator:
+        if not limits:
             continue
         st_id = st.get("id", "?")
-        per_bay = limits.get("positions_per_bay", 1)
-        aisles, stacks, levels = (generator.get(k, 1) for k in ("aisles", "stacks", "levels"))
-        if stacks % per_bay:
-            errors.append(
-                f"{path}: storage_type '{st_id}': load_limits.positions_per_bay {per_bay}"
-                f" does not divide storage_point_generator.stacks {stacks}"
-            )
+        generator = st.get("storage_point_generator")
+        default_weight = _quantity_value((st.get("default_attributes") or {}).get("max_weight"), mass)
+        # (aisle, bay, coordinate, point max_weight) for every point.
+        points: list[tuple[int, int, str | None, float | None]] = []
+        if generator:
+            per_bay = limits.get("positions_per_bay")
+            aisles, stacks, levels = (generator.get(k, 1) for k in ("aisles", "stacks", "levels"))
+            if per_bay is None:
+                errors.append(f"{path}: storage_type '{st_id}': load_limits.positions_per_bay is required with storage_point_generator")
+                continue
+            if stacks % per_bay:
+                errors.append(
+                    f"{path}: storage_type '{st_id}': load_limits.positions_per_bay {per_bay}"
+                    f" does not divide storage_point_generator.stacks {stacks}"
+                )
+                continue
+            bays = stacks // per_bay
+            point_weights = {
+                exc.get("coordinate"): _quantity_value(exc.get("max_weight"), mass)
+                for exc in st.get("exceptions", []) if "max_weight" in exc
+            }
+            for aisle in range(1, aisles + 1):
+                for stack in range(1, stacks + 1):
+                    for level in range(1, levels + 1):
+                        try:
+                            coordinate = generator["coordinate_pattern"].format(aisle=aisle, stack=stack, level=level)
+                        except (KeyError, ValueError, IndexError):
+                            coordinate = None
+                        points.append((aisle, (stack - 1) // per_bay + 1, coordinate,
+                                       point_weights.get(coordinate, default_weight)))
+        elif "layout_variants" in st:
+            if "positions_per_bay" in limits:
+                errors.append(f"{path}: storage_type '{st_id}': load_limits.positions_per_bay is not used with layout_variants (the layout_grid bay is the field)")
+            grid = st.get("layout_grid", {})
+            aisles, bays = grid.get("aisles", 1), grid.get("bays", 1)
+            try:
+                points = [(a, b, c, default_weight) for _v, a, b, _l, _s, c in layout_variant_points(st)]
+            except (KeyError, ValueError, IndexError):
+                points = []
+        else:
             continue
-        bays = stacks // per_bay
 
         overrides: dict[tuple[int, int], dict] = {}
         for item in limits.get("exceptions", []):
@@ -1547,41 +1584,28 @@ def check_load_limits(path: Path, storage_data: dict | None) -> list[str]:
         def limit(key: tuple[int, int], name: str) -> float | None:
             return _quantity_value(overrides.get(key, {}).get(name, limits.get(name)), mass)
 
-        # Effective point max_weight per coordinate: default, then exception.
-        default_weight = _quantity_value((st.get("default_attributes") or {}).get("max_weight"), mass)
-        point_weights = {
-            exc.get("coordinate"): _quantity_value(exc.get("max_weight"), mass)
-            for exc in st.get("exceptions", []) if "max_weight" in exc
-        }
         reported: set[tuple] = set()
-        for aisle in range(1, aisles + 1):
-            for stack in range(1, stacks + 1):
-                key = (aisle, (stack - 1) // per_bay + 1)
-                bay_limit, shelf_limit = limit(key, "bay_max_weight"), limit(key, "shelf_max_weight")
-                if bay_limit is not None and shelf_limit is not None and shelf_limit > bay_limit + 1e-9:
-                    if ("shelf", key) not in reported:
-                        reported.add(("shelf", key))
-                        errors.append(
-                            f"{path}: storage_type '{st_id}' aisle {key[0]} bay {key[1]}:"
-                            f" shelf_max_weight {shelf_limit:g} kg exceeds bay_max_weight {bay_limit:g} kg"
-                        )
-                carrier = shelf_limit if shelf_limit is not None else bay_limit
-                if carrier is None:
-                    continue
-                for level in range(1, levels + 1):
-                    try:
-                        coordinate = generator["coordinate_pattern"].format(aisle=aisle, stack=stack, level=level)
-                    except (KeyError, ValueError, IndexError):
-                        coordinate = None
-                    weight = point_weights.get(coordinate, default_weight)
-                    if weight is not None and weight > carrier + 1e-9 and ("point", coordinate) not in reported:
-                        reported.add(("point", coordinate))
-                        errors.append(
-                            f"{path}: storage_type '{st_id}' coordinate '{coordinate}':"
-                            f" max_weight {weight:g} kg exceeds the"
-                            f" {'shelf' if shelf_limit is not None else 'bay'} limit {carrier:g} kg"
-                        )
+        for aisle, bay, coordinate, weight in points:
+            key = (aisle, bay)
+            bay_limit, shelf_limit = limit(key, "bay_max_weight"), limit(key, "shelf_max_weight")
+            if bay_limit is not None and shelf_limit is not None and shelf_limit > bay_limit + 1e-9 and ("shelf", key) not in reported:
+                reported.add(("shelf", key))
+                errors.append(
+                    f"{path}: storage_type '{st_id}' aisle {key[0]} bay {key[1]}:"
+                    f" shelf_max_weight {shelf_limit:g} kg exceeds bay_max_weight {bay_limit:g} kg"
+                )
+            carrier = shelf_limit if shelf_limit is not None else bay_limit
+            if carrier is None or weight is None:
+                continue
+            if weight > carrier + 1e-9 and ("point", coordinate) not in reported:
+                reported.add(("point", coordinate))
+                errors.append(
+                    f"{path}: storage_type '{st_id}' coordinate '{coordinate}':"
+                    f" max_weight {weight:g} kg exceeds the"
+                    f" {'shelf' if shelf_limit is not None else 'bay'} limit {carrier:g} kg"
+                )
     return errors
+
 
 
 def check_routing(path: Path, storage_data: dict | None) -> list[str]:
