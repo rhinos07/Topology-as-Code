@@ -60,8 +60,10 @@
           "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
           "type": { "type": "string" },
           "ergonomic_class": { "type": "string" },
-          "throughput_capacity": { "type": "integer", "minimum": 1 }
+          "throughput_capacity": { "type": "integer", "minimum": 1, "description": "Nominal throughput per hour, in throughput_unit." },
+          "throughput_unit": { "type": "string", "enum": ["picks_per_hour", "order_lines_per_hour", "load_units_per_hour"], "description": "Unit of throughput_capacity. load_units_per_hour = bins, totes or pallets handled." }
         },
+        "dependencies": { "throughput_capacity": ["throughput_unit"], "throughput_unit": ["throughput_capacity"] },
         "additionalProperties": false
       }
     }

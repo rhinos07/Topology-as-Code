@@ -11,6 +11,7 @@
       "pattern": "^[A-Z0-9_]+$",
       "description": "Unique ID, e.g. 'HBR', 'ASRS', 'BLK'"
     },
+    "description": { "type": "string", "description": "Free text for people: purpose, origin of values. Kept in the compiled artifact, never evaluated - put numbers in their own fields." },
     "template": {
       "type": "string",
       "pattern": "^[a-z0-9_]+$",

@@ -56,7 +56,8 @@
             "type": "string",
             "enum": ["identification_point", "aisle_decision_point", "clarification_point"]
           },
-          "capacity": { "type": "integer", "minimum": 1 }
+          "capacity": { "type": "integer", "minimum": 1 },
+          "description": { "type": "string", "description": "Free text for people: purpose, origin of values. Kept in the compiled artifact, never evaluated - put numbers in their own fields." }
         },
         "additionalProperties": false
       }
