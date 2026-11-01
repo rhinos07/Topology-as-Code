@@ -39,7 +39,7 @@ levels and cascades validation downward automatically.
 | `storage_points` (explicit) | Explicitly enumerated `storage_point`s, as an alternative to `storage_point_generator`/`layout_variants`. For the handful of cases where there is nothing to generate from a grid - e.g. a single opaque block place standing in for a controller-managed area (an AutoStore grid, an AS/RS booked as a whole), where the internal bin/column detail lives in the controller, not in this repo. Each entry needs a `coordinate` and inherits `default_attributes` unless it overrides them. |
 | `layout_variants` | Alternative to `storage_point_generator` for bays that support more than one physical layout (e.g. "2/3 Platz-Lagerung": a bay fits either 2 industrial pallets or 3 euro pallets, never both). Each variant has its own `coordinate_pattern` and `load_unit_type`; the coordinate sets overlap physically but not as strings. Mutual exclusivity at booking time is a runtime concern, not enforced by this schema. Requires a sibling `layout_grid` ({aisles, bays, optional levels}) defining how many physical bays exist. With `levels` > 1 every pattern needs `{level}`, and the variants exclude each other per bay and level (`physical_bay` gets a `-L<nn>` suffix). |
 | `activity_area` | Functional cross-cutting grouping, orthogonal to the physical hierarchy. Unlike the single structural `section`, a `storage_point` can belong to multiple `activity_area`s simultaneously. |
-| `work_center` | Physical unit for activities such as packing, weighing. Set `storage_point_ref: true` if WIP inventory can be booked directly at the work center (same pattern as `reporting_point`). |
+| `work_center` | Physical unit for activities such as packing, weighing. Set `storage_point_ref: true` if WIP inventory can be booked directly at the work center (same pattern as `reporting_point`). Throughput comes from its `workstation_template` (`throughput_capacity` + `throughput_unit`); set both on the work center to override them. The compiled work center carries the effective values and `throughput_source` (`template` or `work_center`). |
 | `door` / `staging_area` | Doors for goods receipt/dispatch/returns. `direction`: `inbound`, `outbound`, or `returns` (kept separate from `inbound` so returns can be routed/inspected differently). |
 | `lane` / `conveyor_segment` | Physical connection/conveyor technology between areas (**"can"**) |
 | `reporting_point` | Communication point between WMS and a downstream `controller`; is technically always also modeled as a `storage_point` |
@@ -123,3 +123,10 @@ all customers, referenced by ID from structure and strategy files.
    both use this flag rather than being redefined as `storage_type`s.
    This keeps their functional role (communication point, activity
    location) separate from the fact that they also carry stock.
+
+## `description` fields
+
+`work_center`, `storage_type` and `reporting_point` take an optional
+`description`: free text for people (purpose, origin of values). It is
+kept in the compiled artifact and never evaluated. Numbers such as
+throughput go into their own fields, not into the description.

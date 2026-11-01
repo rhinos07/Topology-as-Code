@@ -11,6 +11,7 @@ storage_types:
   # --- Declared as a single explicit storage_point (no generator, since ---
   # --- there is nothing to generate - it's just the one block place).   ---
   - id: "AUTOSTORE_GRID"
+    description: "AutoStore grid of hall 1. One opaque place for the WMS; columns, stacking and bin count belong to CTRL_ASC_01."
     template: "autostore_bin_location"   # same bin weight/carrier as example_customer's AUTOSTORE_A
     automation_level: "controller_automated"   # a grid, not a conveyor - the controller owns the internal mechanics
     technology: "autostore"
@@ -56,6 +57,9 @@ work_centers:
     step: "picking"
     workstation_template: "ws_autostore_port"
     storage_point_ref: true
+    description: "Picking port. Throughput below the template value because picking takes longer per bin than induction (example value)."
+    throughput_capacity: 450
+    throughput_unit: "load_units_per_hour"
 
   - id: "WC_PORT_04"
     step: "picking"

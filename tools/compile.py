@@ -30,6 +30,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from validate import (  # noqa: E402
+    ELEMENTS_DIR,
     layout_variant_points,
     collect_extension_imports,
     collect_imports,
@@ -584,6 +585,27 @@ def compile_can_edges(
     return sorted(edges, key=lambda edge: edge["id"])
 
 
+def compile_work_centers(work_centers: list[dict], workstation_templates: dict[str, dict] | None = None) -> list[dict]:
+    """Work centers with their effective throughput: the work center's own
+    throughput_capacity/throughput_unit, else its workstation_template's.
+    throughput_source tells which one applies ('work_center', 'template')."""
+    if workstation_templates is None:
+        catalog = load_yaml(ELEMENTS_DIR / "rack_templates.yaml") or {}
+        workstation_templates = {t["id"]: t for t in catalog.get("workstation_templates", []) if t.get("id")}
+    compiled = []
+    for wc in work_centers:
+        entry = dict(wc)
+        template = workstation_templates.get(wc.get("workstation_template")) or {}
+        if "throughput_capacity" in wc:
+            entry["throughput_source"] = "work_center"
+        elif "throughput_capacity" in template:
+            entry["throughput_capacity"] = template["throughput_capacity"]
+            entry["throughput_unit"] = template.get("throughput_unit")
+            entry["throughput_source"] = "template"
+        compiled.append(entry)
+    return compiled
+
+
 def compile_entity_collections(
     warehouse_data: dict,
     storage_data: dict,
@@ -676,7 +698,7 @@ def compile_entity_collections(
             )
         ],
         "activity_area": derive_activity_area_technology(storage_data),
-        "work_center": list(storage_data.get("work_centers", [])),
+        "work_center": compile_work_centers(storage_data.get("work_centers", [])),
         "door": list(storage_data.get("doors", [])),
         "controller": list((wcs_data or {}).get("controller_definitions", [])),
         "reporting_point": list((wcs_data or {}).get("reporting_points", [])),

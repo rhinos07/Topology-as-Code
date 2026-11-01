@@ -37,8 +37,12 @@
           "id": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
           "step": { "type": "string", "minLength": 1 },
           "workstation_template": { "type": "string", "minLength": 1 },
-          "storage_point_ref": { "type": "boolean" }
+          "storage_point_ref": { "type": "boolean" },
+          "description": { "type": "string", "description": "Free text for people: purpose, origin of values. Kept in the compiled artifact, never evaluated - put numbers in their own fields." },
+          "throughput_capacity": { "type": "integer", "minimum": 1, "description": "Overrides the workstation_template's throughput_capacity for this work center." },
+          "throughput_unit": { "type": "string", "enum": ["picks_per_hour", "order_lines_per_hour", "load_units_per_hour"], "description": "Unit of throughput_capacity. load_units_per_hour = bins, totes or pallets handled." }
         },
+        "dependencies": { "throughput_capacity": ["throughput_unit"], "throughput_unit": ["throughput_capacity"] },
         "additionalProperties": false
       }
     },
