@@ -33,12 +33,14 @@ robot on top. This repo does **not** model those columns. Instead:
   storage_points:
     - coordinate: "AS_GRID"        # the whole grid, one opaque block place
   default_attributes:
-    capacity_per_point: 4800       # nominal total bin slots the controller reports
+    zone: "ZONE_GRID_1"            # no capacity: the controller owns it
 ```
 
 Why: the internal column/bin/LIFO mechanics are the AutoStore controller's
-job, not the WMS's. The WMS only ever needs "the grid has N bins free",
-never "column 07/12 is full". Modeling 300 individual columns would add
+job, not the WMS's. The WMS never needs "column 07/12 is full", and
+it does not model a bin count either: bins of 220, 330 and 425 mm can share
+one grid, so a fixed number of slots would be wrong. Whether a bin fits is
+the controller's answer. Modeling 300 individual columns would add
 detail this repo can't actually use anywhere (no `movement_rule` ever
 addresses a single column) and would fight the controller's own black box.
 
@@ -140,15 +142,15 @@ ENTRY ────────────────────► WC_PORT_01
   (carton, manual)                          carton arrives as WIP at the port
 
 AUTOSTORE_GRID ────────────► RP_PORT_01      PROVIDE_EMPTY_BIN
-  (autostore_bin, automated)                 robot delivers an EMPTY bin
+  (autostore_bin_*, automated)               robot delivers an EMPTY bin
 
 WC_PORT_01 ─────────────────► RP_PORT_01     DECANT_INTO_BIN_01
-  (carton → autostore_bin, manual,           operator decants the carton
+  (carton → autostore_bin_*, manual,         operator decants the carton
    conversion_of_load_unit_required)         into the bin - THIS is the
                                               "Einlagerung" moment
 
 RP_PORT_01 ─────────────────► AUTOSTORE_GRID STOW_BIN_TO_GRID
-  (autostore_bin, automated)                 robot stows the now-full bin
+  (autostore_bin_*, automated)               robot stows the now-full bin
 ```
 
 Two things worth noting:
@@ -167,16 +169,16 @@ Shown for port 3 - port 4 is the identical pattern:
 
 ```
 AUTOSTORE_GRID ────────────► RP_PORT_03      ROUTE_GRID_TO_PICK
-  (autostore_bin, automated)                 robot delivers the FULL bin
+  (autostore_bin_*, automated)               robot delivers the FULL bin
 
 RP_PORT_03 ─────────────────► WC_PORT_03     PICK_FROM_BIN_01
-  (autostore_bin → order_tote, manual,       operator takes the ordered
+  (autostore_bin_* → order_tote, manual,     operator takes the ordered
    conversion_of_load_unit_required)         goods out of the bin into an
                                               order_tote - THIS is the
                                               "Entnahme" moment
 
 RP_PORT_03 ─────────────────► AUTOSTORE_GRID RETURN_BIN_TO_GRID
-  (autostore_bin, automated)                 robot re-stows the bin (with
+  (autostore_bin_*, automated)               robot re-stows the bin (with
                                               its remaining stock)
 
 WC_PORT_03 ─────────────────► EXIT           MOVE_PICK_TO_EXIT

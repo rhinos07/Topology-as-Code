@@ -22,7 +22,6 @@ storage_types:
       - coordinate: "AS_GRID"    # the whole grid, as one opaque block place
 
     default_attributes:
-      capacity_per_point: 4800  # nominal total bin slots the controller reports for this grid
       zone: "ZONE_GRID_1"
 
 # Functional cross-cutting grouping - orthogonal to the physical hierarchy.

@@ -6,7 +6,7 @@
 #   - work_center  WC_PORT_0x = operator / ergonomic side (manual handling)
 #   - reporting_point RP_PORT_0x = controller side (bin handed to/from CTRL_ASC_01)
 # The two are the same physical port but distinct bookable storage_points
-# holding different stock: the autostore_bin sits at the reporting_point,
+# holding different stock: the AutoStore bin sits at the reporting_point,
 # the operator's WIP (inbound carton / picked order_tote) at the work_center.
 # The bin's up/down trips are the robot legs (GRID <-> RP_PORT); the operator
 # legs cross between the two sides (decant WC->RP on induction, pick RP->WC
@@ -47,12 +47,12 @@ movement_rules:
     from: { storage_type: "AUTOSTORE_GRID" }
     to: { reporting_point: ["RP_PORT_01", "RP_PORT_02"] }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["autostore_bin_220", "autostore_bin_330", "autostore_bin_425"]
     access_constraint: "lifo"
     trigger: "bin_provision"
 
   # operator side -> controller side: decant the carton into the bin
-  # (goods change carton -> autostore_bin, hence conversion_of_load_unit_required).
+  # (goods change carton -> AutoStore bin, hence conversion_of_load_unit_required).
   # Kept split per port: WC_PORT_01 only ever hands off to RP_PORT_01,
   # never to RP_PORT_02 - both endpoints vary together, not independently.
   - id: "DECANT_INTO_BIN_01"
@@ -91,7 +91,7 @@ movement_rules:
     # target before this qualifier was added (found via WMS-POC).
     to: { storage_type: "AUTOSTORE_GRID", activity_area: "PUTAWAY_ZONE_GRID" }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["autostore_bin_220", "autostore_bin_330", "autostore_bin_425"]
     access_constraint: "lifo"
     trigger: "putaway_task"
 
@@ -105,12 +105,12 @@ movement_rules:
     from: { storage_type: "AUTOSTORE_GRID" }
     to: { reporting_point: ["RP_PORT_03", "RP_PORT_04"] }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["autostore_bin_220", "autostore_bin_330", "autostore_bin_425"]
     access_constraint: "lifo"
     trigger: "pick_task"
 
   # controller side -> operator side: the actual "Entnahme". The operator
-  # takes the ordered goods out of the delivered autostore_bin and places
+  # takes the ordered goods out of the delivered AutoStore bin and places
   # them into an order_tote that is booked as WIP at the pick work_center.
   # Load unit changes bin -> order_tote, hence conversion_of_load_unit_required. Kept
   # split per port for the same reason as DECANT_INTO_BIN_01/02 above.
@@ -120,7 +120,7 @@ movement_rules:
     from: { reporting_point: "RP_PORT_03" }
     to: { work_center: "WC_PORT_03" }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["autostore_bin_220", "autostore_bin_330", "autostore_bin_425"]
     conversion_of_load_unit_required: true
     trigger: "pick_task"
 
@@ -130,7 +130,7 @@ movement_rules:
     from: { reporting_point: "RP_PORT_04" }
     to: { work_center: "WC_PORT_04" }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["autostore_bin_220", "autostore_bin_330", "autostore_bin_425"]
     conversion_of_load_unit_required: true
     trigger: "pick_task"
 
@@ -145,7 +145,7 @@ movement_rules:
     from: { reporting_point: ["RP_PORT_03", "RP_PORT_04"] }
     to: { storage_type: "AUTOSTORE_GRID" }
     allowed: true
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["autostore_bin_220", "autostore_bin_330", "autostore_bin_425"]
     access_constraint: "lifo"
     trigger: "bin_return"
 

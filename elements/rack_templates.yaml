@@ -39,10 +39,10 @@ storage_templates:
     capacity_per_point: 1
 
   - id: "autostore_bin_location"
-    description: "A location holding AutoStore bins. Capacity and envelope stay open: they differ between a modeled grid column and an opaque controller-managed grid."
+    description: "An AutoStore grid, one opaque place for the WMS. Allows all three bin heights; a storage type can narrow the list. No capacity: the controller manages the grid."
     max_weight: { value: 30, unit: "kg" }
     temperature_zone: "ambient"
-    allowed_load_unit_types: ["autostore_bin"]
+    allowed_load_unit_types: ["autostore_bin_220", "autostore_bin_330", "autostore_bin_425"]
 
 lane_templates:
   - id: "lane_shuttle_standard"
