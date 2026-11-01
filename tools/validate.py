@@ -57,6 +57,21 @@ TEMPLATE_CATALOGS = {
 STORAGE_TEMPLATE_META_KEYS = {"id", "description"}
 
 
+# Load unit ids outside the pinned global catalog may be customer carriers
+# (MasterData-as-Code customers/<c>/load_unit_types.yaml). This repo cannot
+# see them, so they are reported as warnings, not errors; Warehouse-as-Code
+# checks them per site against the site's MasterData company.
+WARNINGS: list[str] = []
+NON_GLOBAL_LUT_NOTE = (
+    "not in the global catalog elements/load_unit_types.yaml - if it is a customer"
+    " carrier, Warehouse-as-Code checks it at site level; envelope checks skipped"
+)
+
+
+def warn_non_global_lut(message: str) -> None:
+    WARNINGS.append(f"{message} {NON_GLOBAL_LUT_NOTE}")
+
+
 def load_yaml(path: Path) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
@@ -606,9 +621,8 @@ def check_storage_refs(
 
         for lut in (st.get("default_attributes") or {}).get("allowed_load_unit_types", []):
             if lut not in lut_ids:
-                errors.append(
+                warn_non_global_lut(
                     f"{path}: storage_type '{st_id}': default_attributes.allowed_load_unit_types '{lut}'"
-                    f" not found in elements/load_unit_types.yaml"
                 )
 
         errors += _check_storage_condition(path, st_id, st.get("default_attributes") or {})
@@ -623,19 +637,18 @@ def check_storage_refs(
         for variant in st.get("layout_variants", []):
             lut = variant.get("load_unit_type")
             if lut and lut not in lut_ids:
-                errors.append(
+                warn_non_global_lut(
                     f"{path}: storage_type '{st_id}': layout_variant '{variant.get('id', '?')}' "
-                    f"load_unit_type '{lut}' not found in elements/load_unit_types.yaml"
+                    f"load_unit_type '{lut}'"
                 )
 
         for field in ("storage_points", "exceptions"):
             for entry in st.get(field, []):
                 for lut in entry.get("allowed_load_unit_types", []):
                     if lut not in lut_ids:
-                        errors.append(
+                        warn_non_global_lut(
                             f"{path}: storage_type '{st_id}': {field} at "
-                            f"'{entry.get('coordinate', '?')}': allowed_load_unit_types "
-                            f"'{lut}' not found in elements/load_unit_types.yaml"
+                            f"'{entry.get('coordinate', '?')}': allowed_load_unit_types '{lut}'"
                         )
 
         for exc in [*st.get("storage_points", []), *st.get("exceptions", [])]:
@@ -1024,9 +1037,8 @@ def check_movement_rule_refs(
 
         for lut in rule.get("allowed_load_unit_types", []):
             if lut not in lut_ids:
-                errors.append(
-                    f"{movement_path}: movement_rule '{rule_id}':"
-                    f" allowed_load_unit_types '{lut}' not found in elements/load_unit_types.yaml"
+                warn_non_global_lut(
+                    f"{movement_path}: movement_rule '{rule_id}': allowed_load_unit_types '{lut}'"
                 )
 
         trigger = rule.get("trigger")
@@ -2163,6 +2175,13 @@ def main(argv: list[str]) -> int:
             f"{target_file}: unrecognized root key (expected one of "
             f"'company', 'facility', 'warehouse')."
         )
+
+    warnings = list(dict.fromkeys(WARNINGS))
+    if warnings:
+        print(f"⚠️  {len(warnings)} warning(s):\n")
+        for w in warnings:
+            print(f"  - {w}")
+        print()
 
     if all_errors:
         print(f"❌ {len(all_errors)} validation errors found:\n")

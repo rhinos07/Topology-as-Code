@@ -33,6 +33,12 @@ Shared vocabulary with the siblings above:
   over a new source version. Do not edit the copies; change them in
   `MasterData-as-Code`, then run
   `python tools/sync_catalogs.py --update --source-root <checkout> --ref <commit>`.
+  The pinned copy holds only the **global** carriers. A customer can add
+  its own carriers in `MasterData-as-Code`
+  (`customers/<customer>/load_unit_types.yaml`). This repo cannot see
+  them, so a load unit id outside the global catalog is a **warning**,
+  not an error, and the envelope checks skip it. `Warehouse-as-Code`
+  checks such ids per site against the site's MasterData company.
 
 `Allocation-as-Code`'s `search_rule.steps[].zone` references this repo's
 `storage_type`/`activity_area` ids by string, the same loosely-coupled

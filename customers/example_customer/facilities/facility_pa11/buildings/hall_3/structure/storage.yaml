@@ -220,32 +220,22 @@ storage_types:
       zone: "ZONE_CHANNEL_A"
 
   # --- AutoStore-style cube storage, automated (robots on a grid) ---
-  # Bins are stacked in columns; a robot can only ever remove the top bin
-  # of a column (LIFO per column) - modeled as 'block' with stack_height
-  # = bins per column and access_order 'lifo'.
+  # For the WMS the grid is one opaque place, like autostore_customer's
+  # AUTOSTORE_GRID: columns, stack order and bin count belong to the
+  # controller. Bins of all three heights can share the grid, so no
+  # capacity is modeled (docs/autostore-walkthrough.md).
   - id: "AUTOSTORE_A"
     template: "autostore_bin_location"   # bin weight/carrier shared with autostore_customer's grid
     automation_level: "controller_automated"   # robots on a grid, not a conveyor
     technology: "autostore"
     movement_policy: "explicit_only"
     access_model: "block"
-    depth: 1
-    stack_height: 16          # bins stacked per grid column
-    access_order: "lifo"      # robot can only pick the top bin of a column
     controller: "CTRL_AUTOSTORE_01"   # references structure/wcs.yaml controller_definitions
 
-    storage_point_generator:
-      aisles: 10    # grid columns, x-direction
-      stacks: 10    # grid columns, y-direction
-      levels: 1
-      coordinate_pattern: "AS-{aisle:02d}-{stack:02d}"
+    storage_points:
+      - coordinate: "AS_GRID_A"    # the whole grid, one opaque block place
 
     default_attributes:
-      capacity_per_point: 16   # 16 bins stacked per column
-      size:
-        width: { value: 0.649, unit: "m" }
-        depth: { value: 0.449, unit: "m" }
-        height: { value: 4.96, unit: "m" }
       zone: "ZONE_AUTOSTORE_A"
 
   # --- Hazardous materials storage, manual, compliance-restricted ---

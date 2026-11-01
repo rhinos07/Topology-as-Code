@@ -146,8 +146,11 @@ class StorageTemplateReferenceTests(unittest.TestCase):
         self.assertEqual([e for e in errors if "template" in e], [])
 
     def test_inherited_load_unit_types_are_reference_checked(self):
-        """Resolved data reaches check_storage_refs, so a bad load unit id in a
-        template is caught at every use site rather than slipping through."""
+        """Resolved data reaches check_storage_refs, so a load unit id outside
+        the global catalog in a template is reported at every use site. It is
+        a warning, because it may be a customer carrier (MasterData)."""
+        import validate
+        validate.WARNINGS.clear()
         storage = {"storage_types": [{"id": "A", "template": "euro_bay"}]}
         resolve_storage_templates(storage, {
             "euro_bay": {"id": "euro_bay", "allowed_load_unit_types": ["missing_lu"]},
@@ -158,7 +161,8 @@ class StorageTemplateReferenceTests(unittest.TestCase):
             errors = check_storage_refs(
                 path, set(), {"load_unit_types": {"pallet_euro"}}, storage
             )
-        self.assertTrue(any("missing_lu" in e for e in errors))
+        self.assertFalse(any("missing_lu" in e for e in errors))
+        self.assertTrue(any("missing_lu" in w for w in validate.WARNINGS))
 
 
 class ShippedCatalogTests(unittest.TestCase):

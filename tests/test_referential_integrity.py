@@ -46,7 +46,10 @@ class ReferentialIntegrityTests(unittest.TestCase):
             import yaml
             path.write_text(yaml.safe_dump(storage), encoding="utf-8")
             errors = check_storage_refs(path, set(), ELEMENT_IDS)
-        self.assertGreaterEqual(len(errors), 4)
+        # controller, hazmat, workstation template are errors; the unknown
+        # load unit may be a customer carrier and is a warning.
+        self.assertGreaterEqual(len(errors), 3)
+        self.assertFalse(any("load_unit_type 'missing'" in e for e in errors))
 
     def test_wcs_internal_references_are_checked(self):
         import yaml
