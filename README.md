@@ -42,8 +42,10 @@ Shared vocabulary with the siblings above:
 
 `Allocation-as-Code`'s `search_rule.steps[].zone` and `putaway_rule.steps[].zone`
 reference this repo's `storage_type`/`activity_area` ids by string, the same
-loosely-coupled convention `OrderOrchestration-as-Code`'s `target` uses - not
-yet cross-checked by either repo's `tools/validate.py`.
+loosely-coupled convention `OrderOrchestration-as-Code`'s `target` uses.
+Neither repo's own `tools/validate.py` checks them; `Warehouse-as-Code`'s
+`tools/check_sites.py` does, per site, against this repo's compiled
+buildings.
 
 ## Core Principle
 
@@ -444,8 +446,11 @@ paths are deliberately not exhaustively modeled. Remaining validation gaps are:
 
 ### Structural Gaps (Not Yet Modeled)
 
-- **No UOM hierarchy concept** (Each → Case → Pallet conversion ratios)
-  beyond what `replenishment_strategy.unit_conversion` already covers.
+- **No UOM hierarchy here, by design** (Each → Case → Pallet conversion
+  ratios): that is item master data, modeled in `MasterData-as-Code`
+  (`packaging`). This repo keeps only a pinned copy of its `uom_types.yaml`
+  catalog, which `replenishment_strategy.unit_conversion` is checked
+  against.
 - **No slotting optimization module** — deliberately excluded, this is
   runtime/analytics territory, not structure.
 - **No yard management** (yard, trailers, check-in points) — deliberately
