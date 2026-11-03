@@ -16,7 +16,7 @@ pattern (JSON Schema validation, `structure/` vs. `strategies/`,
 | **Topology-as-Code** (this repo) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
 | [`OrderOrchestration-as-Code`](https://github.com/rhinos07/OrderOrchestration-as-Code) | How incoming orders are split, and which downstream workflow each split triggers |
 | [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
-| [`Allocation-as-Code`](https://github.com/rhinos07/Allocation-as-Code) | Stock-search configuration: search-zone sequence, selection strategy, constraints |
+| [`Allocation-as-Code`](https://github.com/rhinos07/Allocation-as-Code) | Stock-search configuration (search-zone sequence, selection strategy, constraints) and its inbound counterpart, putaway placement (putaway-zone sequence, placement strategy, constraints) |
 
 Shared vocabulary with the siblings above:
 - `elements/process_types.yaml` (`goods_receipt`, `putaway_task`,
@@ -40,10 +40,10 @@ Shared vocabulary with the siblings above:
   not an error, and the envelope checks skip it. `Warehouse-as-Code`
   checks such ids per site against the site's MasterData company.
 
-`Allocation-as-Code`'s `search_rule.steps[].zone` references this repo's
-`storage_type`/`activity_area` ids by string, the same loosely-coupled
-convention `OrderOrchestration-as-Code`'s `target` uses - not yet
-cross-checked by either repo's `tools/validate.py`.
+`Allocation-as-Code`'s `search_rule.steps[].zone` and `putaway_rule.steps[].zone`
+reference this repo's `storage_type`/`activity_area` ids by string, the same
+loosely-coupled convention `OrderOrchestration-as-Code`'s `target` uses - not
+yet cross-checked by either repo's `tools/validate.py`.
 
 ## Core Principle
 
@@ -69,7 +69,7 @@ status.
 ## Repo Structure
 
 ```
-warehouse-definitions/
+topology-as-code/
 ├── schemas/              # JSON Schema for validating all YAML files
 ├── elements/             # Reusable templates and catalogs
 │   ├── rack_templates.yaml       # Storage/lane/workstation templates (filename predates the storage_templates catalog)
