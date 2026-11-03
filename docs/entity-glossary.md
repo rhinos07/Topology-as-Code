@@ -2,7 +2,9 @@
 
 Terms modeled after SAP EWM/MFS terminology (for compatibility with
 industry vocabulary), but named independently where it made more sense
-(`storage_point` instead of "Bin").
+(`storage_point` instead of "Bin"). A term-by-term mapping to SAP EWM and
+ISA-95 (draft) is in `Warehouse-as-Code`'s
+[`docs/standards-crosswalk.md`](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/standards-crosswalk.md).
 
 For a worked example applying several of these terms together (the
 opaque-block grid, the dual work_center/reporting_point port, the
