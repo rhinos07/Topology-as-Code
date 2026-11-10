@@ -24,6 +24,16 @@
           "pattern": "^[a-z0-9_]+$",
           "description": "References an id in elements/automation_levels.yaml. Building-level summary; it carries no movement_policy consequence of its own - that applies per storage_type."
         },
+        "layout": {
+          "type": "object",
+          "description": "Floor area of the building as a rectangle. One of its corners is the building's fixed reference point (x = 0, y = 0) for every position in the building: x runs along width, y along depth. Optional; with it, tools/validate.py checks that every footprint and position lies inside.",
+          "required": ["width", "depth"],
+          "properties": {
+            "width": { "$ref": "quantity.schema.json#/definitions/length" },
+            "depth": { "$ref": "quantity.schema.json#/definitions/length" }
+          },
+          "additionalProperties": false
+        },
         "imports": {
           "type": "array",
           "items": { "type": "string" },

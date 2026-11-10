@@ -57,6 +57,7 @@
             "enum": ["identification_point", "aisle_decision_point", "clarification_point"]
           },
           "capacity": { "type": "integer", "minimum": 1 },
+          "position": { "description": "Where it stands in the building (its center), measured from the building's reference point - see warehouse.layout.", "allOf": [{ "$ref": "quantity.schema.json#/definitions/position" }] },
           "description": { "type": "string", "description": "Free text for people: purpose, origin of values. Kept in the compiled artifact, never evaluated - put numbers in their own fields." }
         },
         "additionalProperties": false

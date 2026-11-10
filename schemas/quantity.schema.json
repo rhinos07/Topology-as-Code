@@ -21,6 +21,27 @@
       },
       "additionalProperties": false
     },
+    "coordinate": {
+      "type": "object",
+      "description": "A distance from the building's reference point along one axis. Unlike length it may be 0.",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "minimum": 0 },
+        "unit": { "type": "string", "enum": ["m", "cm", "mm"] }
+      },
+      "additionalProperties": false
+    },
+    "position": {
+      "type": "object",
+      "description": "A physical place in a building, measured from the building's fixed reference point: one corner of warehouse.layout. x runs along the layout's width, y along its depth, z upwards from the floor.",
+      "properties": {
+        "x": { "$ref": "#/definitions/coordinate" },
+        "y": { "$ref": "#/definitions/coordinate" },
+        "z": { "$ref": "#/definitions/coordinate" }
+      },
+      "required": ["x", "y"],
+      "additionalProperties": false
+    },
     "volume": {
       "type": "object",
       "required": ["value", "unit"],

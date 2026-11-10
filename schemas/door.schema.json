@@ -21,6 +21,10 @@
       "pattern": "^[A-Z0-9_]+\\.[A-Z0-9_]+$",
       "description": "Reference to a section of a storage_type in the form '<storage_type_id>.<section_id>', e.g. 'STAGING.SEC_STAGING_OUT'."
     },
+    "position": {
+      "description": "Where the door is in the building (its center), measured from the building's reference point - see warehouse.layout. A door normally lies on the edge of the layout.",
+      "allOf": [{ "$ref": "quantity.schema.json#/definitions/position" }]
+    },
     "determination_group": {
       "type": "string",
       "description": "Load unit type group used for door/gate determination, e.g. 'pallets'."
