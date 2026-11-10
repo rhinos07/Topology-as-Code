@@ -218,6 +218,61 @@ warehouse grouping such as `ZONE_COLD_B`; `position` only accepts structured
 physical coordinates (`x`, `y`, and optional `z`). A section remains an
 independent operational subdivision within a storage type.
 
+## Physical Layout
+
+Where things stand in a building is desired structure too. All layout fields
+are optional, so a building can state them step by step:
+
+| Field | States |
+|---|---|
+| `warehouse.layout` | The building's floor area as a rectangle: `width` and `depth`. |
+| `storage_type.footprint` | The floor area a storage type occupies: `position`, `width` and `depth`. |
+| `position` on a door, work center or reporting point | Where it stands (its center). |
+| `position` on a storage point | Where the place is, as before. |
+
+```yaml
+warehouse:
+  layout:
+    width: { value: 60, unit: "m" }
+    depth: { value: 50, unit: "m" }
+
+storage_types:
+  - id: "HBR"
+    footprint:
+      position: { x: { value: 2, unit: "m" }, y: { value: 4, unit: "m" } }
+      width: { value: 12, unit: "m" }
+      depth: { value: 40, unit: "m" }
+
+doors:
+  - id: "DOOR_01"
+    position: { x: { value: 34, unit: "m" }, y: { value: 50, unit: "m" } }
+```
+
+The coordinate system:
+
+- One corner of `warehouse.layout` is the building's reference point
+  (x = 0, y = 0).
+- x runs along `width`, y along `depth`, z upwards from the floor.
+- A coordinate can be 0, but not negative.
+- A footprint is a rectangle with sides along the axes. Its `position` is the
+  corner nearest to the reference point.
+
+`tools/validate.py` checks what is stated:
+
+- Every footprint and every position lies inside `warehouse.layout`, if the
+  building has one. A door on the edge is inside.
+- No two footprints overlap. Touching edges are allowed.
+- A storage point `position` lies inside the footprint of its storage type.
+
+A footprint does not generate or move storage points. It is for planning and
+display, e.g. the hall plan of
+[`Warehouse-Designer`](https://github.com/rhinos07/Warehouse-Designer).
+`example_customer`'s `hall_3` states a complete layout (example values).
+
+Not modeled yet: a rotated footprint, a footprint that is not a rectangle,
+floors above each other (two footprints on different levels count as an
+overlap), and the course of lanes and conveyors.
+
 ## Automation Levels
 
 `automation_level` references `elements/automation_levels.yaml` rather than

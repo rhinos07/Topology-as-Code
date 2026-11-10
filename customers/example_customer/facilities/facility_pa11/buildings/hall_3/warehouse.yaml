@@ -24,6 +24,14 @@ warehouse:
   name: "Hall_3"
   automation_level: "mixed"
 
+  # Floor area of the hall (example values). One corner is the reference
+  # point for every position in the building: x runs along width, y along
+  # depth. Storage types state a footprint, doors, work centers and
+  # reporting points a position.
+  layout:
+    width: { value: 60, unit: "m" }
+    depth: { value: 50, unit: "m" }
+
   imports:
     - "structure/storage.yaml"
     - "structure/lanes.yaml"

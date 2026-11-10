@@ -5,6 +5,13 @@ storage_types:
 
   # --- Rack location area, automated (shuttle) ---
   - id: "HBR"
+    # Floor area in the hall (example values, not from a real building):
+    # position is the corner nearest to the hall's reference point,
+    # width runs along x, depth along y - see warehouse.yaml layout.
+    footprint:
+      position: { x: { value: 2, unit: "m" }, y: { value: 4, unit: "m" } }
+      width: { value: 12, unit: "m" }
+      depth: { value: 40, unit: "m" }
     automation_level: "conveyor_automated"
     technology: "shuttle"
     movement_policy: "explicit_only"     # every route must be explicitly defined
@@ -77,6 +84,10 @@ storage_types:
   # never both at once - the two coordinate sets physically overlap.
   - id: "HBR_FLEX"
     template: "heavy_bay_1500"    # 1500 kg ambient bay, one unit per point
+    footprint:
+      position: { x: { value: 16, unit: "m" }, y: { value: 4, unit: "m" } }
+      width: { value: 12, unit: "m" }
+      depth: { value: 8, unit: "m" }
     automation_level: "manual"
     technology: "manual_warehouse"
     movement_policy: "default_allow"
@@ -108,6 +119,10 @@ storage_types:
 
   # --- Block location area, manual (forklift) ---
   - id: "BLK"
+    footprint:
+      position: { x: { value: 30, unit: "m" }, y: { value: 20, unit: "m" } }
+      width: { value: 10, unit: "m" }
+      depth: { value: 12, unit: "m" }
     automation_level: "manual"
     technology: "manual_warehouse"
     movement_policy: "default_allow"     # explicitly prohibiting exceptions is sufficient
@@ -137,6 +152,10 @@ storage_types:
 
   # --- Fixed-location picking area, manual ---
   - id: "FIX"
+    footprint:
+      position: { x: { value: 24, unit: "m" }, y: { value: 36, unit: "m" } }
+      width: { value: 6, unit: "m" }
+      depth: { value: 4, unit: "m" }
     automation_level: "manual"
     technology: "manual_warehouse"
     movement_policy: "default_allow"
@@ -173,6 +192,10 @@ storage_types:
   # --- Cold zone, manual ---
   - id: "COLD_ZONE_B"
     template: "pallet_bay_euro_1000"   # standard euro-pallet bay; only the temperature differs
+    footprint:
+      position: { x: { value: 46, unit: "m" }, y: { value: 4, unit: "m" } }
+      width: { value: 10, unit: "m" }
+      depth: { value: 8, unit: "m" }
     automation_level: "manual"
     technology: "manual_warehouse"
     movement_policy: "default_allow"
@@ -193,6 +216,10 @@ storage_types:
   # --- Channel/flow storage, satellite-operated (FIFO) ---
   - id: "CHANNEL_A"
     template: "pallet_bay_euro_1000"   # same bay as COLD_ZONE_B, ambient
+    footprint:
+      position: { x: { value: 16, unit: "m" }, y: { value: 14, unit: "m" } }
+      width: { value: 8, unit: "m" }
+      depth: { value: 20, unit: "m" }
     automation_level: "conveyor_automated"
     technology: "channel_storage"
     movement_policy: "explicit_only"
@@ -226,6 +253,10 @@ storage_types:
   # capacity is modeled (docs/autostore-walkthrough.md).
   - id: "AUTOSTORE_A"
     template: "autostore_bin_location"   # bin weight/carrier shared with autostore_customer's grid
+    footprint:
+      position: { x: { value: 30, unit: "m" }, y: { value: 4, unit: "m" } }
+      width: { value: 14, unit: "m" }
+      depth: { value: 14, unit: "m" }
     automation_level: "controller_automated"   # robots on a grid, not a conveyor
     technology: "autostore"
     movement_policy: "explicit_only"
@@ -240,6 +271,10 @@ storage_types:
 
   # --- Hazardous materials storage, manual, compliance-restricted ---
   - id: "HAZMAT_A"
+    footprint:
+      position: { x: { value: 46, unit: "m" }, y: { value: 14, unit: "m" } }
+      width: { value: 6, unit: "m" }
+      depth: { value: 5, unit: "m" }
     automation_level: "manual"
     technology: "manual_warehouse"
     movement_policy: "default_allow"
@@ -269,6 +304,10 @@ storage_types:
   # --- Staging area at the doors, manual ---
   - id: "STAGING"
     template: "heavy_bay_1500"    # same bay rating as HBR_FLEX, but takes any carrier
+    footprint:
+      position: { x: { value: 30, unit: "m" }, y: { value: 40, unit: "m" } }
+      width: { value: 24, unit: "m" }
+      depth: { value: 6, unit: "m" }
     automation_level: "manual"
     technology: "manual_warehouse"
     movement_policy: "default_allow"
@@ -338,6 +377,7 @@ activity_areas:
 work_centers:
   - id: "WC_PACK_01"
     step: "packing"
+    position: { x: { value: 22, unit: "m" }, y: { value: 44, unit: "m" } }
     workstation_template: "ws_pick_to_light"
     storage_point_ref: true    # WIP inventory can be booked at the work center itself
 
@@ -345,21 +385,25 @@ work_centers:
   # reach on its own (OrderOrchestration b2c_standard SPLIT_TO_AUTOSTORE).
   - id: "EXIT"
     step: "goods_dispatch"
+    position: { x: { value: 37, unit: "m" }, y: { value: 19, unit: "m" } }
     storage_point_ref: true
 
 # Doors / goods receipt-dispatch
 doors:
   - id: "DOOR_01"
     direction: "inbound"
+    position: { x: { value: 34, unit: "m" }, y: { value: 50, unit: "m" } }     # on the hall's wall at y = depth
     staging_section: "STAGING.SEC_STAGING_IN"
     determination_group: "pallets"
 
   - id: "DOOR_02"
     direction: "outbound"
+    position: { x: { value: 44, unit: "m" }, y: { value: 50, unit: "m" } }
     staging_section: "STAGING.SEC_STAGING_OUT"
     determination_group: "pallets"
 
   - id: "DOOR_03"
     direction: "returns"
+    position: { x: { value: 54, unit: "m" }, y: { value: 50, unit: "m" } }
     staging_section: "STAGING.SEC_STAGING_RETURNS"
     determination_group: "pallets"

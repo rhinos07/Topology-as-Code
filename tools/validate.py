@@ -1912,6 +1912,116 @@ def check_graph_reachability(
     return errors
 
 
+LENGTH_IN_M = {"m": 1.0, "cm": 0.01, "mm": 0.001}
+# Rounding slack for layout comparisons, in metres.
+LAYOUT_TOLERANCE = 1e-9
+
+
+def _xy(position: dict | None) -> tuple[float, float] | None:
+    """A position's x and y in metres; None unless both are readable."""
+    if not isinstance(position, dict):
+        return None
+    x = _quantity_value(position.get("x"), LENGTH_IN_M)
+    y = _quantity_value(position.get("y"), LENGTH_IN_M)
+    return None if x is None or y is None else (x, y)
+
+
+def _footprint_box(footprint: dict | None) -> tuple[float, float, float, float] | None:
+    """A footprint as (x0, y0, x1, y1) in metres; None unless it is complete."""
+    if not isinstance(footprint, dict):
+        return None
+    origin = _xy(footprint.get("position"))
+    width = _quantity_value(footprint.get("width"), LENGTH_IN_M)
+    depth = _quantity_value(footprint.get("depth"), LENGTH_IN_M)
+    if origin is None or width is None or depth is None:
+        return None
+    return (origin[0], origin[1], origin[0] + width, origin[1] + depth)
+
+
+def check_layout(
+    warehouse_file: Path,
+    warehouse_data: dict | None,
+    storage_path: Path | None,
+    storage_data: dict | None,
+    wcs_path: Path | None,
+    wcs_data: dict | None,
+) -> list[str]:
+    """Checks the building's physical layout, as far as it is stated:
+    - every storage_type footprint and every door, work_center and
+      reporting_point position lies inside warehouse.layout (if there is one);
+    - no two storage_type footprints overlap (touching edges are fine);
+    - a storage_point position stated for a storage_type with a footprint
+      lies inside that footprint.
+    All layout fields are optional, so a building without them passes."""
+    errors: list[str] = []
+    layout = ((warehouse_data or {}).get("warehouse") or {}).get("layout")
+    hall = None
+    if isinstance(layout, dict):
+        width = _quantity_value(layout.get("width"), LENGTH_IN_M)
+        depth = _quantity_value(layout.get("depth"), LENGTH_IN_M)
+        if width is not None and depth is not None:
+            hall = (width, depth)
+    eps = LAYOUT_TOLERANCE
+
+    def check_point_in_hall(path: Path, label: str, position: dict | None) -> None:
+        xy = _xy(position)
+        if hall is None or xy is None:
+            return
+        if xy[0] > hall[0] + eps or xy[1] > hall[1] + eps:
+            errors.append(
+                f"{path}: {label}: position ({xy[0]:g} m, {xy[1]:g} m) lies outside"
+                f" warehouse.layout ({hall[0]:g} m x {hall[1]:g} m)"
+            )
+
+    boxes: list[tuple[str, tuple[float, float, float, float]]] = []
+    for st in (storage_data or {}).get("storage_types", []):
+        st_id = st.get("id", "?")
+        box = _footprint_box(st.get("footprint"))
+        if box is None:
+            continue
+        if hall is not None and (box[2] > hall[0] + eps or box[3] > hall[1] + eps):
+            errors.append(
+                f"{storage_path}: storage_type '{st_id}': footprint"
+                f" ({box[0]:g}..{box[2]:g} m, {box[1]:g}..{box[3]:g} m) lies outside"
+                f" warehouse.layout ({hall[0]:g} m x {hall[1]:g} m)"
+            )
+        for other_id, other in boxes:
+            if box[0] < other[2] - eps and other[0] < box[2] - eps and box[1] < other[3] - eps and other[1] < box[3] - eps:
+                errors.append(
+                    f"{storage_path}: storage_type '{st_id}': footprint overlaps the footprint"
+                    f" of storage_type '{other_id}'"
+                )
+        boxes.append((st_id, box))
+
+        stated = [("default_attributes", (st.get("default_attributes") or {}).get("position"))]
+        stated += [
+            (f"exception '{item.get('coordinate', '?')}'", item.get("position"))
+            for item in st.get("exceptions", []) if isinstance(item, dict)
+        ]
+        stated += [
+            (f"storage_point '{item.get('coordinate', '?')}'", item.get("position"))
+            for item in st.get("storage_points", []) if isinstance(item, dict)
+        ]
+        for label, position in stated:
+            xy = _xy(position)
+            if xy is None:
+                continue
+            if not (box[0] - eps <= xy[0] <= box[2] + eps and box[1] - eps <= xy[1] <= box[3] + eps):
+                errors.append(
+                    f"{storage_path}: storage_type '{st_id}': {label}: position"
+                    f" ({xy[0]:g} m, {xy[1]:g} m) lies outside the storage_type's footprint"
+                    f" ({box[0]:g}..{box[2]:g} m, {box[1]:g}..{box[3]:g} m)"
+                )
+
+    for door in (storage_data or {}).get("doors", []):
+        check_point_in_hall(storage_path, f"door '{door.get('id', '?')}'", door.get("position"))
+    for wc in (storage_data or {}).get("work_centers", []):
+        check_point_in_hall(storage_path, f"work_center '{wc.get('id', '?')}'", wc.get("position"))
+    for rp in (wcs_data or {}).get("reporting_points", []):
+        check_point_in_hall(wcs_path, f"reporting_point '{rp.get('id', '?')}'", rp.get("position"))
+    return errors
+
+
 def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str]] = {}) -> list[str]:
     """Validates a single building-level warehouse.yaml and everything it imports."""
     if not warehouse_file.exists():
@@ -2001,6 +2111,12 @@ def validate_warehouse_file(warehouse_file: Path, element_ids: dict[str, set[str
         all_errors += check_section_membership(imports["storage.yaml"], storage_data)
         all_errors += check_routing(imports["storage.yaml"], storage_data)
         all_errors += check_load_limits(imports["storage.yaml"], storage_data)
+
+    all_errors += check_layout(
+        warehouse_file, load_yaml(warehouse_file),
+        imports.get("storage.yaml"), storage_data,
+        imports.get("wcs.yaml"), wcs_data,
+    )
 
     if "wcs.yaml" in imports:
         all_errors += check_wcs_refs(imports["wcs.yaml"], element_ids)

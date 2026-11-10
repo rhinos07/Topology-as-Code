@@ -25,18 +25,21 @@ controller_definitions:
 reporting_points:
   - id: "RP_C01"
     storage_point_ref: true
+    position: { x: { value: 15, unit: "m" }, y: { value: 38, unit: "m" } }
     controller: "CTRL_HBR_01"
     type: "identification_point"     # or "aisle_decision_point", "clarification_point"
     capacity: 1
 
   - id: "RP_C02"
     storage_point_ref: true
+    position: { x: { value: 15, unit: "m" }, y: { value: 41, unit: "m" } }
     controller: "CTRL_HBR_01"
     type: "aisle_decision_point"
     capacity: 1
 
   - id: "RP_C03"
     storage_point_ref: true
+    position: { x: { value: 15, unit: "m" }, y: { value: 44, unit: "m" } }
     controller: "CTRL_HBR_01"
     type: "clarification_point"      # manual clarification on identification error
     capacity: 2

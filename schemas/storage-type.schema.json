@@ -17,6 +17,17 @@
       "pattern": "^[a-z0-9_]+$",
       "description": "References an id in elements/rack_templates.yaml storage_templates. The template supplies default_attributes values; this storage_type's own default_attributes override them key by key (shallow merge - overriding a nested key such as 'size' replaces the whole object). Optional: a storage_type whose attributes are unique to it can state them directly and omit this."
     },
+    "footprint": {
+      "type": "object",
+      "description": "Floor area this storage_type occupies in the building, as a rectangle with sides along the building's axes. position is the corner nearest to the building's reference point; width runs along x, depth along y. Desired layout for planning and display: it does not generate or move storage_points. tools/validate.py checks that it lies inside warehouse.layout, does not overlap another storage_type's footprint, and contains every storage_point position stated for this storage_type.",
+      "required": ["position", "width", "depth"],
+      "properties": {
+        "position": { "$ref": "quantity.schema.json#/definitions/position" },
+        "width": { "$ref": "quantity.schema.json#/definitions/length" },
+        "depth": { "$ref": "quantity.schema.json#/definitions/length" }
+      },
+      "additionalProperties": false
+    },
     "automation_level": {
       "type": "string",
       "pattern": "^[a-z0-9_]+$",
@@ -511,15 +522,8 @@
       "additionalProperties": false
     },
     "position": {
-      "type": "object",
-      "description": "Physical coordinates of the storage_point, measured from a fixed building reference point. Logical grouping belongs in zone.",
-      "properties": {
-        "x": { "$ref": "quantity.schema.json#/definitions/length" },
-        "y": { "$ref": "quantity.schema.json#/definitions/length" },
-        "z": { "$ref": "quantity.schema.json#/definitions/length" }
-      },
-      "required": ["x", "y"],
-      "additionalProperties": false
+      "description": "Physical coordinates of the storage_point, measured from the building's fixed reference point (see warehouse.layout). Logical grouping belongs in zone.",
+      "allOf": [{ "$ref": "quantity.schema.json#/definitions/position" }]
     },
     "zone": {
       "type": "string",
